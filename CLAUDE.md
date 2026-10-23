@@ -201,6 +201,58 @@ puede comportarse distinto.
     tarjetas profesionales. En CASOS: `NUMERO_DOCUMENTO` y `FISCAL_ASIGNADO_DESPACHO` (servidores).
     Seudonimizar en plata y enmascarar en toda vista analítica.
 
+### 4-bis. Diagnóstico I0 sobre el dataset completo real (2026-10-23, 978 filas)
+
+Los puntos 1–24 describen una **muestra pequeña de ejemplo**; `make diagnostico` ya corrió sobre
+`data/raw/` completo (978 filas de CASOS, 978 de RELATOS, ambos `.csv`) y varios hallazgos de la
+muestra **no se sostienen a escala completa**. Detalle en `reports/agregados/diagnostico/`.
+
+**Confirma o refuerza lo documentado arriba:**
+- Punto 14 (un solo año, 2026): el dataset completo cubre enero–octubre 2026 (10 meses). I4
+  (pronósticos) sigue condicionado: muy por debajo del umbral de 36 meses del plan.
+- Punto 10 (estructura de 21 dígitos de `CASO_NOTICIA`): 100 % de los valores tiene 21 dígitos y
+  99.8 % tiene el año embebido igual al de `FECHA_CREACION` — evidencia fuerte a favor de la
+  hipótesis. El prefijo DANE **no se pudo verificar** (sigue pendiente: falta copiar DIVIPOLA real
+  a `data/referencia/`); el 0 % que reporta el diagnóstico es un artefacto de esa ausencia, no una
+  refutación.
+- Punto 23 (delitos fuente/conexos, no solo lavado): `SECC_DESCRIPCION` tiene dos secciones reales
+  — "Dirección Especializada contra los Delitos Fiscales" (64 %) y "... contra el Lavado de
+  Activos" (35 %) —, y `TITULO` muestra variedad real (56 % "delitos contra el orden económico
+  social", 39 % "delitos contra la administración pública", y otros).
+
+**Corrige lo documentado arriba (la muestra pequeña no representaba el dataset completo):**
+- Punto 3 (0 coincidencias CASOS↔RELATOS): en el dataset completo la unión es **perfecta** —
+  978 = 978, 100 % de cobertura en ambos sentidos, sin huérfanos. La ausencia total de
+  coincidencias era una particularidad de la muestra de ejemplo, no un defecto estructural.
+- Punto 2/9 (filas vacías, duplicados): el dataset completo no tiene filas vacías que contar ni
+  duplicados — grano confirmado como **una fila = una noticia criminal** (978 `CASO_ID` únicos =
+  978 `CASO_NOTICIA` únicos = 978 filas, 0 duplicados exactos, 0 parciales).
+- Punto 15 (mojibake sistemático): **no se detectó mojibake cirílico** en el dataset completo.
+- Punto 17 (coordenadas muy corruptas): 95.4 % correctas, 4.5 % vacías, solo 0.1 % necesitó
+  reescalado, 0 % invertidas o fuera de la caja de Colombia — mucho más sanas que lo descrito.
+- Punto 13 (prescripción = hecho + 20 años): **no se sostiene**. Solo 19.12 % de los casos cumple
+  exactamente esa regla; la desviación mediana es de −4018 días (~11 años antes de lo esperado).
+  Es consistente con que el plazo de prescripción varía por artículo/delito en la ley colombiana,
+  no con un defecto de datos. No usar "hecho + 20 años" como regla de validación en I1.
+- Punto 7 (`ESTADO`/`ETAPA` constantes): tienen variedad real. `ESTADO`: 90.4 % ACTIVO, 9.6 %
+  INACTIVO. `ETAPA`: 88.4 % INDAGACIÓN, pero también JUICIO (6.4 %), INVESTIGACIÓN, EJECUCIÓN DE
+  PENAS, QUERELLABLE, TERMINACIÓN ANTICIPADA.
+- Punto 7 (`RUPTURA` y `CASO_GRUPO_ESPECIALIZADO` vacías/casi vacías): `RUPTURA` está vacía en
+  88.3 % (no ~100 %); `CASO_GRUPO_ESPECIALIZADO` está vacía en 28.3 % (no "casi vacía"). `OTROS_DELITOS`
+  sí se confirma casi vacía (92.4 %).
+
+**Hallazgo nuevo, no documentado antes:**
+- El nombre real de la columna de eje temático **no es ninguno de los dos documentados**: no es
+  `EJE_TEMATICO` ni `Eje temático APLICA`, sino literalmente **`eje tmeatico APLICA`** (minúsculas,
+  con error de tipeo "tmeatico"). El contrato (`config/esquema_fuente.yaml`) todavía no la reconoce,
+  así que esta sesión de diagnóstico no perfiló sus valores ("por establecer"/"0" sigue sin
+  confirmarse) — pendiente de corregir el contrato y volver a correr `make diagnostico`.
+- Aparece una columna no contemplada en ningún inventario previo: `UNID_DESCRIPCION` (texto, 0 % vacía).
+- `DELITO` se separó en nombre/artículo/cuantía en 96.2 % de los casos (941/978); el 3.8 % restante
+  no calza con el patrón `... ART. N C.P....` — revisar esos 37 valores para ampliar la regla.
+- 90 pares de relatos casi-idénticos (MinHash) entre noticias **distintas**: revisar manualmente si
+  son plantillas repetidas (artefacto de registro) o hechos genuinamente relacionados.
+
 ---
 
 ## 5. Forma de trabajo con la persona
@@ -218,10 +270,30 @@ puede comportarse distinto.
   limitaciones, preguntas abiertas y la compuerta de aprobación pendiente.
 
 ## 6. Preguntas abiertas (actualizar a medida que se respondan)
-- ¿Qué representa una fila de CASOS y cuál es la cardinalidad CASO_ID ↔ CASO_NOTICIA?
-- ¿Por qué no coinciden los CASO_NOTICIA de RELATOS y CASOS en la muestra? ¿Extractos distintos?
+- ~~¿Qué representa una fila de CASOS y cuál es la cardinalidad CASO_ID ↔ CASO_NOTICIA?~~
+  **Respondida (I0, 978 filas reales):** una fila = una noticia criminal; `CASO_ID` y
+  `CASO_NOTICIA` son 1:1 (978 = 978 = 978 filas), 0 duplicados. Pendiente de **aprobación
+  formal** de la persona en la compuerta de I0.
+- ~~¿Por qué no coinciden los CASO_NOTICIA de RELATOS y CASOS en la muestra? ¿Extractos
+  distintos?~~ **Respondida:** en el dataset completo sí coinciden al 100 %; era una
+  particularidad de la muestra de ejemplo, no del dataset real.
 - ¿`Eje temático APLICA` reemplaza a `EJE_TEMATICO`? ¿Qué significan "por establecer" y "0"?
-- Periodo real del dataset completo, volumen y frecuencia de nuevos lotes.
-- Hardware disponible (CPU, RAM, GPU) en la máquina de producción.
-- ¿Qué fuentes de referencia (DIVIPOLA, cartografía, CIIU, proyecciones) están autorizadas localmente?
-- ¿Quién aprueba taxonomía, umbrales de alerta y difusión de resultados?
+  **Sigue abierta** — y más compleja de lo pensado: el nombre real de la columna es
+  `eje tmeatico APLICA` (con error de tipeo), distinto de los dos nombres ya documentados; no se
+  pudo perfilar sus valores en esta corrida (ver §4-bis). Hay que corregir el contrato y repetir
+  el diagnóstico antes de responder esta pregunta.
+- Periodo real del dataset completo, volumen y frecuencia de nuevos lotes. **Volumen y periodo
+  respondidos** (978 filas, enero–octubre 2026, 10 meses); **frecuencia de lotes nuevos sigue
+  abierta**.
+- ~~Hardware disponible (CPU, RAM, GPU) en la máquina de producción.~~ **Respondida:** Apple M5,
+  16 GB RAM, sin GPU CUDA (ver `docs/decisiones/0001-pila-tecnologica.md`).
+- ¿Qué fuentes de referencia (DIVIPOLA, cartografía, CIIU, proyecciones) están autorizadas
+  localmente? **Sigue abierta** — `data/referencia/` sigue vacío; sin DIVIPOLA real, I0 no pudo
+  verificar el prefijo DANE de `CASO_NOTICIA` ni normalizar territorio.
+- ¿Quién aprueba taxonomía, umbrales de alerta y difusión de resultados? **Sigue abierta.**
+- *(Nueva, I0)* ¿Qué es `UNID_DESCRIPCION` (columna no documentada hasta ahora)?
+- *(Nueva, I0)* ¿Se espera un solo criterio de prescripción o varía por artículo/delito? La regla
+  "hecho + 20 años" de la muestra no se sostiene en el dataset completo (19.1 % de cumplimiento
+  exacto); probablemente el plazo depende del artículo del Código Penal, no es un defecto de datos.
+- *(Nueva, I0)* El dataset incluye dos secciones (`SECC_DESCRIPCION`): Delitos Fiscales (64 %) y
+  Lavado de Activos (35 %). ¿Ambas están dentro del alcance de este proyecto, o solo la segunda?
