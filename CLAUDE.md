@@ -244,9 +244,15 @@ muestra **no se sostienen a escala completa**. Detalle en `reports/agregados/dia
 **Hallazgo nuevo, no documentado antes:**
 - El nombre real de la columna de eje temático **no es ninguno de los dos documentados**: no es
   `EJE_TEMATICO` ni `Eje temático APLICA`, sino literalmente **`eje tmeatico APLICA`** (minúsculas,
-  con error de tipeo "tmeatico"). El contrato (`config/esquema_fuente.yaml`) todavía no la reconoce,
-  así que esta sesión de diagnóstico no perfiló sus valores ("por establecer"/"0" sigue sin
-  confirmarse) — pendiente de corregir el contrato y volver a correr `make diagnostico`.
+  con error de tipeo "tmeatico"). **Resuelto (2026-10-23):** tras corregir el contrato y volver a
+  correr `make diagnostico`, el catálogo real es: `0` (72,0%, probablemente "no aplica"/sin
+  asignar), `por establecer` (8,5%), y luego valores temáticos reales —`tributario` (5,7%),
+  `contrabando` (2,9%), `corrupcion` (2,4%), `trafico de moneda falsificada` (2,4%),
+  `organizaciones criminales` (1,7%), `narcotrafico` (1,6%), `delito contra el medio ambiente`
+  (1,4%), y 6 valores adicionales con conteo <5. Es, en efecto, una taxonomía temática incipiente
+  (relevante para la Fase 6, descubrimiento de fenómenos) y no está vacía de contenido como
+  sugería la muestra pequeña. `EJE_TEMATICO` no aparece en absoluto en el dataset real (100 %
+  ausente): no son la misma columna, confirmado.
 - Aparece una columna no contemplada en ningún inventario previo: `UNID_DESCRIPCION` (texto, 0 % vacía).
 - `DELITO` se separó en nombre/artículo/cuantía en 96.2 % de los casos (941/978); el 3.8 % restante
   no calza con el patrón `... ART. N C.P....` — revisar esos 37 valores para ampliar la regla.
@@ -276,11 +282,11 @@ muestra **no se sostienen a escala completa**. Detalle en `reports/agregados/dia
 - ~~¿Por qué no coinciden los CASO_NOTICIA de RELATOS y CASOS en la muestra? ¿Extractos
   distintos?~~ **Respondida:** en el dataset completo sí coinciden al 100 %; era una
   particularidad de la muestra de ejemplo, no del dataset real.
-- ¿`Eje temático APLICA` reemplaza a `EJE_TEMATICO`? ¿Qué significan "por establecer" y "0"?
-  **Parcialmente resuelta:** `config/esquema_fuente.yaml` ya reconoce el nombre real
-  `eje tmeatico APLICA` como columna independiente (2026-10-23); falta volver a correr
-  `make diagnostico` para ver su catálogo de valores reales y confirmar si "por establecer"/"0"
-  aparecen ahí.
+- ~~¿`Eje temático APLICA` reemplaza a `EJE_TEMATICO`? ¿Qué significan "por establecer" y "0"?~~
+  **Resuelta (2026-10-23):** ninguno de los dos nombres documentados es correcto; el real es
+  `eje tmeatico APLICA`. `"0"` y `"por establecer"` existen (72,0% y 8,5%) junto con una taxonomía
+  temática real minoritaria (tributario, contrabando, corrupción, narcotráfico, etc., ver §4-bis).
+  `EJE_TEMATICO` no aparece en el dataset real: no son la misma columna.
 - Periodo real del dataset completo, volumen y frecuencia de nuevos lotes. **Volumen y periodo
   respondidos** (978 filas, enero–octubre 2026, 10 meses); **frecuencia de lotes nuevos sigue
   abierta**.
