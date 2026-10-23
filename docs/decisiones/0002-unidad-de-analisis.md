@@ -1,7 +1,7 @@
 # 0002 — Unidad de análisis (grano de una fila de CASOS)
 
 - **Fecha:** 2026-10-23
-- **Estado:** propuesta — **pendiente de aprobación de la persona con datos reales**
+- **Estado:** **aceptada** (compuerta I0, aprobada por la persona el 2026-10-23)
 
 ## Contexto
 
@@ -24,18 +24,21 @@ sintéticos para validar que el código funciona; falta ejecutarlo sobre `data/r
 
 ## Decisión
 
-**Pendiente.** Sobre fixtures sintéticos (que plantan ambos patrones a propósito), el código
-produce correctamente las tres hipótesis rankeadas con su evidencia; eso confirma que el
-diagnóstico está listo, no decide por sí mismo cuál aplica a los datos reales.
+**Opción 1: una fila = una noticia criminal.** `make diagnostico` corrió sobre las 978 filas
+reales de `data/raw/` (2026-10-23): 978 `CASO_ID` únicos = 978 `CASO_NOTICIA` únicos = 978 filas,
+0 duplicados exactos, 0 duplicados parciales (`hipotesis_grano.csv`, puntaje 1.00). La persona
+aprobó esta hipótesis en la compuerta de I0 sin reservas.
 
-Cuando la persona ejecute `make diagnostico` y yo lea `reports/agregados/diagnostico/informe.md`
-y `hipotesis_grano.csv`, se completa esta sección con: la hipótesis elegida, el umbral de
-confianza que la sostiene, y si hace falta una llave agregada adicional (`caso` o `grupo_conexo`,
-CLAUDE.md §3.3) para los análisis que requieren una noticia por fila.
+No hace falta una llave agregada adicional (`caso` o `grupo_conexo`) para I1: con grano 1:1, la
+tabla `noticia_criminal` puede ser, en esencia, `registros_limpios` con `registro_uid` como llave,
+sin una capa de deduplicación previa. Si llegan lotes futuros con duplicados o multidelito, esta
+decisión se reabre, no se asume que seguirá siendo así.
 
 ## Consecuencias
 
-- Toda tabla de entidades analíticas de I1 (`noticia_criminal`, `caso`) depende de esta decisión.
-- Si el grano resulta ser "noticia × delito", los indicadores de volumen (plan_trabajo.md §8.1)
-  deben reportarse en las tres unidades (registros, noticias únicas, grupos conexos) desde el
-  principio, no como ajuste posterior.
+- `decla.ingesta` (I1) puede construir `noticia_criminal` directamente desde `registros_limpios`
+  sin lógica de deduplicación por `CASO_NOTICIA`; si aparece, es un hallazgo de calidad a reportar,
+  no el caso esperado.
+- Los indicadores de volumen (plan_trabajo.md §8.1) pueden reportarse en una sola unidad
+  (registros = noticias) para este dataset; seguir calculando las tres unidades (registros,
+  noticias únicas, grupos conexos) solo donde el costo es bajo, como salvaguarda ante lotes futuros.

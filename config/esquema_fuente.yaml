@@ -13,6 +13,14 @@
 # IMPORTANTE: "Eje temático APLICA" NO se declara alias de EJE_TEMATICO (CLAUDE.md §4.5): no hay
 # evidencia de que sean equivalentes. Si en el dataset real aparece EJE_TEMATICO, el validador debe
 # reportarlo como hallazgo nuevo, no fusionarlo con "Eje temático APLICA".
+#
+# Diagnóstico I0 sobre el dataset completo real (2026-10-23, 978 filas, ver CLAUDE.md §4-bis):
+# - El nombre real de esta columna no es ninguno de los dos anteriores: es literalmente
+#   "eje tmeatico APLICA" (minúsculas, con error de tipeo). Se agrega como tercera entrada
+#   independiente, sin fusionarla con las otras dos, hasta que se confirme su significado.
+# - "PAIS_HECHOS" era una columna especulativa (inventada en el arranque para completar 40
+#   columnas sin tener el inventario original); el dataset real no la tiene y se retira.
+# - "UNID_DESCRIPCION" es una columna real no documentada hasta esta corrida; se agrega.
 
 version: 1
 
@@ -59,7 +67,10 @@ tablas:
       FISCAL_ASIGNADO_DESPACHO: {obligatoria: false, tipo_esperado: nombre_servidor}
       "Eje temático APLICA": {obligatoria: false, tipo_esperado: categorico}
       DESPACHO: {obligatoria: false, tipo_esperado: categorico}
-      PAIS_HECHOS: {obligatoria: false, tipo_esperado: categorico}
+      UNID_DESCRIPCION: {obligatoria: false, tipo_esperado: texto_libre}
+      # Nombre real observado en el dataset completo (I0, 2026-10-23); independiente de las otras
+      # dos variantes, no se fusiona con ninguna hasta confirmar su significado.
+      "eje tmeatico APLICA": {obligatoria: false, tipo_esperado: categorico}
       # Columna heredada del inventario original; no se asume equivalente a "Eje temático APLICA"
       # (CLAUDE.md §4.5). Si aparece en el dataset real, se reporta como hallazgo, no se fusiona.
       EJE_TEMATICO: {obligatoria: false, tipo_esperado: categorico, heredada: true}

@@ -26,6 +26,10 @@ orden_logico:
   - [FECHA_CREACION, FECHA_ULTIMA_ACTUACION]
   - [FECHA_HECHO, CASO_FECHA_PRESCRIPCION]
 
+# ADR 0008 (2026-10-23): sobre el dataset completo real, solo 19.12% de los casos cumple esta
+# regla exactamente (desviación mediana ≈ -11 años). NO se usa como regla de validación de
+# calidad ni para filtrar/alertar; `decla.calidad.fechas.verificar_prescripcion` solo describe
+# la distribución observada frente a este supuesto, de forma informativa.
 regla_prescripcion:
   columna_base: FECHA_HECHO
   columna_resultado: CASO_FECHA_PRESCRIPCION

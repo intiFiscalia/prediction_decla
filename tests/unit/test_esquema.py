@@ -30,7 +30,10 @@ def test_comparar_esquema_contra_fixture_casos_no_reporta_columnas_nuevas() -> N
     tabla = leer_csv(RAIZ_FIXTURES / "casos_sinteticos.csv")
     resultado = comparar_esquema(tabla, "CASOS", contrato)
     assert resultado.columnas_nuevas == []
-    assert resultado.columnas_esperadas_faltantes == []
+    # "eje tmeatico APLICA" es el nombre real descubierto en el dataset completo (I0,
+    # 2026-10-23); el generador de fixtures sintéticos solo planta "Eje temático APLICA", así
+    # que es esperable (y no un error) que la variante real falte en los fixtures.
+    assert resultado.columnas_esperadas_faltantes == ["eje tmeatico APLICA"]
 
 
 def test_comparar_esquema_detecta_columna_faltante_y_nueva() -> None:

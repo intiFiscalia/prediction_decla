@@ -72,7 +72,7 @@ COLUMNAS_CASOS = [
     "FISCAL_ASIGNADO_DESPACHO",
     "Eje temático APLICA",
     "DESPACHO",
-    "PAIS_HECHOS",
+    "UNID_DESCRIPCION",
 ]
 assert len(COLUMNAS_CASOS) == 40, f"Se esperaban 40 columnas, hay {len(COLUMNAS_CASOS)}"
 
@@ -538,7 +538,7 @@ def construir_fila_caso(rng: random.Random, logica: FilaLogicaCaso) -> dict[str,
     eje_tematico_txt = rng.choices(
         ["por establecer", "0", "LAVADO DE ACTIVOS"], weights=[0.5, 0.3, 0.2]
     )[0]
-    pais_txt = rng.choices(["COLOMBIA", "ESTADOS UNIDOS", "PANAMÁ"], weights=[0.9, 0.06, 0.04])[0]
+    unid_descripcion_txt = f"UNIDAD {rng.randint(1, 20)} - {territorio['municipio'].title()}"
 
     def ambos(valor: Any) -> dict[str, Any]:
         return {"csv": valor, "xlsx": valor}
@@ -591,7 +591,7 @@ def construir_fila_caso(rng: random.Random, logica: FilaLogicaCaso) -> dict[str,
         "FISCAL_ASIGNADO_DESPACHO": ambos(generar_nombre(rng)),
         "Eje temático APLICA": ambos(eje_tematico_txt),
         "DESPACHO": ambos(f"FISCALÍA {rng.randint(1, 40)} DECLA {territorio['municipio'].title()}"),
-        "PAIS_HECHOS": ambos(pais_txt),
+        "UNID_DESCRIPCION": ambos(unid_descripcion_txt),
     }
 
 

@@ -271,17 +271,16 @@ muestra **no se sostienen a escala completa**. Detalle en `reports/agregados/dia
 
 ## 6. Preguntas abiertas (actualizar a medida que se respondan)
 - ~~¿Qué representa una fila de CASOS y cuál es la cardinalidad CASO_ID ↔ CASO_NOTICIA?~~
-  **Respondida (I0, 978 filas reales):** una fila = una noticia criminal; `CASO_ID` y
-  `CASO_NOTICIA` son 1:1 (978 = 978 = 978 filas), 0 duplicados. Pendiente de **aprobación
-  formal** de la persona en la compuerta de I0.
+  **Respondida y aprobada (I0, 2026-10-23, ADR 0002):** una fila = una noticia criminal; `CASO_ID`
+  y `CASO_NOTICIA` son 1:1 (978 = 978 = 978 filas), 0 duplicados.
 - ~~¿Por qué no coinciden los CASO_NOTICIA de RELATOS y CASOS en la muestra? ¿Extractos
   distintos?~~ **Respondida:** en el dataset completo sí coinciden al 100 %; era una
   particularidad de la muestra de ejemplo, no del dataset real.
 - ¿`Eje temático APLICA` reemplaza a `EJE_TEMATICO`? ¿Qué significan "por establecer" y "0"?
-  **Sigue abierta** — y más compleja de lo pensado: el nombre real de la columna es
-  `eje tmeatico APLICA` (con error de tipeo), distinto de los dos nombres ya documentados; no se
-  pudo perfilar sus valores en esta corrida (ver §4-bis). Hay que corregir el contrato y repetir
-  el diagnóstico antes de responder esta pregunta.
+  **Parcialmente resuelta:** `config/esquema_fuente.yaml` ya reconoce el nombre real
+  `eje tmeatico APLICA` como columna independiente (2026-10-23); falta volver a correr
+  `make diagnostico` para ver su catálogo de valores reales y confirmar si "por establecer"/"0"
+  aparecen ahí.
 - Periodo real del dataset completo, volumen y frecuencia de nuevos lotes. **Volumen y periodo
   respondidos** (978 filas, enero–octubre 2026, 10 meses); **frecuencia de lotes nuevos sigue
   abierta**.
@@ -291,9 +290,12 @@ muestra **no se sostienen a escala completa**. Detalle en `reports/agregados/dia
   localmente? **Sigue abierta** — `data/referencia/` sigue vacío; sin DIVIPOLA real, I0 no pudo
   verificar el prefijo DANE de `CASO_NOTICIA` ni normalizar territorio.
 - ¿Quién aprueba taxonomía, umbrales de alerta y difusión de resultados? **Sigue abierta.**
-- *(Nueva, I0)* ¿Qué es `UNID_DESCRIPCION` (columna no documentada hasta ahora)?
-- *(Nueva, I0)* ¿Se espera un solo criterio de prescripción o varía por artículo/delito? La regla
-  "hecho + 20 años" de la muestra no se sostiene en el dataset completo (19.1 % de cumplimiento
-  exacto); probablemente el plazo depende del artículo del Código Penal, no es un defecto de datos.
-- *(Nueva, I0)* El dataset incluye dos secciones (`SECC_DESCRIPCION`): Delitos Fiscales (64 %) y
-  Lavado de Activos (35 %). ¿Ambas están dentro del alcance de este proyecto, o solo la segunda?
+- *(Nueva, I0)* ¿Qué es `UNID_DESCRIPCION` (columna no documentada hasta ahora)? Sigue abierta;
+  ya está reconocida en el contrato (`config/esquema_fuente.yaml`) pero no se ha interpretado.
+- ~~¿Se espera un solo criterio de prescripción o varía por artículo/delito?~~ **Resuelta (ADR
+  0008, 2026-10-23):** varía; no se usa "hecho + 20 años" como regla de validación, solo se
+  reporta la distribución observada.
+- ~~El dataset incluye dos secciones (`SECC_DESCRIPCION`): Delitos Fiscales (64 %) y Lavado de
+  Activos (35 %). ¿Ambas están dentro del alcance?~~ **Resuelta (ADR 0008, 2026-10-23):** el
+  alcance se limita a "Dirección Especializada contra el Lavado de Activos" (347 filas); Delitos
+  Fiscales queda fuera. El filtro se aplica en plata/entidades de I1, no en bronce.
