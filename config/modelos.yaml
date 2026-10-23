@@ -1,0 +1,30 @@
+# Catálogo de modelos preentrenados candidatos (CLAUDE.md §2.2, plan_trabajo.md §5.2).
+# Se descargan una sola vez con `scripts/descargar_modelos.py` en una máquina autorizada con
+# internet; de ahí en adelante se cargan siempre desde `models/` en modo offline.
+# No se asume cuál es el definitivo: se compara en la Fase 4 con una muestra anotada de pares de
+# relatos y se elige por desempeño, no por este orden.
+
+modelos:
+  - id: es_core_news_lg
+    tipo: spacy
+    origen: "https://github.com/explosion/spacy-models/releases/download/es_core_news_lg-3.7.0/es_core_news_lg-3.7.0-py3-none-any.whl"
+    licencia: MIT
+    uso: "Tokenización, lematización, dependencias, NER y Matcher/EntityRuler para reglas (Fase 4)."
+
+  - id: paraphrase-multilingual-mpnet-base-v2
+    tipo: sentence-transformers
+    repo_id: sentence-transformers/paraphrase-multilingual-mpnet-base-v2
+    licencia: Apache-2.0
+    uso: "Embeddings multilingües base; candidato por defecto en CPU (Fase 4, 6)."
+
+  - id: multilingual-e5-base
+    tipo: sentence-transformers
+    repo_id: intfloat/multilingual-e5-base
+    licencia: MIT
+    uso: "Embeddings con mejor desempeño en recuperación; admite 512 tokens (Fase 4, 6)."
+
+  - id: bge-m3
+    tipo: sentence-transformers
+    repo_id: BAAI/bge-m3
+    licencia: MIT
+    uso: "Contexto largo (hasta 8192 tokens), útil para relatos extensos; más pesado (Fase 4, 6)."
