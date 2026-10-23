@@ -1,0 +1,83 @@
+[project]
+name = "decla"
+version = "0.0.1"
+description = "Analítica local de fenómenos asociados al lavado de activos (DECLA)"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = { text = "Uso interno" }
+dependencies = []
+
+[project.optional-dependencies]
+base = [
+  "polars>=1.9",
+  "duckdb>=1.1",
+  "pyarrow>=17.0",
+  "pandera>=0.20",
+  "numbers-parser>=4.14",
+  "python-calamine>=0.2",
+  "ftfy>=6.2",
+  "rapidfuzz>=3.9",
+  "unidecode>=1.3",
+  "pyyaml>=6.0",
+  "structlog>=24.4",
+]
+nlp = [
+  "spacy>=3.7",
+  "sentence-transformers>=3.1",
+  "torch>=2.4",
+  "datasketch>=1.6",
+]
+fenomenos = [
+  "umap-learn>=0.5",
+  "bertopic>=0.16",
+  "scikit-learn>=1.5",
+]
+analitica = [
+  "statsmodels>=0.14",
+  "scipy>=1.14",
+  "ruptures>=1.1",
+  "geopandas>=1.0",
+  "shapely>=2.0",
+  "esda>=2.5",
+  "libpysal>=4.12",
+  "networkx>=3.3",
+  "mlxtend>=0.23",
+  "prince>=0.13",
+]
+app = [
+  "streamlit>=1.38",
+  "plotly>=5.24",
+]
+dev = [
+  "pytest>=8.3",
+  "ruff>=0.6",
+  "mypy>=1.11",
+  "hypothesis>=6.112",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/decla"]
+
+[tool.uv]
+# Pila decidida en docs/decisiones/0001-pila-tecnologica.md; no agregar herramientas sin registrar
+# una decisión nueva.
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+disallow_untyped_defs = false
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
