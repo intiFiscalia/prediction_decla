@@ -794,6 +794,30 @@ def hash_archivo(ruta: Path) -> str:
 
 
 # --------------------------------------------------------------------------------------
+# Gazetteer sintético (para probar normalización territorial sin DIVIPOLA real)
+# --------------------------------------------------------------------------------------
+
+
+def construir_divipola_sintetico() -> pl.DataFrame:
+    """DIVIPOLA **sintético**: los mismos `TERRITORIOS` que usa el resto del generador, en la
+    forma tabular que espera `decla.calidad.territorio`. No es una copia de DIVIPOLA real; sirve
+    solo para probar la lógica de normalización (incluido el homónimo "SAN LUIS").
+    """
+    filas = [
+        {
+            "cod_dpto": t["cod_dpto"],
+            "cod_mpio": t["cod_mpio"],
+            "departamento": t["departamento"],
+            "municipio": t["municipio"],
+            "lat_centroide": t["lat"],
+            "long_centroide": t["long"],
+        }
+        for t in TERRITORIOS
+    ]
+    return pl.DataFrame(filas).unique(subset=["cod_mpio"]).sort("cod_mpio")
+
+
+# --------------------------------------------------------------------------------------
 # Orquestación
 # --------------------------------------------------------------------------------------
 
@@ -811,6 +835,7 @@ def generar(seed: int, n_noticias: int, destino: Path) -> dict[str, str]:
         "relatos_csv": destino / "relatos_sinteticos.csv",
         "relatos_xlsx": destino / "relatos_sinteticos.xlsx",
         "verdad": destino / "verdad.parquet",
+        "divipola_sintetico": destino / "divipola_sintetico.csv",
     }
 
     escribir_csv(filas_casos, COLUMNAS_CASOS, rutas["casos_csv"])
@@ -818,6 +843,7 @@ def generar(seed: int, n_noticias: int, destino: Path) -> dict[str, str]:
     escribir_csv(filas_relatos, COLUMNAS_RELATOS, rutas["relatos_csv"])
     escribir_xlsx(filas_relatos, COLUMNAS_RELATOS, rutas["relatos_xlsx"])
     pl.DataFrame(verdad).write_parquet(rutas["verdad"])
+    construir_divipola_sintetico().write_csv(rutas["divipola_sintetico"])
 
     return {nombre: hash_archivo(ruta) for nombre, ruta in rutas.items()}
 

@@ -655,7 +655,6 @@ analitica = [
     { name = "networkx", version = "3.6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "networkx", version = "3.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "prince" },
-    { name = "ruptures" },
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "shapely" },
@@ -666,8 +665,10 @@ app = [
     { name = "streamlit" },
 ]
 base = [
+    { name = "datasketch" },
     { name = "duckdb" },
     { name = "ftfy" },
+    { name = "matplotlib" },
     { name = "numbers-parser" },
     { name = "pandera" },
     { name = "polars" },
@@ -675,6 +676,7 @@ base = [
     { name = "python-calamine" },
     { name = "pyyaml" },
     { name = "rapidfuzz" },
+    { name = "ruptures" },
     { name = "structlog" },
     { name = "unidecode" },
 ]
@@ -691,7 +693,6 @@ fenomenos = [
     { name = "umap-learn" },
 ]
 nlp = [
-    { name = "datasketch" },
     { name = "sentence-transformers" },
     { name = "spacy" },
     { name = "torch" },
@@ -700,13 +701,14 @@ nlp = [
 [package.metadata]
 requires-dist = [
     { name = "bertopic", marker = "extra == 'fenomenos'", specifier = ">=0.16" },
-    { name = "datasketch", marker = "extra == 'nlp'", specifier = ">=1.6" },
+    { name = "datasketch", marker = "extra == 'base'", specifier = ">=1.6" },
     { name = "duckdb", marker = "extra == 'base'", specifier = ">=1.1" },
     { name = "esda", marker = "extra == 'analitica'", specifier = ">=2.5" },
     { name = "ftfy", marker = "extra == 'base'", specifier = ">=6.2" },
     { name = "geopandas", marker = "extra == 'analitica'", specifier = ">=1.0" },
     { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.112" },
     { name = "libpysal", marker = "extra == 'analitica'", specifier = ">=4.12" },
+    { name = "matplotlib", marker = "extra == 'base'", specifier = ">=3.9" },
     { name = "mlxtend", marker = "extra == 'analitica'", specifier = ">=0.23" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.11" },
     { name = "networkx", marker = "extra == 'analitica'", specifier = ">=3.3" },
@@ -722,7 +724,7 @@ requires-dist = [
     { name = "pyyaml", marker = "extra == 'base'", specifier = ">=6.0" },
     { name = "rapidfuzz", marker = "extra == 'base'", specifier = ">=3.9" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
-    { name = "ruptures", marker = "extra == 'analitica'", specifier = ">=1.1" },
+    { name = "ruptures", marker = "extra == 'base'", specifier = ">=1.1" },
     { name = "scikit-learn", marker = "extra == 'fenomenos'", specifier = ">=1.5" },
     { name = "scipy", marker = "extra == 'analitica'", specifier = ">=1.14" },
     { name = "sentence-transformers", marker = "extra == 'nlp'", specifier = ">=3.1" },

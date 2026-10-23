@@ -1,0 +1,47 @@
+# Reglas de validación de fechas (CLAUDE.md §4.11, §4.13; plan_trabajo.md Fase 1, punto 3).
+#
+# El formato NO se asume por columna: `decla.calidad.fechas.detectar_formato_fecha` lo infiere por
+# columna a partir de los propios valores (si algún valor tiene >12 en la primera posición, la
+# columna es D/M/AAAA; si lo tiene en la segunda, es M/D/AAAA; si hay evidencia contradictoria o
+# ninguna, queda "ambiguo" y se reporta así, nunca se fuerza un formato).
+
+version: 1
+
+rango_valido:
+  fecha_minima: "2000-01-01"
+  # Una fecha posterior a "hoy" (al momento de correr el diagnóstico) se marca como futura.
+  permitir_fechas_futuras: false
+
+valores_invalidos_conocidos:
+  - "1/1/1900"
+  - "0/0/0000"
+
+# Pares (columna_anterior, columna_posterior): se espera columna_anterior <= columna_posterior.
+# Solo se evalúa sobre filas donde ambas fechas son válidas.
+orden_logico:
+  - [FECHA_HECHO, CASO_FECHA_DENUNCIA]
+  - [CASO_FECHA_DENUNCIA, FECHA_CREACION]
+  - [FECHA_CREACION, CASO_FECHA_REG_NC]
+  - [FECHA_CREACION, FECHA_ASIGNACION]
+  - [FECHA_CREACION, FECHA_ULTIMA_ACTUACION]
+  - [FECHA_HECHO, CASO_FECHA_PRESCRIPCION]
+
+regla_prescripcion:
+  columna_base: FECHA_HECHO
+  columna_resultado: CASO_FECHA_PRESCRIPCION
+  anios: 20
+  tolerancia_dias: 0
+
+columnas_fecha_casos:
+  - FECHA_HECHO
+  - CASO_FECHA_DENUNCIA
+  - FECHA_CREACION
+  - CASO_FECHA_REG_NC
+  - FECHA_ASIGNACION
+  - CASO_FECHA_PRESCRIPCION
+  - FECHA_ULTIMA_ACTUACION
+  - FECHA_REGISTRO_ACTUACION
+
+# Fecha de referencia para el perfil temporal de I0 (decisión de diseño, no definitiva para
+# indicadores de I1): mide actividad institucional registrada, no fecha del hecho.
+fecha_referencia_temporal: FECHA_CREACION

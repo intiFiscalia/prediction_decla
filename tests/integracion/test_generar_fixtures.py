@@ -14,6 +14,7 @@ ARCHIVOS_ESPERADOS = {
     "relatos_sinteticos.csv",
     "relatos_sinteticos.xlsx",
     "verdad.parquet",
+    "divipola_sintetico.csv",
 }
 
 
