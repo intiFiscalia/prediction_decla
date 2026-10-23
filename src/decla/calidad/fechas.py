@@ -30,8 +30,8 @@ def detectar_formato_fecha(valores: list[str | None]) -> tuple[str, float]:
     """Devuelve (formato, confianza). confianza = fracción de valores parseables que aportan
     evidencia a favor del formato elegido.
     """
-    evidencia_dmy = 0  # primera posición > 12: solo puede ser día
-    evidencia_mdy = 0  # segunda posición > 12: solo puede ser día, luego la 1ª es mes
+    evidencia_dmy = 0  # 1ª posición > 12 y plausible como D/M (2ª <= 12): solo puede ser D/M
+    evidencia_mdy = 0  # 2ª posición > 12 y plausible como M/D (1ª <= 12): solo puede ser M/D
     total_parseable = 0
 
     for valor in valores:
@@ -42,9 +42,13 @@ def detectar_formato_fecha(valores: list[str | None]) -> tuple[str, float]:
             continue
         total_parseable += 1
         a, b, _anio = partes
-        if a > 12:
+        # Si ambas posiciones superan 12, el valor es inválido en cualquier formato (p. ej.
+        # "13/15/2026"): no aporta evidencia a favor de ninguno, no es evidencia contradictoria.
+        plausible_dmy = a <= 31 and b <= 12
+        plausible_mdy = a <= 12 and b <= 31
+        if a > 12 and plausible_dmy:
             evidencia_dmy += 1
-        if b > 12:
+        if b > 12 and plausible_mdy:
             evidencia_mdy += 1
 
     if total_parseable == 0:

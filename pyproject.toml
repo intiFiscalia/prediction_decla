@@ -79,6 +79,9 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.ruff.lint.per-file-ignores]
 # Catálogos de territorios/delitos/frases de relato: cadenas narrativas más legibles sin envolver.
 "scripts/generar_fixtures.py" = ["E501"]
+# Orquestador de diagnóstico: ensambla muchas estructuras con nombres largos; envolver cada línea
+# perjudica más la lectura de lo que ayuda.
+"src/decla/calidad/diagnostico.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"

@@ -246,7 +246,8 @@ def generar_cedula(rng: random.Random, extranjera: bool = False) -> str:
 
 
 def generar_telefono(rng: random.Random) -> str:
-    return f"3{rng.randint(0, 9)}{rng.randint(0, 9999999):07d}"
+    # Celular colombiano: 10 dígitos, empieza en 3 (3XX XXX XXXX).
+    return f"3{rng.randint(0, 999_999_999):09d}"
 
 
 def generar_correo(rng: random.Random) -> str:
