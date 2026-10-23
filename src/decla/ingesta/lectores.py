@@ -164,3 +164,21 @@ def leer_tabla(ruta: Path, **kwargs: Any) -> TablaLeida:
             f"Se admite: {sorted(LECTORES_POR_EXTENSION)}"
         )
     return lector(ruta, **kwargs)
+
+
+def localizar_archivo(directorio: Path, palabra_clave: str) -> Path | None:
+    """Busca, dentro de `directorio`, el archivo cuyo nombre contiene `palabra_clave`
+    (sin distinguir mayúsculas) entre las extensiones soportadas. Si hay varios, prefiere
+    `.csv` > `.xlsx` > `.numbers` (más simple/rápido de leer).
+    """
+    orden = {".csv": 0, ".xlsx": 1, ".numbers": 2}
+    candidatos = [
+        p
+        for p in directorio.iterdir()
+        if p.is_file()
+        and p.suffix.lower() in LECTORES_POR_EXTENSION
+        and palabra_clave.lower() in p.name.lower()
+    ]
+    if not candidatos:
+        return None
+    return sorted(candidatos, key=lambda p: orden[p.suffix.lower()])[0]

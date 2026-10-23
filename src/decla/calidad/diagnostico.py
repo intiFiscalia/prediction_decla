@@ -50,11 +50,10 @@ from decla.comun.duckdb_io import conectar  # noqa: E402
 from decla.comun.ejecucion import RegistroEjecucion  # noqa: E402
 from decla.comun.supresion import suprimir_celdas_bajas  # noqa: E402
 from decla.ingesta.esquema import cargar_contrato, comparar_esquema  # noqa: E402
-from decla.ingesta.lectores import TablaLeida, leer_tabla  # noqa: E402
+from decla.ingesta.lectores import TablaLeida, leer_tabla, localizar_archivo  # noqa: E402
 
 RAIZ_PROYECTO = Path(__file__).resolve().parents[3]
 RUTA_REGLAS_FECHAS = RAIZ_PROYECTO / "config" / "reglas_fechas.yaml"
-EXTENSIONES_SOPORTADAS = (".csv", ".xlsx", ".numbers")
 COLUMNAS_CATEGORICAS = [
     "ESTADO", "ETAPA", "TIPO_NOTICIA", "TIPO_DILIGENCIA", "COMPETENCIA_DESPACHO",
     "TITULO", "CAPITULO", "ULTIMA_ACTUACION", "Eje temático APLICA", "eje tmeatico APLICA",
@@ -62,17 +61,6 @@ COLUMNAS_CATEGORICAS = [
 ]
 COLUMNAS_PARA_FALTANTES = ["CASO_FECHA_DENUNCIA", "LAT_DIR_HECHOS", "NUMERO_DOCUMENTO"]
 MAX_RELATOS_MINHASH = 5000
-
-
-def _localizar_archivo(directorio: Path, palabra_clave: str) -> Path | None:
-    orden = {".csv": 0, ".xlsx": 1, ".numbers": 2}
-    candidatos = [
-        p for p in directorio.iterdir()
-        if p.is_file() and p.suffix.lower() in EXTENSIONES_SOPORTADAS and palabra_clave.lower() in p.name.lower()
-    ]
-    if not candidatos:
-        return None
-    return sorted(candidatos, key=lambda p: orden[p.suffix.lower()])[0]
 
 
 def _cargar_divipola(ruta: Path | None) -> tuple[list[territorio.EntradaDivipola], dict[str, tuple[float, float]], list[str]]:
@@ -124,8 +112,8 @@ def diagnosticar(
     directorio_privado.mkdir(parents=True, exist_ok=True)
     advertencias: list[str] = []
 
-    archivo_casos = _localizar_archivo(directorio_entrada, "CASOS")
-    archivo_relatos = _localizar_archivo(directorio_entrada, "RELATOS")
+    archivo_casos = localizar_archivo(directorio_entrada, "CASOS")
+    archivo_relatos = localizar_archivo(directorio_entrada, "RELATOS")
     if archivo_casos is None:
         raise FileNotFoundError(f"No se encontró un archivo de CASOS en {directorio_entrada}")
     if archivo_relatos is None:
