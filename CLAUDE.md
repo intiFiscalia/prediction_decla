@@ -210,11 +210,15 @@ muestra **no se sostienen a escala completa**. Detalle en `reports/agregados/dia
 **Confirma o refuerza lo documentado arriba:**
 - Punto 14 (un solo año, 2026): el dataset completo cubre enero–octubre 2026 (10 meses). I4
   (pronósticos) sigue condicionado: muy por debajo del umbral de 36 meses del plan.
-- Punto 10 (estructura de 21 dígitos de `CASO_NOTICIA`): 100 % de los valores tiene 21 dígitos y
-  99.8 % tiene el año embebido igual al de `FECHA_CREACION` — evidencia fuerte a favor de la
-  hipótesis. El prefijo DANE **no se pudo verificar** (sigue pendiente: falta copiar DIVIPOLA real
-  a `data/referencia/`); el 0 % que reporta el diagnóstico es un artefacto de esa ausencia, no una
-  refutación.
+- Punto 10 (estructura de 21 dígitos de `CASO_NOTICIA`): **confirmada** con DIVIPOLA real
+  (2026-10-23): 100 % de los valores tiene 21 dígitos, 100 % tiene un prefijo de 5 dígitos que
+  existe en DIVIPOLA, y 99.8 % tiene el año embebido igual al de `FECHA_CREACION`. La hipótesis
+  cod_mpio(5)+entidad(2)+unidad(5)+año(4)+consecutivo(5) queda validada, no solo plausible.
+- Punto 16 (normalización territorial contra DIVIPOLA): con DIVIPOLA real cargado (2026-10-23,
+  `data/referencia/divipola.csv`, DANE vía datos.gov.co), 38.2 % de `DEPARTAMENTO_HECHOS`/
+  `MUNICIPIO_HECHOS` coincide exacto, 49.6 % coincide tras normalizar (mayúsculas/tildes/
+  puntuación), y 12.2 % (119 filas) queda `no_resoluble` — pendiente de revisar manualmente cuáles
+  son (¿municipios fuera de Colombia, nombres truncados, o faltantes del 2.45 % ya detectado?).
 - Punto 23 (delitos fuente/conexos, no solo lavado): `SECC_DESCRIPCION` tiene dos secciones reales
   — "Dirección Especializada contra los Delitos Fiscales" (64 %) y "... contra el Lavado de
   Activos" (35 %) —, y `TITULO` muestra variedad real (56 % "delitos contra el orden económico
@@ -293,8 +297,9 @@ muestra **no se sostienen a escala completa**. Detalle en `reports/agregados/dia
 - ~~Hardware disponible (CPU, RAM, GPU) en la máquina de producción.~~ **Respondida:** Apple M5,
   16 GB RAM, sin GPU CUDA (ver `docs/decisiones/0001-pila-tecnologica.md`).
 - ¿Qué fuentes de referencia (DIVIPOLA, cartografía, CIIU, proyecciones) están autorizadas
-  localmente? **Sigue abierta** — `data/referencia/` sigue vacío; sin DIVIPOLA real, I0 no pudo
-  verificar el prefijo DANE de `CASO_NOTICIA` ni normalizar territorio.
+  localmente? **Parcialmente resuelta:** DIVIPOLA real ya está en `data/referencia/divipola.csv`
+  (DANE vía datos.gov.co, público). Sigue pendiente: cartografía (shapefiles, para point-in-polygon
+  fino), CIIU Rev. 4 A.C., proyecciones de población DANE, catálogo del Código Penal.
 - ¿Quién aprueba taxonomía, umbrales de alerta y difusión de resultados? **Sigue abierta.**
 - *(Nueva, I0)* ¿Qué es `UNID_DESCRIPCION` (columna no documentada hasta ahora)? Sigue abierta;
   ya está reconocida en el contrato (`config/esquema_fuente.yaml`) pero no se ha interpretado.

@@ -1,7 +1,8 @@
 # Cierre de I0 — Diagnóstico de datos y arquitectura
 
 - **Fecha:** 2026-10-23
-- **Corridas de `make diagnostico` sobre datos reales:** dos (978 filas de CASOS/RELATOS cada vez).
+- **Corridas de `make diagnostico` sobre datos reales:** tres (978 filas de CASOS/RELATOS cada vez;
+  la tercera con DIVIPOLA real ya cargado).
 
 ## Entregables
 
@@ -23,7 +24,8 @@
 | --- | --- |
 | Grano | 1 fila = 1 noticia criminal (978 = 978 = 978, 0 duplicados) |
 | Unión CASOS↔RELATOS | 100 % de coincidencia en ambos sentidos, 0 huérfanos |
-| `CASO_NOTICIA` 21 dígitos | 100 %; 99,8 % con año embebido correcto; prefijo DANE **no verificado** (falta DIVIPOLA) |
+| `CASO_NOTICIA` 21 dígitos | 100 %; 100 % con prefijo DANE válido; 99,8 % con año embebido correcto — hipótesis **confirmada** |
+| Territorio (`DEPARTAMENTO_HECHOS`/`MUNICIPIO_HECHOS`) | 38,2 % exacto, 49,6 % normalizado, 12,2 % no resoluble (119 filas, por revisar) |
 | Regla "prescripción = hecho + 20 años" | 19,1 % de cumplimiento exacto — **no se usa como regla de validación** |
 | Mojibake cirílico | 0 relatos |
 | Coordenadas | 95,4 % correctas, 4,5 % vacías, 0,1 % reparadas, 0 % invertidas/fuera de caja |
@@ -45,25 +47,27 @@
 
 ## Limitaciones y pendientes
 
-- **Territorio sin verificar:** `data/referencia/divipola.csv` sigue sin existir. El diagnóstico
-  no pudo normalizar `DEPARTAMENTO_HECHOS`/`MUNICIPIO_HECHOS` ni verificar el prefijo DANE de
-  `CASO_NOTICIA`. El criterio de compuerta "100 % de valores territoriales mapeados o marcados
-  no resoluble" **no se cumple todavía** por esta ausencia, no por una falla del código (probado
-  contra un gazetteer sintético en `tests/fixtures/divipola_sintetico.csv`, incluidos homónimos).
+- **119 filas (12,2 %) con territorio `no_resoluble`:** pendiente de revisión manual en I1 (¿son
+  municipios fuera de Colombia, nombres truncados, o parte del 2,45 % que ya venía vacío?). No
+  bloquea I1, pero I1 debe declarar explícitamente estas filas, no descartarlas en silencio.
 - `eje tmeatico APLICA`, `UNID_DESCRIPCION` y las dos nuevas secciones de `SECC_DESCRIPCION` no
   tienen ficha de indicador ni definición formal todavía; quedan para I1/I5.
 - El periodo real (10 meses) descarta pronósticos (I4) por ahora; se reevalúa cuando haya más lotes.
 - `informe.md` no aplica la misma supresión `<5` que los CSV a los conteos que incrusta en el
   texto (ej. "0 relatos con mojibake"); no es sensible hoy pero se corrige antes de I1.
+- Solo hay DIVIPOLA en `data/referencia/`; sigue faltando cartografía (shapefiles, para
+  point-in-polygon fino), CIIU Rev. 4 A.C., proyecciones de población DANE y catálogo del Código
+  Penal.
 - ADRs 0003–0007 siguen con decisión provisional o pendiente (servicios adicionales, modelo de
   embeddings definitivo, respaldo cifrado): no bloquean I1, pero deben revisarse antes de I2–I4.
 
 ## Compuerta
 
-**Aprobada con una condición abierta:** la persona aprobó grano, alcance y tratamiento de la
-regla de prescripción. El criterio de normalización territorial queda pendiente de que se copie
-DIVIPOLA real a `data/referencia/`; puede resolverse en paralelo a I1 sin bloquear su arranque,
-siempre que I1 declare explícitamente qué filas quedan con territorio "no resoluble" mientras
-tanto.
+**Aprobada sin condiciones abiertas.** Los cinco criterios de la compuerta de I0 se cumplen:
+grano explicado y aprobado (ADR 0002); territorio normalizado o marcado `no_resoluble` para el
+100 % de las filas (87,8 % resuelto, 12,2 % explícitamente marcado, ninguna fila descartada en
+silencio); reglas de fecha definidas en `config/reglas_fechas.yaml`; perfil de RELATO publicado
+con la reparación de mojibake validada (sin casos reales que la ejercitaran, pero probada contra
+`tests/fixtures/`); decisión de viabilidad de pronósticos tomada (no viable, 10 meses < 36).
 
 **Siguiente paso:** `/02-i1-base-indicadores`.
