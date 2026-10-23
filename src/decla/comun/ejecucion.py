@@ -1,5 +1,5 @@
-"""Registro de ejecución (CLAUDE.md §2.4): cada paso del pipeline queda trazado en `meta.ejecuciones`
-con run_id, commit de git, parámetros y estado, sin contenido de filas.
+"""Registro de ejecución (CLAUDE.md §2.4): cada paso del pipeline queda trazado en
+`meta.ejecuciones` con run_id, commit de git, parámetros y estado, sin contenido de filas.
 """
 
 from __future__ import annotations
@@ -8,8 +8,8 @@ import json
 import subprocess
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
+from typing import Any, Literal
 
 import duckdb
 
@@ -50,14 +50,14 @@ class RegistroEjecucion:
     parametros: dict[str, Any] = field(default_factory=dict)
     run_id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
-    def __enter__(self) -> "RegistroEjecucion":
-        self._inicio = datetime.now(timezone.utc)
+    def __enter__(self) -> RegistroEjecucion:
+        self._inicio = datetime.now(UTC)
         self.conexion.execute(_CREAR_ESQUEMA)
         self.conexion.execute(_CREAR_TABLA)
         return self
 
-    def __exit__(self, tipo_exc: object, exc: object, tb: object) -> bool:
-        fin = datetime.now(timezone.utc)
+    def __exit__(self, tipo_exc: object, exc: object, tb: object) -> Literal[False]:
+        fin = datetime.now(UTC)
         estado = "error" if tipo_exc else "ok"
         self.conexion.execute(
             "INSERT INTO meta.ejecuciones VALUES (?, ?, ?, ?, ?, ?, ?)",

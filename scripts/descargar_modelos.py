@@ -16,7 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import date, timezone
+from datetime import UTC, date
 from datetime import datetime as dt
 from pathlib import Path
 
@@ -80,7 +80,7 @@ def actualizar_manifiesto(
         "licencia": entrada["licencia"],
         "hash_sha256": hash_modelo,
         "fecha": date.today().isoformat(),
-        "descargado_en_utc": dt.now(timezone.utc).isoformat(),
+        "descargado_en_utc": dt.now(UTC).isoformat(),
     }
     manifiesto["modelos"] = [
         m for m in manifiesto["modelos"] if m["nombre"] != entrada["id"]
