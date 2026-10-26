@@ -7,8 +7,8 @@
 modelos:
   - id: es_core_news_lg
     tipo: spacy
-    origen: "https://github.com/explosion/spacy-models/releases/download/es_core_news_lg-3.7.0/es_core_news_lg-3.7.0-py3-none-any.whl"
-    licencia: MIT
+    origen: "https://github.com/explosion/spacy-models/releases/download/es_core_news_lg-3.8.0/es_core_news_lg-3.8.0-py3-none-any.whl"
+    licencia: "GNU GPL 3.0"
     uso: "Tokenización, lematización, dependencias, NER y Matcher/EntityRuler para reglas (Fase 4)."
 
   - id: paraphrase-multilingual-mpnet-base-v2

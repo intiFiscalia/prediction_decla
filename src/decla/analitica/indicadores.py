@@ -181,7 +181,8 @@ def ind_tiempo_mensual(conexion: duckdb.DuckDBPyConnection) -> pl.DataFrame:
         left_on=[(pl.col("anio") - 1), pl.col("mes")],
         right_on=["_anio_anterior_de", "mes"],
         how="left",
-    )
+        suffix="_anio_anterior",
+    ).drop(["_anio_anterior_de", "mes_anio_anterior"])
     return df.with_columns(
         (
             (pl.col("n_registros") - pl.col("n_registros_anio_anterior"))

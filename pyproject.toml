@@ -11,7 +11,7 @@ dependencies = []
 base = [
   "polars>=1.9",
   "duckdb>=1.1",
-  "pyarrow>=17.0",
+  "pyarrow>=17.0,<19",
   "pandera>=0.20",
   "numbers-parser>=4.14",
   "python-calamine>=0.2",
@@ -26,7 +26,8 @@ base = [
   "numpy>=1.26",
 ]
 nlp = [
-  "spacy>=3.7",
+  "spacy>=3.8,<3.9",
+  "es-core-news-lg",
   "sentence-transformers>=3.1",
   "torch>=2.4",
 ]
@@ -69,6 +70,11 @@ packages = ["src/decla"]
 [tool.uv]
 # Pila decidida en docs/decisiones/0001-pila-tecnologica.md; no agregar herramientas sin registrar
 # una decisión nueva.
+
+[tool.uv.sources]
+# El modelo se descarga una sola vez con scripts/descargar_modelos.py (CLAUDE.md §2.2) y se
+# instala siempre desde esta ruta local, nunca desde un índice remoto.
+es-core-news-lg = { path = "models/es_core_news_lg/es_core_news_lg-3.8.0-py3-none-any.whl" }
 
 [tool.ruff]
 line-length = 100

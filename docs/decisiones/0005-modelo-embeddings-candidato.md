@@ -1,7 +1,7 @@
 # 0005 — Modelo de embeddings candidato para RELATO
 
-- **Fecha:** 2026-10-23
-- **Estado:** propuesta — **pendiente de la prueba de pares anotados (Fase 4)**
+- **Fecha:** 2026-10-23 (actualizado 2026-10-26 con resultados de fixtures)
+- **Estado:** propuesta — **pendiente de la prueba de pares reales anotados (Fase 4)**
 
 ## Contexto
 
@@ -21,14 +21,36 @@ palabras en la muestra, lo que supera el límite de 128/512 tokens de varios mod
    fragmentar, pero es ~2 GB y lento sin GPU; en una máquina de 16 GB sin GPU esto es un costo real
    de tiempo de cómputo, no solo de disco.
 
+## Resultados sobre fixtures sintéticas (2026-10-26)
+
+`scripts/evaluar_embeddings_fixtures.py` midió precisión@5 (recuperación del `fenomeno_plantado`
+entre los 5 vecinos más cercanos por coseno, agregación por media) sobre los 367 relatos
+sintéticos con verdad de terreno (`tests/fixtures/verdad.parquet`,
+`reports/agregados/i2/embeddings.md`):
+
+| Modelo | Precisión@5 | Tiempo (s, 367 relatos, CPU) |
+| --- | --- | --- |
+| `paraphrase-multilingual-mpnet-base-v2` | 0.5523 | 227 |
+| `multilingual-e5-base` | 0.5728 | 232 |
+| `BAAI/bge-m3` | 0.5938 | 949 |
+
+Los tres superan claramente el azar (1/12 ≈ 0,083 con 12 fenómenos plantados), confirmando que
+los tres modelos capturan señal semántica real pese a los estilos de redacción variados y el
+mojibake plantado. `bge-m3` tiene la mejor precisión pero tarda ~4,2× más que los otros dos; la
+diferencia de precisión entre los tres (0,55–0,59) es pequeña frente a esa diferencia de costo.
+
 ## Decisión
 
-**Pendiente de la prueba de similitud anotada (Fase 4).** Recomendación provisional para esa
-prueba, dado el hardware: usar `paraphrase-multilingual-mpnet-base-v2` como línea base (CPU,
-rápido) y comparar contra `bge-m3` específicamente para medir si el contexto largo compensa el
-costo de cómputo en relatos que hoy se fragmentarían con los otros dos modelos. `e5-base` queda
-como candidato intermedio si la fragmentación de mpnet-base-v2 degrada la similitud de forma
-medible.
+**Sigue pendiente de la prueba de pares reales anotados por analistas** (plan_trabajo.md §5.2
+exige esa prueba, no solo fixtures sintéticas, antes de fijar el modelo definitivo). Mientras
+tanto, `config/embeddings.yaml` usa `paraphrase-multilingual-mpnet-base-v2` como
+**placeholder explícito** para que el pipeline de 2A sea ejecutable: es el más rápido y su
+precisión en fixtures no es claramente peor que la de `e5-base`. `bge-m3` queda como candidato
+fuerte si, al correr la herramienta de anotación de pares reales (`herramienta_anotacion_pares.py`,
+`app_anotacion_pares.py`) con analistas, la mejora de precisión resulta grande o si el costo de
+tiempo (~1 min por lote de ~350 relatos reales con mpnet/e5-base, ~4 min con bge-m3 por el mismo
+volumen, extrapolado de los tiempos de fixtures) no es un problema operativo real — esto se decide
+con la persona, no se asume aquí.
 
 ## Consecuencias
 

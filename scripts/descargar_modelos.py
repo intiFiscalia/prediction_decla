@@ -39,10 +39,36 @@ def _hash_directorio(ruta: Path) -> str:
     return hash_directorio(ruta)
 
 
+PATRONES_IGNORADOS_SENTENCE_TRANSFORMERS = [
+    "onnx/*",
+    "openvino/*",
+    "*.onnx",
+    "*.onnx_data",
+    "*.h5",
+    "*.msgpack",
+    "*.ot",
+    "*.tflite",
+    "imgs/*",
+    "*.jpg",
+    "*.jpeg",
+    "*.png",
+    "*.webp",
+]
+
+
 def _descargar_sentence_transformer(repo_id: str, destino: Path) -> None:
+    """Descarga solo lo que `sentence-transformers` necesita para cargar el modelo con PyTorch:
+    excluye formatos de runtime alternativos (ONNX, OpenVINO, TensorFlow) e imágenes del README,
+    que algunos repos incluyen y pueden multiplicar por 5-10 el tamaño de la descarga sin que el
+    proyecto los use (nunca se carga vía onnxruntime/OpenVINO, CLAUDE.md §3.1: pila ya decidida).
+    """
     from huggingface_hub import snapshot_download
 
-    snapshot_download(repo_id=repo_id, local_dir=str(destino))
+    snapshot_download(
+        repo_id=repo_id,
+        local_dir=str(destino),
+        ignore_patterns=PATRONES_IGNORADOS_SENTENCE_TRANSFORMERS,
+    )
 
 
 def _descargar_spacy_wheel(url: str, destino: Path) -> None:

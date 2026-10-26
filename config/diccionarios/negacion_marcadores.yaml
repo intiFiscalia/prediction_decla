@@ -1,0 +1,29 @@
+version: 1
+# Reglas tipo NegEx en español (plan_trabajo.md §6.1 paso 8; CLAUDE.md §4.22). Se marca polaridad
+# sobre un span: afirmada (sin disparador en la ventana), negada, hipotetica o atribuida. Los
+# disparadores de negación/hipótesis dominan sobre atribución si ambos aparecen en la ventana.
+ventana_tokens: 8
+disparadores_negacion:
+  - "no se halló"
+  - "no se encontró"
+  - "sin encontrar"
+  - "no se logró establecer"
+  - "no fue posible determinar"
+  - "se descarta"
+  - "no se evidenció"
+disparadores_hipotesis:
+  - "presuntamente"
+  - "al parecer"
+  - "presunto"
+  - "presunta"
+  - "posiblemente"
+  - "aparentemente"
+  - "habría"
+  - "habrían"
+disparadores_atribucion:
+  - "según manifiesta"
+  - "según el denunciante"
+  - "de acuerdo con lo informado por"
+  - "según refiere"
+  - "manifestó que"
+  - "indicó que"

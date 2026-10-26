@@ -1,0 +1,50 @@
+version: 1
+# Gazetteer de instituciones mencionadas en relatos SPOA (plan_trabajo.md §6.1; CLAUDE.md §4.21).
+# Cada entrada alimenta un EntityRuler/PhraseMatcher (texto/pipeline_spacy.py); nunca se adivina
+# una institución nueva por similitud, solo se reconoce lo que está aquí.
+instituciones:
+  - sigla: DIAN
+    nombre: Dirección de Impuestos y Aduanas Nacionales
+    variantes: ["DIAN", "Dirección de Impuestos y Aduanas Nacionales"]
+  - sigla: POLFA
+    nombre: Policía Fiscal y Aduanera
+    variantes: ["POLFA", "Policía Fiscal y Aduanera"]
+  - sigla: UIAF
+    nombre: Unidad de Información y Análisis Financiero
+    variantes: ["UIAF", "Unidad de Información y Análisis Financiero"]
+  - sigla: CTI
+    nombre: Cuerpo Técnico de Investigación
+    variantes: ["CTI", "Cuerpo Técnico de Investigación"]
+  - sigla: SIJIN
+    nombre: Seccional de Investigación Judicial
+    variantes: ["SIJIN", "Seccional de Investigación Judicial"]
+  - sigla: DIJIN
+    nombre: Dirección de Investigación Criminal e INTERPOL
+    variantes: ["DIJIN", "Dirección de Investigación Criminal e Interpol"]
+  - sigla: FISCALIA
+    nombre: Fiscalía General de la Nación
+    variantes: ["Fiscalía", "Fiscalía General de la Nación", "FGN"]
+  - sigla: SUPERSOCIEDADES
+    nombre: Superintendencia de Sociedades
+    variantes: ["Supersociedades", "Superintendencia de Sociedades"]
+  - sigla: HSI
+    nombre: Homeland Security Investigations
+    variantes: ["HSI", "Homeland Security Investigations"]
+  - sigla: ICE
+    nombre: Immigration and Customs Enforcement
+    variantes: ["ICE", "Immigration and Customs Enforcement"]
+  - sigla: CBP
+    nombre: Customs and Border Protection
+    variantes: ["CBP", "Customs and Border Protection", "U.S. Customs and Border Protection"]
+  - sigla: ARMADA
+    nombre: Armada Nacional de Colombia
+    variantes: ["Armada Nacional", "Armada Nacional de Colombia"]
+  - sigla: EJERCITO
+    nombre: Ejército Nacional de Colombia
+    variantes: ["Ejército Nacional", "Ejército Nacional de Colombia"]
+  - sigla: MIGRACION
+    nombre: Migración Colombia
+    variantes: ["Migración Colombia"]
+  - sigla: POLICIA
+    nombre: Policía Nacional de Colombia
+    variantes: ["Policía Nacional", "Policía Nacional de Colombia"]

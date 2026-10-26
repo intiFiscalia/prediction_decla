@@ -27,3 +27,30 @@ def suprimir_celdas_bajas(
         for columna in columnas_conteo
     ]
     return df.with_columns(expresiones)
+
+
+def ocultar_columnas_derivadas_de_conteo_bajo(
+    df: pl.DataFrame,
+    columnas_disparadoras: list[str],
+    columnas_derivadas: list[str],
+    umbral: int = UMBRAL_SUPRESION_DEFECTO,
+    marcador: str = "suprimido",
+) -> pl.DataFrame:
+    """Oculta `columnas_derivadas` (tasas, porcentajes, cocientes) cuando alguna columna en
+    `columnas_disparadoras` cae debajo del umbral, en la misma fila.
+
+    `suprimir_celdas_bajas` solo reemplaza el conteo crudo; no basta cuando el mismo reporte
+    también publica un valor calculado a partir de ese conteo (p. ej. `tasa_por_100k`), porque
+    despejar la fórmula (`tasa_por_100k * poblacion / 100_000`) recupera el conteo exacto y
+    anula la supresión (CLAUDE.md §2.1). Debe aplicarse ANTES de `suprimir_celdas_bajas` sobre las
+    mismas `columnas_disparadoras`, mientras todavía son numéricas.
+    """
+    condicion = pl.any_horizontal([pl.col(columna) < umbral for columna in columnas_disparadoras])
+    expresiones = [
+        pl.when(condicion)
+        .then(pl.lit(marcador))
+        .otherwise(pl.col(columna).cast(pl.Utf8))
+        .alias(columna)
+        for columna in columnas_derivadas
+    ]
+    return df.with_columns(expresiones)

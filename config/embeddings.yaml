@@ -1,0 +1,11 @@
+version: 1
+# Modelo que usa el pipeline de 2A para calcular vectores (plan_trabajo.md §6.1 paso 9).
+# Mientras la mini-compuerta 2A no registre una decisión final en un ADR
+# (docs/decisiones/, con base en reports/agregados/i2/embeddings.md y en los pares reales
+# calificados por analistas), se usa el candidato más liviano como placeholder EXPLÍCITO: nunca
+# se asume sin dejarlo escrito aquí.
+modelo_defecto: paraphrase-multilingual-mpnet-base-v2
+candidatos:
+  - paraphrase-multilingual-mpnet-base-v2
+  - multilingual-e5-base
+  - bge-m3

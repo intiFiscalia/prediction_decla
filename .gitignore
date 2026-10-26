@@ -36,3 +36,7 @@ htmlcov/
 
 # Fixtures sintéticos grandes (se regeneran con make fixtures; se versiona solo el generador)
 # Nota: si el equipo decide versionar fixtures pequeños, quitar esta línea.
+
+# Vectores de embeddings (se regeneran con make nlp; grandes, no se versionan)
+data/embeddings/*
+!data/embeddings/README.md

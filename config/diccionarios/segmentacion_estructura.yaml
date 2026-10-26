@@ -1,0 +1,28 @@
+version: 1
+# Separación contexto_denuncia / descripcion_hecho (plan_trabajo.md §6.1 paso 3; CLAUDE.md §4.21).
+# No todo relato tiene las dos partes (algunos empiezan a mitad de contexto, CLAUDE.md §4.21): si
+# no se encuentra ningún marcador, el relato completo queda como descripcion_hecho.
+#
+# Frases de apertura institucional/protocolar (encabezados de plantilla, antes del hecho mismo).
+marcadores_contexto_denuncia:
+  - "siendo las"
+  - "se recibe informe"
+  - "funcionario adscrito a"
+  - "refiere tener conocimiento"
+  - "comparece ante este despacho"
+  - "me permito informar"
+  - "por medio del presente escrito"
+  - "en cumplimiento de orden de trabajo"
+  - "actuando en calidad de"
+  - "mediante el presente informe"
+#
+# Frases que marcan el inicio de la narración del hecho (dónde termina el encabezado).
+marcadores_descripcion_hecho:
+  - "los hechos objeto de"
+  - "se tuvo conocimiento de que"
+  - "en el desarrollo de"
+  - "según lo manifestado por"
+  - "el día de los hechos"
+  - "en cumplimiento de lo anterior"
+  - "de acuerdo con la información"
+  - "de los hechos se tiene"

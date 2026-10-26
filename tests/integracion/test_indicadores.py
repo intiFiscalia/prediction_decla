@@ -42,6 +42,10 @@ def test_indicadores_extremo_a_extremo(tmp_path: Path) -> None:
 
     df_tiempo = ind.ind_tiempo_mensual(conexion)
     assert df_tiempo.height > 0
+    # Sin columnas internas del join año-anterior (CLAUDE.md: no publicar artefactos técnicos).
+    assert set(df_tiempo.columns) == {
+        "anio", "mes", "n_registros", "n_registros_anio_anterior", "variacion_interanual_pct",
+    }
 
     df_rezagos = ind.ind_rezagos(conexion)
     assert df_rezagos.height == 1

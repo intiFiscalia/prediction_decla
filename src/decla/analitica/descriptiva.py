@@ -20,7 +20,7 @@ from decla.analitica.mapas import (
     matriz_origen_destino,
 )
 from decla.comun.duckdb_io import conectar
-from decla.comun.supresion import suprimir_celdas_bajas
+from decla.comun.supresion import ocultar_columnas_derivadas_de_conteo_bajo, suprimir_celdas_bajas
 
 RAIZ_PROYECTO = Path(__file__).resolve().parents[3]
 RUTA_DUCKDB_DEFECTO = RAIZ_PROYECTO / "data" / "warehouse.duckdb"
@@ -60,6 +60,25 @@ _COLUMNAS_CONTEO = {
     "matriz_origen_destino": ["n_registros"],
 }
 
+# Columnas calculadas a partir de un conteo de `_COLUMNAS_CONTEO`: si ese conteo se suprime pero
+# la columna derivada no, despejar la fórmula recupera el conteo exacto (ver
+# `ocultar_columnas_derivadas_de_conteo_bajo`). Se ocultan juntas, antes de convertir el conteo a
+# texto con `suprimir_celdas_bajas`.
+_COLUMNAS_DERIVADAS_DE_CONTEO: dict[str, tuple[list[str], list[str]]] = {
+    "composicion_delito": (["n"], ["pct"]),
+    "composicion_estado_etapa": (["n"], ["pct"]),
+    "territorio_cociente_localizacion": (
+        ["n", "n_total_mpio", "n_nacional", "n_total_nacional"],
+        ["cociente_localizacion"],
+    ),
+    "territorio_tasa": (["n_registros"], ["tasa_por_100k", "tasa_suavizada_por_100k"]),
+    "tiempo_mensual": (
+        ["n_registros", "n_registros_anio_anterior"],
+        ["variacion_interanual_pct"],
+    ),
+    "conexidad": (["n_con_conexos_declarados"], ["pct_con_conexos_declarados"]),
+}
+
 
 def _calcular_todos(conexion: duckdb.DuckDBPyConnection) -> dict[str, pl.DataFrame]:
     funciones = {
@@ -90,8 +109,16 @@ def ejecutar_analitica_descriptiva(
     resultados = _calcular_todos(conexion)
     for nombre, df in resultados.items():
         df.write_csv(directorio_completo / f"{nombre}.csv")
+        df_publicable = df
+        disparadoras_y_derivadas = _COLUMNAS_DERIVADAS_DE_CONTEO.get(nombre)
+        if disparadoras_y_derivadas is not None:
+            disparadoras, derivadas = disparadoras_y_derivadas
+            df_publicable = ocultar_columnas_derivadas_de_conteo_bajo(
+                df_publicable, disparadoras, derivadas
+            )
         columnas_conteo = _COLUMNAS_CONTEO.get(nombre)
-        df_publicable = suprimir_celdas_bajas(df, columnas_conteo) if columnas_conteo else df
+        if columnas_conteo:
+            df_publicable = suprimir_celdas_bajas(df_publicable, columnas_conteo)
         df_publicable.write_csv(directorio_agregado / f"{nombre}.csv")
 
     for directorio in (directorio_completo, directorio_agregado):

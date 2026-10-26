@@ -19,6 +19,7 @@ import duckdb
 import polars as pl
 
 from decla.calidad.esquemas import conciliar, escribir_cuarentena, validar_tabla
+from decla.calidad.fechas import detectar_formato_fecha
 from decla.calidad.territorio import EntradaDivipola
 from decla.comun.configuracion import cargar_yaml
 from decla.comun.duckdb_io import escribir_tabla_polars
@@ -124,11 +125,20 @@ def procesar_plata(
 
     reglas_fechas = cargar_yaml(RUTA_REGLAS_FECHAS)
     valores_invalidos_conocidos = set(reglas_fechas.get("valores_invalidos_conocidos", []))
+    # El formato (M/D/AAAA vs. D/M/AAAA) se detecta sobre TODAS las filas válidas (antes del
+    # filtro de alcance temático), no sobre el subconjunto ya filtrado: `detectar_formato_fecha`
+    # es una heurística estadística que se vuelve frágil con muestras chicas o sesgadas
+    # (CLAUDE.md §4.11) y el alcance puede dejar una población demasiado pequeña por columna.
+    formatos_detectados = {
+        columna: detectar_formato_fecha([f.get(columna) for f in filas_validas])[0]
+        for columna in COLUMNAS_FECHA
+    }
     columnas_fecha_normalizadas = {
         columna: normalizar_columna_fecha(
             columna,
             [f.get(columna) for f in filas_en_alcance],
             valores_invalidos_conocidos,
+            formato_forzado=formatos_detectados[columna],
         )
         for columna in COLUMNAS_FECHA
     }
@@ -167,6 +177,7 @@ def procesar_plata(
             fila_limpia[prefijo] = normalizada.valores[i]
             fila_limpia[f"{prefijo}_valida"] = normalizada.fecha_valida[i]
             fila_limpia[f"{prefijo}_imputada"] = normalizada.fecha_imputada[i]
+            fila_limpia[f"{prefijo}_ausente"] = normalizada.fecha_ausente[i]
             fila_limpia[f"{prefijo}_motivo"] = normalizada.motivo[i]
 
         resultado_hechos = emparejar_con_manual(
@@ -363,8 +374,10 @@ def _escribir_reporte_calidad(
 
     for columna, normalizada in columnas_fecha_normalizadas.items():
         n_imputadas = sum(normalizada.fecha_imputada)
-        n_invalidas = sum(1 for v in normalizada.fecha_valida if not v) - n_imputadas
+        n_ausentes = sum(normalizada.fecha_ausente)
+        n_invalidas = sum(1 for v in normalizada.fecha_valida if not v) - n_imputadas - n_ausentes
         filas_reporte.append(_fila("fechas_imputadas", columna, n_imputadas))
+        filas_reporte.append(_fila("fechas_ausentes", columna, n_ausentes))
         filas_reporte.append(_fila("fechas_invalidas", columna, n_invalidas))
 
     conteo_territorio = Counter(f["metodo_mapeo_hechos"] for f in filas_limpias)
