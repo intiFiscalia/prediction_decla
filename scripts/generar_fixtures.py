@@ -571,7 +571,13 @@ def construir_fila_caso(rng: random.Random, logica: FilaLogicaCaso) -> dict[str,
         "TITULO": ambos(logica.delito["titulo"]),
         "CAPITULO": ambos(logica.delito["capitulo"]),
         "SECC_DESCRIPCION": ambos(
-            rng.choices(["DECLA", "SECCIONAL DELITOS INFORMATICOS"], weights=[0.8, 0.2])[0]
+            rng.choices(
+                [
+                    "DIRECCIÓN ESPECIALIZADA CONTRA EL LAVADO DE ACTIVOS",
+                    "DIRECCIÓN ESPECIALIZADA CONTRA LOS DELITOS FISCALES",
+                ],
+                weights=[0.35, 0.65],  # proporción observada en el dataset real (I0, 2026-10-23)
+            )[0]
         ),
         "RUPTURA": ambos(rng.choice(["SI", "PARCIAL"]) if rng.random() < 0.05 else None),
         "NO_CASOS_CONEXOS": ambos(str(rng.randint(0, 5)) if rng.random() < 0.3 else None),
