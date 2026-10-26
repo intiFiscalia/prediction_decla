@@ -21,6 +21,7 @@ import polars as pl
 from decla.calidad.esquemas import conciliar, escribir_cuarentena, validar_tabla
 from decla.calidad.territorio import EntradaDivipola
 from decla.comun.configuracion import cargar_yaml
+from decla.comun.duckdb_io import escribir_tabla_polars
 from decla.ingesta.esquema import cargar_contrato
 from decla.normalizacion.alcance import filtrar_por_alcance
 from decla.normalizacion.categoricas import normalizar_fila_categoricas
@@ -261,11 +262,11 @@ def procesar_plata(
     dim_despacho = _construir_dim_despacho(filas_en_alcance)
     dim_territorio = _construir_dim_territorio()
     dim_tiempo = _construir_dim_tiempo(filas_limpias)
-    _escribir_tabla(conexion, "plata", "registros_limpios", filas_limpias, modo="reemplazar")
-    _escribir_tabla(conexion, "plata", "dim_delito", dim_delito, modo="reemplazar")
-    _escribir_tabla(conexion, "plata", "dim_territorio", dim_territorio, modo="reemplazar")
-    _escribir_tabla(conexion, "plata", "dim_tiempo", dim_tiempo, modo="reemplazar")
-    _escribir_tabla(conexion, "plata", "dim_despacho", dim_despacho, modo="reemplazar")
+    escribir_tabla_polars(conexion, "plata", "registros_limpios", filas_limpias, modo="reemplazar")
+    escribir_tabla_polars(conexion, "plata", "dim_delito", dim_delito, modo="reemplazar")
+    escribir_tabla_polars(conexion, "plata", "dim_territorio", dim_territorio, modo="reemplazar")
+    escribir_tabla_polars(conexion, "plata", "dim_tiempo", dim_tiempo, modo="reemplazar")
+    escribir_tabla_polars(conexion, "plata", "dim_despacho", dim_despacho, modo="reemplazar")
     _escribir_reporte_calidad(
         conexion, lote_id, run_id, resultado_validacion, resumen_alcance,
         columnas_fecha_normalizadas, filas_limpias,
@@ -278,28 +279,6 @@ def procesar_plata(
         n_registros_limpios=len(filas_limpias),
         valores_excluidos_alcance=resumen_alcance.valores_excluidos,
     )
-
-
-def _escribir_tabla(
-    conexion: duckdb.DuckDBPyConnection,
-    esquema: str,
-    nombre_tabla: str,
-    filas: list[dict[str, Any]],
-    modo: str = "reemplazar",
-) -> None:
-    conexion.execute(f"CREATE SCHEMA IF NOT EXISTS {esquema}")
-    tabla_calificada = f"{esquema}.{nombre_tabla}"
-    if not filas:
-        conexion.execute(f"DROP TABLE IF EXISTS {tabla_calificada}")
-        return
-    df = pl.DataFrame(filas, infer_schema_length=len(filas))
-    conexion.register("_tmp_df", df)
-    if modo == "reemplazar":
-        conexion.execute(f"DROP TABLE IF EXISTS {tabla_calificada}")
-        conexion.execute(f"CREATE TABLE {tabla_calificada} AS SELECT * FROM _tmp_df")
-    else:
-        conexion.execute(f"INSERT INTO {tabla_calificada} SELECT * FROM _tmp_df")
-    conexion.unregister("_tmp_df")
 
 
 def _construir_dim_territorio() -> list[dict[str, Any]]:
