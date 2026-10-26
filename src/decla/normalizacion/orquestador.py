@@ -283,7 +283,10 @@ def procesar_plata(
 
 def _construir_dim_territorio() -> list[dict[str, Any]]:
     divipola = pl.read_csv(RUTA_DIVIPOLA, infer_schema_length=0)
-    poblacion = pl.read_csv(RUTA_POBLACION, infer_schema_length=0)
+    poblacion = pl.read_csv(RUTA_POBLACION, infer_schema_length=0).with_columns(
+        pl.col("anio").cast(pl.Int64),
+        pl.col("poblacion_total").cast(pl.Float64),
+    )
     combinado = poblacion.join(
         divipola.select(["cod_mpio", "lat_centroide", "long_centroide"]), on="cod_mpio", how="left"
     )

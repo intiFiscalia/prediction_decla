@@ -1,4 +1,4 @@
-.PHONY: instalar test lint fixtures diagnostico etl nlp conocimiento fenomenos analitica emergencia prediccion app informe
+.PHONY: instalar test lint fixtures diagnostico etl analitica-descriptiva nlp conocimiento fenomenos analitica emergencia prediccion app informe
 
 # Instala dependencias solo desde wheelhouse/ (sin red), con todos los extras del proyecto.
 instalar:
@@ -23,6 +23,11 @@ diagnostico:
 # I1 — Fase 3: pipeline bronce→plata→entidades sobre datos reales.
 etl:
 	uv run python -m decla.ingesta.pipeline
+
+# I1 — Fase 7 parcial: indicadores descriptivos + mapas + informe.html (reports/i1,
+# reports/agregados/i1). Lee data/warehouse.duckdb en solo lectura (ya debe existir, vía `etl`).
+analitica-descriptiva:
+	uv run python -m decla.analitica.descriptiva
 
 # I2 — Fase 4: procesamiento de RELATO (limpieza, segmentación, embeddings).
 nlp:
@@ -52,9 +57,10 @@ prediccion:
 app:
 	uv run streamlit run src/decla/app/main.py
 
-# Genera el informe reproducible (Quarto/HTML) a partir de reports/agregados/.
-informe:
-	uv run quarto render docs/informes
+# Ensambla informe.html a partir de lo que ya calculó `analitica-descriptiva` (hoy son el mismo
+# paso: decla.analitica.descriptiva calcula y ensambla en una sola corrida; separar cálculo de
+# render queda para cuando el costo de recalcular justifique cachear — ver ADR 0009).
+informe: analitica-descriptiva
 
 # Procesa un lote nuevo (I4 — Fase 12): valida esquema, detecta novedades, recalcula lo incremental.
 lote:
