@@ -1,0 +1,18 @@
+# Excepciones manuales de normalización territorial (plan_trabajo.md Fase 3.3).
+#
+# Para los valores que `decla.calidad.territorio.emparejar_territorio` deja en `no_resoluble`
+# (I0 encontró 119 de 978 filas reales en esa situación) después de revisarlos manualmente.
+# Cada entrada fija el mapeo exacto que la persona decide; `metodo_mapeo` queda como "manual".
+#
+# No completar a ciegas: solo agregar una entrada cuando alguien verificó a qué municipio
+# corresponde realmente el valor observado.
+#
+# Formato:
+# excepciones:
+#   - departamento_original: "<valor tal como aparece en DEPARTAMENTO_HECHOS/UNIDAD>"
+#     municipio_original: "<valor tal como aparece en MUNICIPIO_HECHOS/UNIDAD>"
+#     cod_dpto: "<código DIVIPOLA de 2 dígitos>"
+#     cod_mpio: "<código DIVIPOLA de 5 dígitos>"
+#     nota: "<por qué se resolvió así, quién lo decidió, fecha>"
+
+excepciones: []
