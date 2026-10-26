@@ -1,0 +1,11 @@
+nombre: Composición por estado y etapa
+funcion: decla.analitica.indicadores.ind_composicion_estado_etapa
+unidad: registro
+fecha_de_referencia: no aplica
+numerador: count(*) por (estado_norm, etapa_norm) en plata.registros_limpios
+denominador: total de registros en plata.registros_limpios
+formula: "pct = n / total * 100"
+limitaciones:
+  - estado_norm/etapa_norm son solo unificación ortográfica (mayúsculas/tildes); valores
+    sinónimos con nombres distintos no se fusionan automáticamente.
+  - ESTADO/ETAPA describen el estado procesal registrado, no la eficacia de la investigación.

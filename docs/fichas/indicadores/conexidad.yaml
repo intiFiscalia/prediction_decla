@@ -1,0 +1,12 @@
+nombre: Conexidad declarada
+funcion: decla.analitica.indicadores.ind_conexidad
+unidad: noticia criminal
+fecha_de_referencia: no aplica
+numerador: count(*) de entidades.noticia_criminal con NO_CASOS_CONEXOS > 0 declarado
+denominador: count(*) de entidades.noticia_criminal
+formula: "pct_con_conexos_declarados = n_con_conexos_declarados / n_noticias * 100"
+limitaciones:
+  - NO_CASOS_CONEXOS es solo un conteo declarado por el sistema de origen; no existe una
+    columna que identifique cuáles otras noticias están conectadas (plan_trabajo.md §12,
+    pregunta 3, sigue abierta). Este indicador mide si declara tener conexos, no construye
+    ni mide el tamaño real de un grupo conexo.

@@ -1,0 +1,17 @@
+nombre: Tasa por 100.000 habitantes (municipal, cruda y suavizada)
+funcion: decla.analitica.indicadores.ind_territorio_tasa
+unidad: registro
+fecha_de_referencia: FECHA_CREACION (año ISO), cruzado contra la población del mismo año
+numerador: n_registros por (cod_mpio_hechos, año)
+denominador: poblacion_total de plata.dim_territorio (DANE) para ese cod_mpio y año
+formula: >
+  tasa_por_100k = n_registros / poblacion_total * 100000;
+  tasa_suavizada_por_100k = suavizar_tasa_bayesiano_empirico(n_registros, poblacion_total,
+  tasa_departamental, peso_prior=10000) * 100000
+limitaciones:
+  - Si no hay población para ese municipio/año (fuera del rango 2018-2042 de la proyección
+    DANE, o municipio sin match), queda vacío; nunca se inventa el denominador.
+  - La versión suavizada (empirical Bayes) contrae hacia la tasa departamental cuando la
+    población municipal es pequeña frente a peso_prior; usarla para rankings, no la cruda,
+    en municipios con poca población (plan_trabajo.md §8.2).
+  - Mide actividad registrada, no incidencia real del delito.

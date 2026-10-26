@@ -1,0 +1,13 @@
+nombre: Volumen
+funcion: decla.analitica.indicadores.ind_volumen
+unidad: registro, noticia criminal, caso
+fecha_de_referencia: no aplica (conteo total del lote dentro del alcance temático, ADR 0008)
+numerador: count(*) de plata.registros_limpios / entidades.noticia_criminal / entidades.caso
+denominador: no aplica
+formula: "razon_registros_noticia = n_registros / n_noticias"
+limitaciones:
+  - Mide actividad institucional registrada, no incidencia real del delito (CLAUDE.md §2.3).
+  - Ya excluye las filas fuera del alcance temático (ADR 0008); ver plata.reporte_calidad para
+    cuántas se excluyeron y por qué.
+  - Con el grano confirmado en I0 (1 fila = 1 noticia), razon_registros_noticia ≈ 1 salvo que un
+    lote futuro introduzca multidelito o duplicados reales.

@@ -1,0 +1,13 @@
+nombre: Serie mensual y variación interanual
+funcion: decla.analitica.indicadores.ind_tiempo_mensual
+unidad: registro
+fecha_de_referencia: FECHA_CREACION (año/mes), solo fechas válidas (fecha_creacion_valida)
+numerador: count(*) por (año, mes)
+denominador: n_registros del mismo mes del año anterior (para la variación interanual)
+formula: "variacion_interanual_pct = (n_mes_actual - n_mismo_mes_año_anterior) / n_mismo_mes_año_anterior * 100"
+limitaciones:
+  - Con un solo año de historia (I0 encontró 10 meses, 2026-01 a 2026-10), la variación
+    interanual queda vacía para casi todos los meses porque no hay año anterior con qué
+    comparar todavía.
+  - Los últimos meses pueden tener rezago de registro (CLAUDE.md, riesgos analíticos); una
+    caída en el mes más reciente puede ser solo registro incompleto, no un cambio real.
