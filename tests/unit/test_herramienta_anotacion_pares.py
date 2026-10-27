@@ -60,7 +60,7 @@ def test_calcular_acuerdo_con_vectores_perfectamente_alineados() -> None:
     }
     resumen = calcular_acuerdo(calificaciones, vectores, umbral_similitud=0.5)
     assert resumen.n_pares == 2
-    assert resumen.precision_en_umbral == 1.0
+    assert resumen.exactitud_en_umbral == 1.0
 
 
 def test_calcular_acuerdo_ignora_pares_no_seguro_y_sin_vector() -> None:
@@ -79,7 +79,7 @@ def test_calcular_acuerdo_sin_pares_validos() -> None:
     resumen = calcular_acuerdo([], {})
     assert resumen.n_pares == 0
     assert resumen.spearman is None
-    assert resumen.precision_en_umbral is None
+    assert resumen.exactitud_en_umbral is None
 
 
 def test_escribir_resumen(tmp_path: Path) -> None:

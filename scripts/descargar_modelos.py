@@ -93,7 +93,7 @@ def descargar_modelo(entrada: dict, destino_base: Path = DESTINO_MODELOS) -> Pat
 def actualizar_manifiesto(
     entrada: dict, ruta_local: Path, manifest_path: Path = MANIFEST
 ) -> None:
-    manifiesto = {"modelos": []}
+    manifiesto: dict[str, list[dict]] = {"modelos": []}
     if manifest_path.exists():
         manifiesto = json.loads(manifest_path.read_text(encoding="utf-8"))
 

@@ -1,10 +1,9 @@
 version: 1
 # Modelo que usa el pipeline de 2A para calcular vectores (plan_trabajo.md §6.1 paso 9).
-# Mientras la mini-compuerta 2A no registre una decisión final en un ADR
-# (docs/decisiones/, con base en reports/agregados/i2/embeddings.md y en los pares reales
-# calificados por analistas), se usa el candidato más liviano como placeholder EXPLÍCITO: nunca
-# se asume sin dejarlo escrito aquí.
-modelo_defecto: paraphrase-multilingual-mpnet-base-v2
+# Decisión cerrada en docs/decisiones/0005-modelo-embeddings-candidato.md (2026-10-27): mejor
+# correlación con criterio humano en pares reales (Spearman 0,33 vs. 0,21 de mpnet). Ver esa
+# ADR para la limitación pendiente (segmentación contexto/hecho poco efectiva en datos reales).
+modelo_defecto: multilingual-e5-base
 candidatos:
   - paraphrase-multilingual-mpnet-base-v2
   - multilingual-e5-base

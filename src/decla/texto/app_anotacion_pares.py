@@ -75,9 +75,10 @@ def main() -> None:
     texto_por_uid = dict(zip(uids, textos, strict=True))
 
     n_pares_objetivo = st.sidebar.number_input(
-        "Pares a calificar", min_value=50, max_value=500, value=200
+        "Pares a calificar", min_value=20, max_value=500, value=50
     )
     calificador = st.sidebar.text_input("Tu nombre o iniciales", value="")
+    lote_id = st.sidebar.text_input("lote_id de los embeddings a usar (de `make nlp`)", value="")
 
     if "pares" not in st.session_state:
         st.session_state["pares"] = muestrear_pares(list(texto_por_uid), int(n_pares_objetivo))
@@ -115,13 +116,15 @@ def main() -> None:
 
     st.divider()
     if st.button("Calcular resumen agregado"):
-        calificaciones = cargar_calificaciones(RUTA_CALIFICACIONES_DEFECTO)
-        lote_id = st.text_input("lote_id de los embeddings a usar", value="")
-        vectores = _cargar_vectores(lote_id) if lote_id else {}
-        resumen = calcular_acuerdo(calificaciones, vectores)
-        escribir_resumen(resumen, RUTA_RESUMEN_DEFECTO)
-        st.write(resumen)
-        st.success(f"Resumen escrito en {RUTA_RESUMEN_DEFECTO}")
+        if not lote_id:
+            st.error("Escribe el lote_id en la barra lateral antes de calcular el resumen.")
+        else:
+            calificaciones = cargar_calificaciones(RUTA_CALIFICACIONES_DEFECTO)
+            vectores = _cargar_vectores(lote_id)
+            resumen = calcular_acuerdo(calificaciones, vectores)
+            escribir_resumen(resumen, RUTA_RESUMEN_DEFECTO)
+            st.write(resumen)
+            st.success(f"Resumen escrito en {RUTA_RESUMEN_DEFECTO}")
 
 
 main()

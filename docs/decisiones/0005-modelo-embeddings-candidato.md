@@ -1,7 +1,7 @@
 # 0005 — Modelo de embeddings candidato para RELATO
 
-- **Fecha:** 2026-10-23 (actualizado 2026-10-26 con resultados de fixtures)
-- **Estado:** propuesta — **pendiente de la prueba de pares reales anotados (Fase 4)**
+- **Fecha:** 2026-10-23 (actualizada 2026-10-26 con fixtures, cerrada 2026-10-27 con pares reales)
+- **Estado:** **aceptada** — `multilingual-e5-base`, con limitaciones documentadas abajo
 
 ## Contexto
 
@@ -39,18 +39,44 @@ los tres modelos capturan señal semántica real pese a los estilos de redacció
 mojibake plantado. `bge-m3` tiene la mejor precisión pero tarda ~4,2× más que los otros dos; la
 diferencia de precisión entre los tres (0,55–0,59) es pequeña frente a esa diferencia de costo.
 
+## Resultados sobre pares reales (2026-10-27)
+
+Un analista calificó 70 pares de relatos reales (texto enmascarado, muestreados aleatoriamente de
+los 346 en alcance) como "mismo fenómeno" / "distinto" / "no estoy seguro" con
+`app_anotacion_pares.py` / `scripts/resumen_pares_calificados.py`. Se comparó la correlación de
+Spearman entre esa calificación y la similitud coseno de los vectores (agregación media, relato
+completo enmascarado) de los dos modelos más rápidos:
+
+| Modelo | Spearman | Exactitud (umbral 0,5 arbitrario) |
+| --- | --- | --- |
+| `paraphrase-multilingual-mpnet-base-v2` | 0,2109 | 0,2714 |
+| `multilingual-e5-base` | **0,3273** | 0,1857 |
+
+`bge-m3` no se evaluó con pares reales (tarda ~4× más por lote; la persona decidió no esperar
+dado el tiempo disponible). La correlación es débil en ambos casos (muy por debajo de lo que
+sugerían las fixtures sintéticas, 0,55–0,59 de precisión@5) — ver limitaciones abajo. La
+exactitud a umbral 0,5 no es comparable directamente entre modelos (cada uno tiene su propia
+escala de similitud); el Spearman, al ser de rango, sí lo es.
+
 ## Decisión
 
-**Sigue pendiente de la prueba de pares reales anotados por analistas** (plan_trabajo.md §5.2
-exige esa prueba, no solo fixtures sintéticas, antes de fijar el modelo definitivo). Mientras
-tanto, `config/embeddings.yaml` usa `paraphrase-multilingual-mpnet-base-v2` como
-**placeholder explícito** para que el pipeline de 2A sea ejecutable: es el más rápido y su
-precisión en fixtures no es claramente peor que la de `e5-base`. `bge-m3` queda como candidato
-fuerte si, al correr la herramienta de anotación de pares reales (`herramienta_anotacion_pares.py`,
-`app_anotacion_pares.py`) con analistas, la mejora de precisión resulta grande o si el costo de
-tiempo (~1 min por lote de ~350 relatos reales con mpnet/e5-base, ~4 min con bge-m3 por el mismo
-volumen, extrapolado de los tiempos de fixtures) no es un problema operativo real — esto se decide
-con la persona, no se asume aquí.
+**`multilingual-e5-base`**, por mostrar la correlación más alta con el criterio humano (0,33 vs.
+0,21 de mpnet) en pares reales, además de precisión@5 ligeramente mejor en fixtures (0,57 vs.
+0,55) y admitir más contexto (512 vs. 128 tokens) sin fragmentar tanto. `config/embeddings.yaml`
+ya apunta a este modelo.
+
+**Limitación importante, no resuelta:** una correlación de 0,33 es débil, no una validación
+fuerte. La hipótesis de trabajo (no confirmada directamente porque Claude Code no puede leer
+relatos reales para verificarlo) es que el vector del **relato completo** está dominado por
+lenguaje institucional/administrativo repetido entre noticias sin relación con el fenómeno,
+porque la segmentación `contexto_denuncia`/`descripcion_hecho` solo se activó en el 4,9% de los
+346 relatos reales (17/346, ver `make nlp`) — para el resto, `descripcion_hecho` es el relato
+completo, igual de "contaminado" por la plantilla que el relato entero. Antes de confiar en estos
+embeddings para agrupar fenómenos en el Bloque 2C, conviene: (a) mejorar la lista de marcadores
+de `config/diccionarios/segmentacion_estructura.yaml` con ayuda de un analista que lea una
+muestra real, y (b) repetir esta calibración usando los vectores de `embeddings_segmento` (ya se
+calculan y guardan) en vez de `embeddings_relato`, una vez que la segmentación separe mejor el
+encabezado del hecho.
 
 ## Consecuencias
 

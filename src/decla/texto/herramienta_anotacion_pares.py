@@ -1,7 +1,7 @@
 """Herramienta de anotación de pares de relatos reales (Streamlit local; plan_trabajo.md §6.1
 paso 8(b), §5.2; CLAUDE.md §4.20). Un analista califica 200-300 pares de relatos reales
 (texto YA enmascarado) como "mismo fenómeno" o "distinto"; la calificación se guarda en
-`data/private/` (nunca la lee Claude Code) y el resumen agregado (Spearman, precisión aproximada)
+`data/private/` (nunca la lee Claude Code) y el resumen agregado (Spearman, exactitud aproximada)
 sale a `reports/agregados/i2/`.
 
 Este módulo separa deliberadamente las funciones puras (muestreo, persistencia, cálculo de
@@ -96,7 +96,7 @@ def _similitud_coseno(a: np.ndarray, b: np.ndarray) -> float:
 class ResumenAcuerdoPares:
     n_pares: int
     spearman: float | None
-    precision_en_umbral: float | None
+    exactitud_en_umbral: float | None
     umbral_similitud: float
 
 
@@ -107,9 +107,10 @@ def calcular_acuerdo(
 ) -> ResumenAcuerdoPares:
     """Correlación de Spearman entre similitud coseno y la calificación del analista (1.0 si
     "mismo_fenomeno", 0.0 si "distinto"; se ignoran los pares "no_seguro" y los que no tienen
-    vector de ambos lados), más una precisión aproximada: ¿con qué frecuencia "similitud ≥
-    umbral" coincide con la calificación del analista? Es un proxy de la precisión@k del plan,
-    no una réplica exacta (esta solo usa los pares calificados, no todo el corpus).
+    vector de ambos lados), más la exactitud (accuracy, no precisión en sentido técnico): ¿con
+    qué frecuencia "similitud ≥ umbral" coincide con la calificación del analista? Es un proxy
+    de la precisión@k del plan, no una réplica exacta (esta solo usa los pares calificados, no
+    todo el corpus).
     """
     similitudes = []
     etiquetas = []
@@ -129,10 +130,10 @@ def calcular_acuerdo(
     spearman = float(stats.spearmanr(similitudes, etiquetas).statistic)
     predicciones = [1.0 if s >= umbral_similitud else 0.0 for s in similitudes]
     pares_prediccion_etiqueta = zip(predicciones, etiquetas, strict=True)
-    precision = sum(1 for p, e in pares_prediccion_etiqueta if p == e) / len(etiquetas)
+    exactitud = sum(1 for p, e in pares_prediccion_etiqueta if p == e) / len(etiquetas)
 
     return ResumenAcuerdoPares(
-        len(similitudes), round(spearman, 4), round(precision, 4), umbral_similitud
+        len(similitudes), round(spearman, 4), round(exactitud, 4), umbral_similitud
     )
 
 
@@ -145,8 +146,8 @@ def escribir_resumen(
         "",
         f"- Pares calificados usados: {resumen.n_pares}",
         f"- Correlación de Spearman (similitud vs. calificación): {resumen.spearman}",
-        f"- Precisión aproximada con umbral {resumen.umbral_similitud}: "
-        f"{resumen.precision_en_umbral}",
+        f"- Exactitud aproximada con umbral {resumen.umbral_similitud}: "
+        f"{resumen.exactitud_en_umbral}",
         "",
         'Calculado solo sobre los pares que el analista calificó como "mismo fenómeno" o '
         '"distinto" (se excluyen los marcados "no estoy seguro"). No sustituye la precisión@k '
