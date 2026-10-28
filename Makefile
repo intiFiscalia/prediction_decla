@@ -37,9 +37,11 @@ nlp:
 conocimiento:
 	uv run python -m decla.conocimiento.pipeline
 
-# I2 — Fase 6: descubrimiento y clasificación de fenómenos.
+# I2 — Fase 6: descubrimiento y clasificación de fenómenos. Necesita el lote_id que imprimió
+# `make nlp` (sus embeddings de segmento están en data/embeddings/<lote_id>/): make fenomenos
+# LOTE_ID=<el-lote-id-de-make-nlp>
 fenomenos:
-	uv run python -m decla.fenomenos.pipeline
+	uv run python -m decla.fenomenos.pipeline --lote-id $(LOTE_ID)
 
 # I3 — Fase 7: indicadores, territorio, asociaciones.
 analitica:
