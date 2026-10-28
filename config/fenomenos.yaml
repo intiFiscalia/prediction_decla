@@ -1,0 +1,31 @@
+version: 1
+# Parámetros del descubrimiento de fenómenos (plan_trabajo.md §7.1; Fase 6, Bloque 2C). Semillas
+# fijas y registradas (CLAUDE.md §2.4): nunca hardcodeadas en el código.
+semilla: 20260101
+
+umap:
+  n_componentes_agrupar: 10 # dentro del rango 5-15 que pide el plan
+  n_componentes_visualizar: 2
+  n_vecinos: 15
+  metrica: cosine
+
+hdbscan:
+  min_cluster_size_barrido: [5, 10, 15, 20]
+  min_samples_barrido: [1, 5, 10]
+
+kmeans:
+  k_minimo: 2
+  k_maximo: 20 # la silueta elige el mejor k en ese rango
+
+nmf:
+  n_componentes_barrido: [5, 10, 15, 20]
+  max_features_tfidf: 2000
+
+agglomerative:
+  n_clusters_barrido: [5, 10, 15, 20]
+  linkage: average
+  metrica: cosine
+
+estabilidad:
+  n_corridas_bootstrap: 10
+  fraccion_submuestra: 0.8
