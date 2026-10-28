@@ -1,0 +1,69 @@
+version: 1
+# Jerarquía sección (letra) -> rango de división (2 dígitos) de CIIU Rev. 4 / CIIU Rev. 4 A.C.
+# (plan_trabajo.md §6.4: "se trabaja a nivel de sección o división para analítica"). Colombia
+# mantiene las mismas 21 secciones de la CIIU Rev. 4 internacional (fuente: DANE, "Revisión 4
+# adaptada para Colombia"); esta tabla es estándar y fija, no se deriva de datos.
+secciones:
+  - letra: A
+    divisiones: ["01", "02", "03"]
+    nombre: Agricultura, ganadería, caza, silvicultura y pesca
+  - letra: B
+    divisiones: ["05", "06", "07", "08", "09"]
+    nombre: Explotación de minas y canteras
+  - letra: C
+    divisiones: ["10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33"]
+    nombre: Industrias manufactureras
+  - letra: D
+    divisiones: ["35"]
+    nombre: Suministro de electricidad, gas, vapor y aire acondicionado
+  - letra: E
+    divisiones: ["36", "37", "38", "39"]
+    nombre: Suministro de agua, alcantarillado, gestión de desechos y saneamiento ambiental
+  - letra: F
+    divisiones: ["41", "42", "43"]
+    nombre: Construcción
+  - letra: G
+    divisiones: ["45", "46", "47"]
+    nombre: Comercio al por mayor y al por menor; reparación de vehículos y motocicletas
+  - letra: H
+    divisiones: ["49", "50", "51", "52", "53"]
+    nombre: Transporte y almacenamiento
+  - letra: I
+    divisiones: ["55", "56"]
+    nombre: Alojamiento y servicios de comida
+  - letra: J
+    divisiones: ["58", "59", "60", "61", "62", "63"]
+    nombre: Información y comunicaciones
+  - letra: K
+    divisiones: ["64", "65", "66"]
+    nombre: Actividades financieras y de seguros
+  - letra: L
+    divisiones: ["68"]
+    nombre: Actividades inmobiliarias
+  - letra: M
+    divisiones: ["69", "70", "71", "72", "73", "74", "75"]
+    nombre: Actividades profesionales, científicas y técnicas
+  - letra: N
+    divisiones: ["77", "78", "79", "80", "81", "82"]
+    nombre: Actividades de servicios administrativos y de apoyo
+  - letra: O
+    divisiones: ["84"]
+    nombre: Administración pública y defensa; seguridad social de afiliación obligatoria
+  - letra: P
+    divisiones: ["85"]
+    nombre: Educación
+  - letra: Q
+    divisiones: ["86", "87", "88"]
+    nombre: Actividades de atención de la salud humana y de asistencia social
+  - letra: R
+    divisiones: ["90", "91", "92", "93"]
+    nombre: Actividades artísticas, de entretenimiento y recreación
+  - letra: S
+    divisiones: ["94", "95", "96"]
+    nombre: Otras actividades de servicios
+  - letra: T
+    divisiones: ["97", "98"]
+    nombre: Actividades de los hogares en calidad de empleadores; producción de los hogares para uso propio
+  - letra: U
+    divisiones: ["99"]
+    nombre: Actividades de organizaciones y entidades extraterritoriales

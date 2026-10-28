@@ -1,0 +1,39 @@
+version: 1
+# Expresiones colombianas -> código CIIU (plan_trabajo.md §6.4: "diccionario de expresiones
+# colombianas → código CIIU, con evidencia literal"). Semilla inicial con los ejemplos del plan;
+# se amplía con lo que surja en la anotación real (docs/fichas/guia_anotacion.md).
+# Códigos verificados contra data/referencia/ciiu.csv (2026-10-27).
+expresiones:
+  - expresion: casa de cambio
+    code: "6614"
+    descripcion_ciiu: Actividades de las casas de cambio.
+  - expresion: estación de servicio
+    code: "4731"
+    descripcion_ciiu: Comercio al por menor de combustible para automotores.
+  - expresion: venta de combustible
+    code: "4731"
+    descripcion_ciiu: Comercio al por menor de combustible para automotores.
+  - expresion: comercializadora de combustibles
+    code: "4661"
+    descripcion_ciiu: Comercio al por mayor de combustibles sólidos, líquidos, gaseosos y productos conexos.
+  - expresion: exportadora de oro
+    code: "0722"
+    descripcion_ciiu: Extracción de oro y otros metales preciosos.
+  - expresion: compraventa de oro
+    code: "0722"
+    descripcion_ciiu: Extracción de oro y otros metales preciosos.
+  - expresion: concesionario
+    code: "4511"
+    descripcion_ciiu: Comercio de vehículos automotores nuevos.
+  - expresion: venta de vehículos usados
+    code: "4512"
+    descripcion_ciiu: Comercio de vehículos automotores usados.
+  - expresion: inmobiliaria
+    code: "6810"
+    descripcion_ciiu: Actividades inmobiliarias realizadas con bienes propios o arrendados.
+  - expresion: finca raíz
+    code: "6810"
+    descripcion_ciiu: Actividades inmobiliarias realizadas con bienes propios o arrendados.
+  - expresion: cría de ganado
+    code: "0141"
+    descripcion_ciiu: Cría de ganado bovino y bufalino.

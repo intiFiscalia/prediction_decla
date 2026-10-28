@@ -30,6 +30,17 @@ datos del caso ni contienen información reservada.
   espacial de alta precisión (es una simplificación); para eso, los shapefiles originales del
   [geoportal del DANE](https://geoportal.dane.gov.co/).
 
-Pendiente: CIIU Rev. 4 A.C., catálogo del Código Penal.
+- `ciiu.csv` (2026-10-27): catálogo de actividades económicas colombianas (`id`, `code`
+  — 4 dígitos, `description`, `status`, `version`), 499 clases activas. Fuente: "Catálogo de
+  actividades económicas", Positiva Compañía de Seguros, publicado en datos.gov.co (Socrata,
+  `nuke-fusu`), adaptado de los catálogos CIIU Rev. 4 A.C. de DANE/DIAN, exportado vía
+  `https://www.datos.gov.co/api/views/nuke-fusu/rows.csv?accessType=DOWNLOAD`. Licencia
+  CC BY-SA 4.0. Incluye algunos códigos administrativos no estrictamente CIIU (p. ej. "0010
+  Asalariados", "0081 Personas Naturales sin Actividad Económica") heredados del catálogo de
+  registro de Positiva; no afecta el uso como diccionario de referencia. La jerarquía
+  división→sección (21 secciones) no viene en este archivo: está en
+  `config/diccionarios/ciiu_jerarquia.yaml` como tabla fija DANE.
+
+Pendiente: catálogo del Código Penal.
 
 Lectura: cualquier colaborador del proyecto, incluido Claude Code.

@@ -1,0 +1,138 @@
+version: 1
+# Categorías de la tabla texto.menciones (plan_trabajo.md §6.3) y su vocabulario semilla
+# colombiano. "mecanismo" y "actividad" llevan una definición en prosa (no solo palabras clave)
+# porque alimentan la clasificación zero-shot por similitud de embeddings
+# (decla.conocimiento.zero_shot): comparar contra una oración define mejor el significado que
+# comparar contra una palabra suelta. El vocabulario de "mecanismo" reutiliza deliberadamente los
+# mismos 12 fenómenos plantados en tests/fixtures/verdad.parquet (CLAUDE.md §4.20), para poder
+# medir recuperación contra esa verdad de terreno.
+
+categorias:
+  - nombre: mecanismo
+    descripcion: Modus operandi o técnica usada para dar apariencia de legalidad a recursos.
+    vocabulario:
+      - codigo: fraccionamiento_consignaciones
+        definicion: >
+          División de un monto de dinero en varias consignaciones o transacciones más pequeñas
+          para evitar los controles y reportes de operaciones sospechosas.
+      - codigo: empresas_fachada
+        definicion: >
+          Uso de una empresa o sociedad sin actividad económica real que aparenta operar
+          legalmente para ocultar el origen o destino de recursos ilícitos.
+      - codigo: testaferros
+        definicion: >
+          Uso de una persona que figura como propietaria o titular de bienes o cuentas en nombre
+          de otra persona que es la verdadera beneficiaria, para ocultar su identidad.
+      - codigo: contrabando_mercancias
+        definicion: >
+          Introducción, transporte o comercialización de mercancías sin declarar ante las
+          autoridades aduaneras o sin pagar los tributos correspondientes.
+      - codigo: contrabando_combustibles
+        definicion: >
+          Transporte, almacenamiento o comercialización ilegal de combustibles sin la
+          autorización o los documentos exigidos por la autoridad competente.
+      - codigo: subfacturacion
+        definicion: >
+          Declaración de un valor o cantidad de mercancía inferior al real en una operación de
+          importación o exportación para pagar menos impuestos o tributos aduaneros.
+      - codigo: compra_ganado
+        definicion: >
+          Adquisición de ganado o semovientes con dinero de origen ilícito para darle apariencia
+          de legalidad.
+      - codigo: compra_inmuebles
+        definicion: >
+          Adquisición de bienes inmuebles (casas, lotes, fincas) con dinero de origen ilícito
+          para darle apariencia de legalidad a los recursos.
+      - codigo: mineria_ilegal_oro
+        definicion: >
+          Extracción, transporte o comercialización de oro sin título minero ni autorización
+          ambiental o de la autoridad minera.
+      - codigo: giros_casas_cambio
+        definicion: >
+          Envío o cambio de divisas a través de giros internacionales o casas de cambio, usados
+          para mover dinero de origen ilícito entre países.
+      - codigo: criptoactivos
+        definicion: >
+          Uso de monedas digitales o criptoactivos para transferir, ocultar o convertir dinero
+          de origen ilícito.
+      - codigo: captacion_ilegal
+        definicion: >
+          Recaudo de dinero del público de forma masiva y habitual, sin autorización de la
+          autoridad financiera, prometiendo rendimientos o beneficios futuros.
+
+  - nombre: actividad
+    descripcion: Acción concreta descrita en el relato (verbo + objeto), más granular que el mecanismo.
+    vocabulario:
+      - codigo: comprar
+        definicion: Adquirir un bien o servicio a cambio de dinero.
+      - codigo: vender
+        definicion: Transferir la propiedad de un bien o servicio a cambio de dinero.
+      - codigo: transportar
+        definicion: Trasladar personas, mercancías o dinero de un lugar a otro.
+      - codigo: almacenar
+        definicion: Guardar o depositar mercancías o bienes en un lugar.
+      - codigo: declarar
+        definicion: Informar formalmente a una autoridad sobre un bien, ingreso o transacción.
+      - codigo: registrar
+        definicion: Inscribir formalmente un bien, sociedad o transacción ante una entidad.
+
+  - nombre: bien
+    descripcion: Objeto físico o activo mencionado en el relato.
+    vocabulario:
+      - codigo: inmueble
+        sinonimos: [casa, finca, lote, apartamento, predio, bodega]
+      - codigo: vehiculo
+        sinonimos: [carro, camioneta, moto, motocicleta]
+      - codigo: ganado
+        sinonimos: [ganado, semovientes, cabezas de ganado, reses]
+      - codigo: oro
+        sinonimos: [oro, metal precioso, lingote]
+      - codigo: combustible
+        sinonimos: [gasolina, combustible, ACPM, diésel]
+      - codigo: divisas
+        sinonimos: [dólares, divisas, moneda extranjera]
+      - codigo: mercancia
+        sinonimos: [mercancía, electrodomésticos, textiles, licores, cigarrillos]
+
+  - nombre: medio_transporte
+    descripcion: Medio usado para transportar personas, mercancías o dinero.
+    vocabulario:
+      - codigo: vehiculo_particular
+        sinonimos: [vehículo particular, carro particular, camioneta]
+      - codigo: camion
+        sinonimos: [camión, furgón]
+      - codigo: tractomula
+        sinonimos: [tractomula, tracto camión]
+      - codigo: lancha
+        sinonimos: [lancha, embarcación, bote]
+      - codigo: aeronave
+        sinonimos: [avión, avioneta, aeronave]
+      - codigo: motocicleta
+        sinonimos: [moto, motocicleta]
+
+  - nombre: sector
+    descripcion: >
+      Sector económico (CIIU Rev. 4 A.C., decla.conocimiento.sectores). No tiene vocabulario
+      aquí: usa data/referencia/ciiu.csv y config/diccionarios/sectores_expresiones.yaml. Nunca
+      se atribuye a una persona u organización, solo al relato/mención.
+
+  - nombre: lugar
+    descripcion: Municipio o departamento mencionado (decla.texto.pipeline_spacy, gazetteer DIVIPOLA).
+
+  - nombre: institucion
+    descripcion: Entidad pública o internacional mencionada (decla.texto.pipeline_spacy, gazetteer).
+
+  - nombre: articulo_penal
+    descripcion: Artículo del Código Penal citado (decla.texto.patrones_regex.extraer_articulos_penales).
+
+  - nombre: monto
+    descripcion: Cifra de dinero en cifras o en letras (decla.texto.patrones_regex.extraer_montos).
+
+  - nombre: fecha
+    descripcion: Fecha mencionada en el relato (decla.texto.patrones_regex.extraer_fechas_en_texto).
+
+  - nombre: origen_destino_mercancia
+    descripcion: >
+      Lugar de origen o destino de una mercancía o transacción, derivado de menciones de "lugar"
+      cercanas a verbos de movimiento (traer, llevar, enviar, provenir); no tiene vocabulario
+      propio, se deriva en decla.conocimiento.orquestador.
