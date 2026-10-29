@@ -15,3 +15,17 @@ sector_inferido:
 zero_shot_mecanismo:
   confianza_minima: 0.85
   margen_minimo_top2: 0.01
+segmentacion_densidad:
+  # Umbral de proporción de tokens administrativos por oración (config/diccionarios/
+  # vocabulario_administrativo.yaml) por debajo del cual una oración se considera ya parte del
+  # hecho, no del encabezado de trámite. Calibrado (2026-10-29) con oraciones sintéticas propias
+  # (nunca con relatos reales, CLAUDE.md §2.1): oraciones de hecho (ej. "Los investigadores
+  # hallaron mercancía...") miden 0,00-0,08; 6 de 8 encabezados sintéticos de
+  # scripts/generar_fixtures.py miden 0,11-0,50. 0,10 separa ambos grupos sin solaparlos.
+  # Dos encabezados (estilos "cooperación internacional" y "control vial") usan redacción
+  # genérica sin vocabulario claramente administrativo y miden 0,04-0,05: quedan sin detectar
+  # por este método (los captura el método por frase exacta si la frase coincide literal).
+  # Pendiente de recalibrar con `calcular_cobertura_densidad` cuando la persona corra `make nlp`
+  # sobre datos reales.
+  umbral_densidad: 0.10
+  min_tokens_oracion: 4

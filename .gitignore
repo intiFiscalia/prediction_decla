@@ -40,3 +40,8 @@ htmlcov/
 # Vectores de embeddings (se regeneran con make nlp; grandes, no se versionan)
 data/embeddings/*
 !data/embeddings/README.md
+
+# Taxonomía borrador: salida de `make fenomenos` sobre datos reales (medoides/bordes de texto
+# enmascarado, derivados de relatos reales). Nunca se versiona; solo v1.0.yaml (curada por
+# analistas en el taller, con ejemplos sintéticos o ids, no excertos reales) se comitea.
+config/taxonomia/v0.1-borrador.yaml

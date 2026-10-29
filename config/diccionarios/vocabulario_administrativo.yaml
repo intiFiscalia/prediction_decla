@@ -1,0 +1,84 @@
+version: 1
+# Vocabulario administrativo/procesal común en actas policiales, informes FPJ y denuncias
+# colombianas (plan_trabajo.md §6.1 paso 3; CLAUDE.md §4.21). Conocimiento general del dominio
+# (no proviene de relatos reales): se usa para medir, oración por oración, qué tan "de trámite"
+# es el texto, en vez de buscar frases exactas (CLAUDE.md §4.21: "algunos empiezan a mitad de
+# contexto" — una frase fija nunca cubre toda la variación real de redacción).
+palabras:
+  # Marcadores temporales/formales de apertura
+  - siendo
+  - hora
+  - horas
+  - fecha
+  - día
+  - mes
+  - año
+  # Identificación del funcionario/despacho
+  - suscrito
+  - suscrita
+  - suscribe
+  - funcionario
+  - funcionaria
+  - adscrito
+  - adscrita
+  - despacho
+  - unidad
+  - seccional
+  - grupo
+  - especializado
+  - fiscal
+  - investigador
+  - investigadora
+  # Verbos y sustantivos de trámite/recepción
+  - recibir
+  - recibido
+  - recibida
+  - informe
+  - acta
+  - oficio
+  - memorial
+  - escrito
+  - remitir
+  - remitido
+  - remitida
+  - allegar
+  - allegado
+  - allegada
+  - anexo
+  - anexar
+  - radicado
+  - radicación
+  - notificar
+  - notificación
+  - diligencia
+  - diligenciamiento
+  - actuación
+  - actuaciones
+  - constancia
+  - certificar
+  - formato
+  # Comparecencia y manifestación formal (no el contenido de lo manifestado)
+  - comparecer
+  - compareció
+  - manifestar
+  - asistencia
+  - asistir
+  - presente
+  - conocimiento
+  # Conectores y cierre formal
+  - cumplimiento
+  - correspondiente
+  - correspondientes
+  - efecto
+  - efectos
+  - legal
+  - legales
+  - competencia
+  - asignar
+  - asignado
+  - asignada
+  - orden
+  - trabajo
+  - continuación
+  - procedimiento
+  - proceder

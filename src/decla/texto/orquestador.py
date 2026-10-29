@@ -22,10 +22,14 @@ from decla.texto.duplicados import construir_grupos_duplicados, detectar_casi_du
 from decla.texto.embeddings import calcular_embeddings_relato, escribir_embeddings_parquet
 from decla.texto.enmascaramiento import enmascarar
 from decla.texto.normalizacion_conservadora import normalizar_conservador
-from decla.texto.segmentacion import segmentar
+from decla.texto.segmentacion import segmentar_combinado
 
 RAIZ_PROYECTO = Path(__file__).resolve().parents[3]
 RUTA_SEGMENTACION = RAIZ_PROYECTO / "config" / "diccionarios" / "segmentacion_estructura.yaml"
+RUTA_VOCABULARIO_ADMINISTRATIVO = (
+    RAIZ_PROYECTO / "config" / "diccionarios" / "vocabulario_administrativo.yaml"
+)
+RUTA_UMBRALES = RAIZ_PROYECTO / "config" / "umbrales.yaml"
 RUTA_EMBEDDINGS_CONFIG = RAIZ_PROYECTO / "config" / "embeddings.yaml"
 RUTA_EMBEDDINGS_DATOS_DEFECTO = RAIZ_PROYECTO / "data" / "embeddings"
 
@@ -52,12 +56,24 @@ class ResumenTexto:
     version_modelo_embeddings: str
 
 
-def _procesar_fila(fila: dict[str, Any], marcadores_descripcion_hecho: list[str]) -> dict[str, Any]:
+def _procesar_fila(
+    fila: dict[str, Any],
+    marcadores_descripcion_hecho: list[str],
+    vocabulario_administrativo: set[str],
+    umbral_densidad: float,
+    min_tokens_oracion: int,
+) -> dict[str, Any]:
     texto_original = fila.get("relato")
     texto_normalizado, _ = normalizar_conservador(texto_original)
     texto_normalizado = texto_normalizado or ""
 
-    segmentacion = segmentar(texto_normalizado, marcadores_descripcion_hecho)
+    segmentacion = segmentar_combinado(
+        texto_normalizado,
+        marcadores_descripcion_hecho,
+        vocabulario_administrativo,
+        umbral_densidad,
+        min_tokens_oracion,
+    )
     enmascarado_completo = enmascarar(texto_normalizado)
     enmascarado_hecho = enmascarar(segmentacion.descripcion_hecho)
 
@@ -88,7 +104,21 @@ def procesar_texto(
     config_segmentacion = cargar_yaml(RUTA_SEGMENTACION)
     marcadores = config_segmentacion.get("marcadores_descripcion_hecho", [])
 
-    filas_procesadas = [_procesar_fila(fila, marcadores) for fila in filas_relato]
+    config_vocabulario = cargar_yaml(RUTA_VOCABULARIO_ADMINISTRATIVO)
+    vocabulario_administrativo = {
+        palabra.lower() for palabra in config_vocabulario.get("palabras", [])
+    }
+
+    umbrales = cargar_yaml(RUTA_UMBRALES).get("segmentacion_densidad", {})
+    umbral_densidad = umbrales.get("umbral_densidad", 0.25)
+    min_tokens_oracion = umbrales.get("min_tokens_oracion", 4)
+
+    filas_procesadas = [
+        _procesar_fila(
+            fila, marcadores, vocabulario_administrativo, umbral_densidad, min_tokens_oracion
+        )
+        for fila in filas_relato
+    ]
 
     textos_para_duplicados = {
         fila["registro_uid"]: fila["relato_enmascarado"]

@@ -479,10 +479,15 @@ def construir_relato(
         f"Los hechos habrían ocurrido aproximadamente el {fecha_relato_variante(rng, fecha_hecho)}."
     )
 
+    # El encabezado va una sola vez, al inicio: en los relatos reales la plantilla institucional
+    # precede al hecho, nunca se repite en medio (CLAUDE.md §4.21). Solo las oraciones del hecho
+    # se repiten para alcanzar la longitud objetivo — si se mezclara el encabezado en el relleno,
+    # la segmentación contexto/hecho no tendría nada representativo que aprender de los fixtures.
+    encabezado, *oraciones_hecho = oraciones
     objetivo_palabras = rng.randint(60, 2000)
-    texto_partes: list[str] = []
+    texto_partes: list[str] = [encabezado]
     while sum(len(p.split()) for p in texto_partes) < objetivo_palabras:
-        texto_partes.append(rng.choice(oraciones))
+        texto_partes.append(rng.choice(oraciones_hecho))
 
     texto = " ".join(texto_partes)
     texto = aplicar_typos(rng, texto)

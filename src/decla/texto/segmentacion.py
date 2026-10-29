@@ -12,8 +12,13 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+import spacy
+
+from decla.texto.pipeline_spacy import analizar
+
 SIN_MARCADOR = "sin_marcador"
 MARCADOR_DESCRIPCION_HECHO = "marcador_descripcion_hecho"
+METODO_DENSIDAD = "densidad_administrativa"
 VACIO = "vacio"
 
 
@@ -64,5 +69,120 @@ def calcular_cobertura(textos: list[str], marcadores_descripcion_hecho: list[str
         1
         for t in relevantes
         if segmentar(t, marcadores_descripcion_hecho).metodo == MARCADOR_DESCRIPCION_HECHO
+    )
+    return n_con_corte / len(relevantes)
+
+
+def _densidad_administrativa(
+    oracion: spacy.tokens.Span, vocabulario_administrativo: set[str]
+) -> float:
+    tokens_alfa = [token for token in oracion if token.is_alpha]
+    if not tokens_alfa:
+        return 0.0
+    n_administrativos = sum(
+        1
+        for token in tokens_alfa
+        if token.text.lower() in vocabulario_administrativo
+        or token.lemma_.lower() in vocabulario_administrativo
+    )
+    return n_administrativos / len(tokens_alfa)
+
+
+def segmentar_por_densidad(
+    texto: str | None,
+    vocabulario_administrativo: set[str],
+    umbral_densidad: float = 0.10,
+    min_tokens_oracion: int = 4,
+) -> SegmentacionRelato:
+    """Separa `contexto_denuncia` de `descripcion_hecho` por densidad de vocabulario
+    administrativo oración por oración, no por frases exactas (CLAUDE.md §4.21: la redacción
+    real varía demasiado para que una lista de frases fijas generalice). Recorre las oraciones
+    desde el inicio; la primera cuya densidad cae por debajo de `umbral_densidad` marca el
+    comienzo de `descripcion_hecho`. Oraciones muy cortas (< `min_tokens_oracion` tokens
+    alfabéticos) no aportan evidencia suficiente y se saltan sin decidir el corte sobre ellas.
+    Si ninguna oración baja del umbral, no hay evidencia de dónde cortar: todo el texto queda
+    como `descripcion_hecho` (mismo principio que `segmentar`).
+    """
+    if not texto:
+        return SegmentacionRelato(
+            contexto_denuncia=None, descripcion_hecho=texto or "", metodo=VACIO, marcador_usado=None
+        )
+
+    doc = analizar(texto)
+    oraciones = list(doc.sents)
+    if not oraciones:
+        return SegmentacionRelato(
+            contexto_denuncia=None,
+            descripcion_hecho=texto,
+            metodo=SIN_MARCADOR,
+            marcador_usado=None,
+        )
+
+    indice_corte: int | None = None
+    for oracion in oraciones:
+        tokens_alfa = [token for token in oracion if token.is_alpha]
+        if len(tokens_alfa) < min_tokens_oracion:
+            continue
+        if _densidad_administrativa(oracion, vocabulario_administrativo) < umbral_densidad:
+            indice_corte = oracion.start_char
+            break
+
+    if indice_corte is None or indice_corte == 0:
+        return SegmentacionRelato(
+            contexto_denuncia=None,
+            descripcion_hecho=texto,
+            metodo=SIN_MARCADOR,
+            marcador_usado=None,
+        )
+
+    return SegmentacionRelato(
+        contexto_denuncia=texto[:indice_corte].strip(),
+        descripcion_hecho=texto[indice_corte:].strip(),
+        metodo=METODO_DENSIDAD,
+        marcador_usado=None,
+    )
+
+
+def segmentar_combinado(
+    texto: str | None,
+    marcadores_descripcion_hecho: list[str],
+    vocabulario_administrativo: set[str],
+    umbral_densidad: float = 0.10,
+    min_tokens_oracion: int = 4,
+) -> SegmentacionRelato:
+    """Intenta primero el corte por frase exacta (`segmentar`): cuando una frase de la lista
+    aparece literalmente, es la señal más confiable de dónde empieza el hecho. Si no aparece
+    ninguna (`sin_marcador`/`vacio` — el caso de ~95 % de los relatos reales), usa
+    `segmentar_por_densidad` como respaldo, que generaliza mejor a redacciones no vistas.
+    """
+    por_frase = segmentar(texto, marcadores_descripcion_hecho)
+    if por_frase.metodo == MARCADOR_DESCRIPCION_HECHO:
+        return por_frase
+    if por_frase.metodo == VACIO:
+        return por_frase
+    return segmentar_por_densidad(
+        texto, vocabulario_administrativo, umbral_densidad, min_tokens_oracion
+    )
+
+
+def calcular_cobertura_densidad(
+    textos: list[str],
+    vocabulario_administrativo: set[str],
+    umbral_densidad: float = 0.10,
+    min_tokens_oracion: int = 4,
+) -> float:
+    """Proporción de `textos` donde `segmentar_por_densidad` identificó un corte (no cuenta
+    `vacio` ni `sin_marcador`). Comparable con `calcular_cobertura` para medir la mejora.
+    """
+    relevantes = [t for t in textos if t]
+    if not relevantes:
+        return 0.0
+    n_con_corte = sum(
+        1
+        for t in relevantes
+        if segmentar_por_densidad(
+            t, vocabulario_administrativo, umbral_densidad, min_tokens_oracion
+        ).metodo
+        == METODO_DENSIDAD
     )
     return n_con_corte / len(relevantes)
