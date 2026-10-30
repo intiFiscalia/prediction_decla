@@ -1,11 +1,10 @@
 # Cierre de I2 — Texto, conocimiento y descubrimiento de fenómenos
 
-- **Fecha:** 2026-10-28
-- **Estado:** **cerrado parcialmente**. Los tres bloques (2A, 2B, 2C) están construidos,
-  probados y commiteados. La compuerta completa de I2 no se cierra todavía porque exige una
-  taxonomía v1.0 **aprobada por la persona responsable tras un taller de revisión con
-  analistas** (plan_trabajo.md §7.2) — eso es trabajo humano que esta sesión no puede simular ni
-  adelantar, no código pendiente.
+- **Fecha:** 2026-10-28 (actualizado 2026-10-30 tras el taller de revisión, ADR 0012 y ADR 0013)
+- **Estado:** **cerrado.** Los tres bloques (2A, 2B, 2C) están construidos, probados y
+  commiteados. El taller de revisión humana ya ocurrió (ADR 0013) y produjo
+  `config/taxonomia/v1.0.yaml` (1 fenómeno aprobado, "lavado_de_activos"; 1 grupo excluido como
+  artefacto) — el criterio que faltaba para la compuerta completa.
 
 ## Entregables
 
@@ -58,31 +57,37 @@
   clases activas, CC BY-SA 4.0), con jerarquía división→sección documentada como tabla fija
   (`config/diccionarios/ciiu_jerarquia.yaml`).
 
-## Limitaciones conocidas (no bloquean lo ya cerrado, sí bloquean I3)
+## Limitaciones conocidas (ya no bloquean el cierre; algunas sí limitan el alcance hacia adelante)
 
-- **Taxonomía v1.0 no existe todavía.** `config/taxonomia/v0.1-borrador.yaml` es un borrador
-  automático con `estado: pendiente_revision` en cada grupo — nunca se presenta como fenómenos
-  validados (regla explícita del plan).
-- **Clasificador multietiqueta y conteo con incertidumbre (plan §7.3-§7.4) no se construyeron.**
-  Dependen de la taxonomía aprobada; construirlos antes sería código sin datos reales para
-  probarlo. Interfaz esperada documentada en ADR 0011 para cuando el taller ocurra.
-- **Sector inferido (2B) y agrupamiento (2C) comparten una limitación sin resolver:** mientras
-  la segmentación contexto/hecho no mejore (necesita que un analista lea una muestra real y
-  amplíe `config/diccionarios/segmentacion_estructura.yaml`), ambos siguen en riesgo de reflejar
-  plantilla institucional en vez de contenido real.
-- `embeddings_segmento` casi idéntico a `embeddings_relato` para el 95 % de los relatos reales
-  (consecuencia directa del punto anterior): no vale la pena recalcular agrupamiento por
-  segmento vs. por relato completo hasta que la segmentación mejore.
+- **Segmentación contexto/hecho mejorada (ADR 0012), no perfecta.** Cobertura real subió de
+  4,9 % a 15,0 % con el método de densidad administrativa. El taller confirmó el efecto: el
+  grupo con más cobertura de segmentación mostró términos de contenido real (lavado, dinero,
+  delito); el grupo con menos cobertura (`dominancia_plantilla=0,96`) se marcó artefacto. Seguir
+  subiendo esa cobertura queda como trabajo futuro opcional, no bloqueante.
+- **Taxonomía v1.0 mínima:** 1 solo fenómeno aprobado (`lavado_de_activos`), 1 grupo excluido
+  (ADR 0013). HDBSCAN solo encontró 2 grupos en esta corrida, mientras NMF y aglomerativo
+  encontraron 5 cada uno — es probable que el fenómeno aprobado mezcle varios mecanismos
+  distintos (contrabando, testaferros, cripto, etc.) que ningún método separó todavía. El taller
+  no pidió dividirlo esta vez; queda como candidato a revisar en una próxima ronda.
+- **`definicion` y `delitos_relacionados` quedan pendientes de redacción/cálculo** en
+  `config/taxonomia/v1.0.yaml` (ADR 0013) — la app de revisión no captura definición en texto, y
+  el cálculo agregado de delitos relacionados por grupo no está conectado todavía.
+- **Clasificador multietiqueta y conteo con incertidumbre (plan §7.3-§7.4) siguen sin
+  construirse.** Ya existe la taxonomía aprobada que los habilita, pero con una sola clase real
+  el clasificador sería binario de facto (`lavado_de_activos` vs. `no_clasificado`) — vale la
+  pena decidir con la persona si se construye ya o se espera a tener más fenómenos aprobados.
+- `embeddings_segmento` ya difiere más de `embeddings_relato` que antes (15 % vs. 4,9 % de
+  cobertura), pero sigue sin evaluarse si vale la pena recalcular agrupamiento por segmento vs.
+  por relato completo con el nuevo nivel de cobertura.
 
 ## Compuerta
 
-**No se cumple todavía el criterio de taxonomía v1.0 aprobada** (plan_trabajo.md, compuerta I2).
-Los demás criterios verificables sin taller (precisión de reglas, funcionamiento de punta a
-punta, estabilidad publicada) sí se cumplen para lo que no depende de revisión humana.
+**Se cumple el criterio de taxonomía v1.0 aprobada** (plan_trabajo.md, compuerta I2): el taller
+de revisión ocurrió (ADR 0013), produjo `config/taxonomia/v1.0.yaml`, y los demás criterios
+verificables sin taller (precisión de reglas, funcionamiento de punta a punta, estabilidad
+publicada) ya se cumplían. **I2 queda cerrado.**
 
-**Siguiente paso:** la persona (o un equipo de analistas) corre `app_revision_fenomenos.py` sobre
-los grupos reales (ya calculados con `make fenomenos` sobre datos reales), toma las decisiones
-del taller (aprobar/renombrar/fusionar/dividir/artefacto/descartar + prueba de intrusión), y con
-eso se congela `config/taxonomia/v1.0.yaml`. Solo entonces se retoma este incremento para
-construir el clasificador y el conteo con incertidumbre, y se pasa a I3 (análisis estadístico,
-territorial y de asociaciones).
+**Siguiente paso:** decidir con la persona si se construye el clasificador multietiqueta y el
+conteo con incertidumbre (plan §7.3-§7.4) sobre esta taxonomía mínima, o si se pasa directo a I3
+(análisis estadístico, territorial y de asociaciones) y se vuelve a fenómenos cuando haya más
+mecanismos aprobados.
