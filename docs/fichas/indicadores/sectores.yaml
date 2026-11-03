@@ -1,0 +1,24 @@
+nombre: Sector económico mencionado — explícito / inferido alta confianza / indeterminado
+funcion: decla.analitica.indicadores.ind_sectores
+unidad: noticia (registro_uid con una mención categoria='sector' en texto.menciones)
+fecha_de_referencia: no aplica
+numerador: n por categoria_sector (explicito | inferido_alta_confianza | indeterminado)
+denominador: relatos con mención de sector (texto.menciones solo escribe esa fila si el relato
+  tenía texto no vacío; no es necesariamente el 100 % del alcance)
+limitaciones:
+  - "Las tres categorías son mutuamente excluyentes por construcción
+    (decla.conocimiento.orquestador escribe como máximo una mención categoria='sector' por
+    relato), así que sí suman 100 % entre sí — a diferencia de ind_fenomenos, aquí no hay
+    solape posible."
+  - "'indeterminado' agrupa dos casos de decla.conocimiento.sectores.clasificar_sector_inferido:
+    confianza por debajo del umbral (config/umbrales.yaml, sector_inferido) y casos sin vector
+    calculable (valor_normalizado NULL). Ambos significan lo mismo para este indicador: no se
+    forzó una etiqueta de sector (CLAUDE.md §2.3)."
+  - Excluye menciones negadas o hipotéticas por defecto (CLAUDE.md §2.3, plan §6.4); hoy
+    decla.conocimiento.orquestador siempre marca la mención de sector como 'afirmada', así que el
+    filtro no cambia el resultado todavía, pero es una garantía explícita en el código, no un
+    supuesto implícito.
+  - El sector se asigna al relato, nunca a una persona o empresa (CLAUDE.md §2.3).
+  - "inferido_alta_confianza" depende de los umbrales calibrados en config/umbrales.yaml
+    (confianza_minima, margen_minimo_top2), calibrados con oraciones sintéticas de desarrollo,
+    pendientes de recalibrar con la muestra real de anotación (ver nota del propio archivo).

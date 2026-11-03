@@ -77,6 +77,8 @@ def test_construir_taxonomia_v1_incluye_solo_aprobados_con_nombre() -> None:
     assert fenomeno["terminos_dominantes"] == ["lavado", "activo", "dinero", "delito"]
     assert fenomeno["ids_ejemplo"] == ["uid_a", "uid_b"]
     assert fenomeno["definicion"] == "pendiente_de_redaccion_por_analista"
+    assert fenomeno["grupo_id_origen"] == "0"
+    assert fenomeno["metodo_origen"] == "0"  # sin prefijo de método en este fixture antiguo
 
     assert len(resultado.excluidos) == 1
     assert resultado.excluidos[0]["grupo_id"] == "1"
@@ -105,6 +107,16 @@ def test_construir_taxonomia_v1_dividir_y_fusionar_quedan_pendientes_no_se_adivi
 def test_construir_taxonomia_v1_grupo_sin_decision_queda_listado() -> None:
     resultado = construir_taxonomia_v1([], [GRUPOS[0]])
     assert resultado.sin_decision == ["0"]
+
+
+def test_construir_taxonomia_v1_extrae_metodo_origen_de_grupo_id_prefijado() -> None:
+    """Desde ADR 0014, `grupo_id` real siempre lleva el prefijo del método (`nmf_4`,
+    `agglomerative_1`, ...). `metodo_origen` es todo lo anterior al último `_`."""
+    grupo = {**GRUPOS[0], "grupo_id": "nmf_4"}
+    decisiones = [_decision("nmf_4", "aprobar", "2026-11-03T09:37:52", nombre_nuevo="Empresas")]
+    resultado = construir_taxonomia_v1(decisiones, [grupo])
+    assert resultado.fenomenos[0]["grupo_id_origen"] == "nmf_4"
+    assert resultado.fenomenos[0]["metodo_origen"] == "nmf"
 
 
 def test_construir_taxonomia_v1_codigos_duplicados_se_desambiguan() -> None:

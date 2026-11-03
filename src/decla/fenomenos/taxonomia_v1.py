@@ -11,6 +11,11 @@ existe como código, así que se reportan como pendientes en vez de adivinar qu�
 A diferencia de `v0.1-borrador.yaml` (que incluye medoides/bordes de texto enmascarado real),
 v1.0 solo guarda `ids_ejemplo` (registro_uid, ya seudonimizados por hash) — nunca texto — por lo
 que SÍ se puede versionar en git (plan_trabajo.md §7.2: "ejemplos sintéticos o ids").
+
+Cada fenómeno aprobado guarda `grupo_id_origen`/`metodo_origen` (p. ej. `nmf_4`/`nmf`): sin esto
+no hay forma de saber qué filas de `fenomenos.grupo_asignacion_borrador` pertenecen a un código ya
+congelado (`decla.fenomenos.asignacion` los usa para construir `fenomenos.asignacion_fenomeno`,
+Fase 7/I3).
 """
 
 from __future__ import annotations
@@ -148,6 +153,8 @@ def construir_taxonomia_v1(
                 "definicion": "pendiente_de_redaccion_por_analista",
                 "nivel_jerarquico": 1,
                 "delitos_relacionados": "pendiente_de_calculo",
+                "grupo_id_origen": grupo_id,
+                "metodo_origen": grupo_id.rsplit("_", 1)[0],
                 "terminos_dominantes": terminos,
                 "ids_ejemplo": ids_ejemplo,
                 "n_miembros": grupo.get("n_miembros"),

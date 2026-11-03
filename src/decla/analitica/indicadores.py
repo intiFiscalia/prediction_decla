@@ -244,3 +244,69 @@ def ind_conexidad(conexion: duckdb.DuckDBPyConnection) -> pl.DataFrame:
 
 def ind_calidad(conexion: duckdb.DuckDBPyConnection) -> pl.DataFrame:
     return conexion.sql("SELECT * FROM plata.reporte_calidad ORDER BY categoria, clave").pl()
+
+
+def ind_fenomenos(conexion: duckdb.DuckDBPyConnection) -> pl.DataFrame:
+    """Noticias por fenómeno (plan_trabajo.md §8.1, familia "Fenómenos") y % no clasificado.
+
+    `fenomenos.asignacion_fenomeno` (construida por `decla.fenomenos.asignacion` a partir de la
+    taxonomía v1.0 congelada) puede asignar un mismo relato a más de un código: dos de los cuatro
+    fenómenos vienen de la partición de HDBSCAN y los otros de la de NMF (dos particiones
+    distintas del mismo corpus, ver docstring de `asignacion.py`). Por eso `pct_participacion` se
+    calcula contra el total de relatos procesados, no contra la suma de los `n_noticias` de cada
+    fenómeno: esa suma puede superar el 100 %, y eso es esperado, no un error de conteo.
+
+    "Conteo ajustado" (plan §7.4, suma de probabilidades) no se reporta aparte: toda probabilidad
+    hoy es 1.0 (membresía de clustering, no de un clasificador calibrado — eso es Fase 9/I4), así
+    que coincide exactamente con `n_noticias`.
+    """
+    return conexion.sql(
+        """
+        WITH total AS (SELECT count(*) AS n FROM texto.relato_procesado)
+        SELECT a.codigo_fenomeno, count(*) AS n_noticias,
+               round(count(*) * 100.0 / total.n, 2) AS pct_participacion
+        FROM fenomenos.asignacion_fenomeno a, total
+        GROUP BY a.codigo_fenomeno, total.n
+        UNION ALL
+        SELECT '(no_clasificado)' AS codigo_fenomeno, count(*) AS n_noticias,
+               round(count(*) * 100.0 / (SELECT n FROM total), 2) AS pct_participacion
+        FROM texto.relato_procesado r, total
+        WHERE NOT EXISTS (
+            SELECT 1 FROM fenomenos.asignacion_fenomeno a WHERE a.registro_uid = r.registro_uid
+        )
+        GROUP BY total.n
+        ORDER BY n_noticias DESC
+        """
+    ).pl()
+
+
+def ind_sectores(conexion: duckdb.DuckDBPyConnection) -> pl.DataFrame:
+    """Sector explícito / inferido de alta confianza / indeterminado, **en columnas separadas**
+    (plan_trabajo.md §6.4, §8.1: "no forzar una etiqueta"; CLAUDE.md §2.3). Excluye menciones
+    negadas o hipotéticas por defecto; hoy `decla.conocimiento.orquestador` siempre escribe la
+    mención de sector con `polaridad='afirmada'`, así que el filtro es una garantía explícita
+    (CLAUDE.md), no un no-op invisible, por si en el futuro se detecta negación de sector.
+
+    Denominador: relatos con una mención de sector (`texto.menciones` solo escribe esa fila si el
+    relato tiene texto no vacío); no es el total de relatos en alcance si alguno quedó sin texto.
+    """
+    return conexion.sql(
+        """
+        WITH base AS (
+            SELECT
+                CASE
+                    WHEN origen = 'explicito_regla' THEN 'explicito'
+                    WHEN origen = 'inferido_modelo' AND valor_normalizado IS NOT NULL
+                         AND valor_normalizado != 'indeterminado' THEN 'inferido_alta_confianza'
+                    ELSE 'indeterminado'
+                END AS categoria_sector
+            FROM texto.menciones
+            WHERE categoria = 'sector' AND polaridad = 'afirmada'
+        )
+        SELECT categoria_sector, count(*) AS n,
+               round(count(*) * 100.0 / sum(count(*)) OVER (), 2) AS pct
+        FROM base
+        GROUP BY categoria_sector
+        ORDER BY n DESC
+        """
+    ).pl()
