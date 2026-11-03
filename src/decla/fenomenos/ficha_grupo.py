@@ -129,6 +129,7 @@ def indicador_dominancia_unidad(unidades_del_grupo: list[str]) -> float:
 class FichaGrupo:
     grupo_id: str
     n_miembros: int
+    metodo: str = ""
     terminos_c_tfidf: list[tuple[str, float]] = field(default_factory=list)
     menciones_dominantes: list[tuple[str, str, float]] = field(default_factory=list)
     distribucion_delito: dict[str, int] = field(default_factory=dict)

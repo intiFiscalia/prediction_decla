@@ -1,10 +1,14 @@
 """Orquestador del Bloque 2C (plan_trabajo.md §7.1; Fase 6).
 
 Corre representación → reducción UMAP → agrupamiento (HDBSCAN como método principal, más 3
-contrastes: k-means, NMF, aglomerativo) → ficha por grupo del método principal, y escribe
-`fenomenos.grupos_descubiertos` + `config/taxonomia/v0.1-borrador.yaml`. El nombre "borrador" es
-deliberado: la v1.0 exige el taller de revisión humana (plan_trabajo.md §7.2) que esta sesión no
-puede simular ("no presentes grupos no revisados como fenómenos").
+contrastes: k-means, NMF, aglomerativo) → ficha por grupo de HDBSCAN, NMF y aglomerativo (k-means
+no se ficha: en datos reales encontró los mismos 2 grupos que HDBSCAN, sin aportar estructura
+nueva) → escribe `fenomenos.grupos_descubiertos` + `config/taxonomia/v0.1-borrador.yaml`. El
+nombre "borrador" es deliberado: la v1.0 exige el taller de revisión humana (plan_trabajo.md
+§7.2) que esta sesión no puede simular ("no presentes grupos no revisados como fenómenos").
+
+`grupo_id` siempre lleva el prefijo del método (`hdbscan_0`, `nmf_3`, `agglomerative_2`, ...)
+porque los tres métodos reusan los mismos números de etiqueta — sin prefijo colisionarían.
 
 HDBSCAN y los 3 contrastes se seleccionan por estabilidad entre su propio barrido de
 hiperparámetros (`decla.fenomenos.estabilidad`), no solo por su métrica interna — excepto
@@ -192,27 +196,50 @@ def _seleccionar_agglomerative_por_estabilidad(
     return mejor, mejor_resumen
 
 
+def _codigo_grupo(metodo: str, etiqueta: Any) -> str:
+    return f"{metodo}_{int(etiqueta)}"
+
+
+def _grupos_por_etiqueta(
+    registros_uid: list[str],
+    etiquetas: Any,
+    metodo: str,
+    excluir_ruido: bool = False,
+) -> dict[str, list[str]]:
+    """Agrupa `registros_uid` por el código `{metodo}_{etiqueta}` (nunca por el entero crudo:
+    HDBSCAN, NMF y aglomerativo reusan los mismos números de etiqueta y colisionarían). Solo
+    HDBSCAN produce ruido (`RUIDO = -1`, `agrupamiento.agrupar_hdbscan`); NMF (argmax de pesos) y
+    aglomerativo (sklearn `AgglomerativeClustering`) asignan todos los puntos a un grupo.
+    """
+    grupos: dict[str, list[str]] = {}
+    for uid, etiqueta in zip(registros_uid, etiquetas, strict=True):
+        if excluir_ruido and int(etiqueta) == RUIDO:
+            continue
+        grupos.setdefault(_codigo_grupo(metodo, etiqueta), []).append(uid)
+    return grupos
+
+
 def _construir_ficha(
-    grupo_id: int,
+    codigo: str,
+    metodo: str,
     registros_del_grupo: list[str],
     datos_por_registro: dict[str, dict[str, Any]],
     vectores_por_registro: dict[str, list[float]],
     menciones_por_registro: dict[str, list[dict[str, Any]]],
 ) -> FichaGrupo:
     lemas_grupo = " ".join(datos_por_registro[uid]["lemas"] for uid in registros_del_grupo)
-    terminos = calcular_c_tfidf({grupo_id: lemas_grupo}, top_n=15)[grupo_id]
+    terminos = calcular_c_tfidf({codigo: lemas_grupo}, top_n=15)[codigo]
 
     menciones_grupo = [
-        mencion
-        for uid in registros_del_grupo
-        for mencion in menciones_por_registro.get(uid, [])
+        mencion for uid in registros_del_grupo for mencion in menciones_por_registro.get(uid, [])
     ]
 
     vectores_grupo = {uid: vectores_por_registro[uid] for uid in registros_del_grupo}
     medoides, bordes = seleccionar_medoides_y_bordes(vectores_grupo)
 
     return FichaGrupo(
-        grupo_id=str(grupo_id),
+        grupo_id=codigo,
+        metodo=metodo,
         n_miembros=len(registros_del_grupo),
         terminos_c_tfidf=terminos,
         menciones_dominantes=menciones_dominantes(menciones_grupo),
@@ -267,9 +294,7 @@ def procesar_fenomenos(
         config["umap"]["metrica"],
         semilla,
     )
-    vectores_reducidos = dict(
-        zip(matriz_principal.registros_uid, reducida.tolist(), strict=True)
-    )
+    vectores_reducidos = dict(zip(matriz_principal.registros_uid, reducida.tolist(), strict=True))
 
     hdbscan_resultado, estabilidad_hdbscan = _seleccionar_hdbscan_por_estabilidad(
         reducida,
@@ -292,14 +317,18 @@ def procesar_fenomenos(
         semilla,
     )
 
-    datos_filas = conexion.sql(
-        "SELECT rp.registro_uid, rp.descripcion_hecho_enmascarada, rp.metodo_segmentacion, "
-        "       r.delito_nombre, r.cod_dpto_hechos, r.anio_iso_creacion, r.desp_id, d.titulo "
-        "FROM texto.relato_procesado rp "
-        "JOIN plata.registros_limpios r ON rp.caso_notica = r.caso_notica "
-        "LEFT JOIN plata.dim_delito d "
-        "  ON r.delito_nombre = d.delito_nombre AND r.articulo_cp = d.articulo_cp"
-    ).pl().to_dicts()
+    datos_filas = (
+        conexion.sql(
+            "SELECT rp.registro_uid, rp.descripcion_hecho_enmascarada, rp.metodo_segmentacion, "
+            "       r.delito_nombre, r.cod_dpto_hechos, r.anio_iso_creacion, r.desp_id, d.titulo "
+            "FROM texto.relato_procesado rp "
+            "JOIN plata.registros_limpios r ON rp.caso_notica = r.caso_notica "
+            "LEFT JOIN plata.dim_delito d "
+            "  ON r.delito_nombre = d.delito_nombre AND r.articulo_cp = d.articulo_cp"
+        )
+        .pl()
+        .to_dicts()
+    )
 
     datos_por_registro: dict[str, dict[str, Any]] = {}
     for fila in datos_filas:
@@ -311,9 +340,11 @@ def procesar_fenomenos(
             "lemas": _lemas_relevantes(fila.get("descripcion_hecho_enmascarada") or ""),
         }
 
-    menciones_filas = conexion.sql(
-        "SELECT registro_uid, categoria, valor_normalizado FROM texto.menciones"
-    ).pl().to_dicts()
+    menciones_filas = (
+        conexion.sql("SELECT registro_uid, categoria, valor_normalizado FROM texto.menciones")
+        .pl()
+        .to_dicts()
+    )
     menciones_por_registro: dict[str, list[dict[str, Any]]] = {}
     for mencion in menciones_filas:
         menciones_por_registro.setdefault(mencion["registro_uid"], []).append(mencion)
@@ -335,24 +366,50 @@ def procesar_fenomenos(
         semilla,
     )
 
-    grupos: dict[int, list[str]] = {}
-    pares_uid_etiqueta = zip(
-        matriz_principal.registros_uid, hdbscan_resultado.etiquetas, strict=True
-    )
-    for uid, etiqueta in pares_uid_etiqueta:
-        grupos.setdefault(int(etiqueta), []).append(uid)
-
-    fichas = [
-        _construir_ficha(
-            grupo_id, registros, datos_por_registro, vectores_reducidos, menciones_por_registro
-        )
-        for grupo_id, registros in grupos.items()
-        if grupo_id != -1
+    # HDBSCAN es el método principal (único con selección por estabilidad propia más barrido de
+    # hiperparámetros); NMF y aglomerativo son los contrastes que en datos reales encontraron más
+    # estructura (5 grupos cada uno) y por eso también se llevan ficha completa al taller. K-means
+    # no se incluye aquí: con 2 grupos (igual que HDBSCAN) no aporta nada nuevo que revisar.
+    resultados_con_ficha = [
+        ("hdbscan", hdbscan_resultado, True),
+        ("nmf", nmf_resultado, False),
+        ("agglomerative", agglomerative_resultado, False),
     ]
+
+    fichas: list[FichaGrupo] = []
+    filas_asignacion: list[dict[str, Any]] = []
+    for metodo, resultado, excluir_ruido in resultados_con_ficha:
+        grupos_metodo = _grupos_por_etiqueta(
+            matriz_principal.registros_uid, resultado.etiquetas, metodo, excluir_ruido
+        )
+        fichas.extend(
+            _construir_ficha(
+                codigo,
+                metodo,
+                registros,
+                datos_por_registro,
+                vectores_reducidos,
+                menciones_por_registro,
+            )
+            for codigo, registros in grupos_metodo.items()
+        )
+        filas_asignacion.extend(
+            {
+                "registro_uid": uid,
+                "grupo_id": _codigo_grupo(metodo, etiqueta),
+                "metodo": metodo,
+                "run_id": run_id,
+            }
+            for uid, etiqueta in zip(
+                matriz_principal.registros_uid, resultado.etiquetas, strict=True
+            )
+            if not (excluir_ruido and int(etiqueta) == RUIDO)
+        )
 
     filas_grupos = [
         {
             "grupo_id": ficha.grupo_id,
+            "metodo": ficha.metodo,
             "run_id": run_id,
             "n_miembros": ficha.n_miembros,
             "terminos_c_tfidf": ", ".join(t for t, _ in ficha.terminos_c_tfidf[:10]),
@@ -364,21 +421,15 @@ def procesar_fenomenos(
         for ficha in fichas
     ]
     escribir_tabla_polars(conexion, "fenomenos", "grupos_descubiertos", filas_grupos)
-
-    filas_asignacion = [
-        {"registro_uid": uid, "grupo_id": str(etiqueta), "run_id": run_id}
-        for uid, etiqueta in zip(
-            matriz_principal.registros_uid, hdbscan_resultado.etiquetas, strict=True
-        )
-    ]
     escribir_tabla_polars(conexion, "fenomenos", "grupo_asignacion_borrador", filas_asignacion)
 
     _escribir_taxonomia_borrador(fichas, ruta_taxonomia_borrador)
 
     n_ruido = sum(1 for e in hdbscan_resultado.etiquetas if e == -1)
+    n_grupos_hdbscan = sum(1 for ficha in fichas if ficha.metodo == "hdbscan")
     return ResumenFenomenos(
         n_relatos=len(matriz_principal.registros_uid),
-        n_grupos_hdbscan=len(fichas),
+        n_grupos_hdbscan=n_grupos_hdbscan,
         pct_ruido_hdbscan=round(n_ruido / len(hdbscan_resultado.etiquetas), 4)
         if len(hdbscan_resultado.etiquetas)
         else 0.0,
@@ -410,6 +461,7 @@ def _escribir_taxonomia_borrador(
         "grupos": [
             {
                 "codigo": ficha.grupo_id,
+                "metodo": ficha.metodo,
                 "n_miembros": ficha.n_miembros,
                 "terminos_dominantes": [t for t, _ in ficha.terminos_c_tfidf[:10]],
                 "menciones_dominantes": [

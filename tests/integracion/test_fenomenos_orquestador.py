@@ -56,9 +56,9 @@ def test_fenomenos_orquestador_extremo_a_extremo(
 ) -> None:
     conexion, resumen, _ = pipeline_completo
 
-    n_relatos_texto = conexion.sql("SELECT count(*) AS n FROM texto.relato_procesado").pl()[
-        "n"
-    ].item()
+    n_relatos_texto = (
+        conexion.sql("SELECT count(*) AS n FROM texto.relato_procesado").pl()["n"].item()
+    )
     assert resumen.n_relatos == n_relatos_texto
 
     assert resumen.n_grupos_hdbscan > 0
@@ -80,17 +80,31 @@ def test_fenomenos_orquestador_extremo_a_extremo(
 def test_tabla_grupos_descubiertos_y_asignacion(
     pipeline_completo: tuple[duckdb.DuckDBPyConnection, ResumenFenomenos, Path],
 ) -> None:
+    """Ficha completa para HDBSCAN (principal), NMF y aglomerativo (contrastes que pueden
+    encontrar estructura más fina); k-means no se ficha (ver orquestador.py)."""
     conexion, resumen, _ = pipeline_completo
 
     grupos = conexion.sql("SELECT * FROM fenomenos.grupos_descubiertos").pl()
-    assert grupos.height == resumen.n_grupos_hdbscan
-    assert {"grupo_id", "n_miembros", "terminos_c_tfidf", "medoides", "bordes"} <= set(
+    n_grupos_nmf = grupos.filter(pl.col("metodo") == "nmf").height
+    n_grupos_agglomerative = grupos.filter(pl.col("metodo") == "agglomerative").height
+    assert grupos.height == resumen.n_grupos_hdbscan + n_grupos_nmf + n_grupos_agglomerative
+    assert n_grupos_nmf == resumen.n_grupos_nmf
+    assert n_grupos_agglomerative == resumen.n_grupos_agglomerative
+    assert {"grupo_id", "metodo", "n_miembros", "terminos_c_tfidf", "medoides", "bordes"} <= set(
         grupos.columns
     )
+    assert set(grupos["metodo"].unique().to_list()) == {"hdbscan", "nmf", "agglomerative"}
 
     asignacion = conexion.sql("SELECT * FROM fenomenos.grupo_asignacion_borrador").pl()
-    assert asignacion.height == resumen.n_relatos
-    assert set(asignacion.columns) == {"registro_uid", "grupo_id", "run_id"}
+    # Una fila por relato y método, salvo el ruido de HDBSCAN (que no se asigna a ningún grupo).
+    n_asignados_nmf = asignacion.filter(pl.col("metodo") == "nmf").height
+    n_asignados_agglomerative = asignacion.filter(pl.col("metodo") == "agglomerative").height
+    n_asignados_hdbscan = asignacion.filter(pl.col("metodo") == "hdbscan").height
+    assert n_asignados_nmf == resumen.n_relatos
+    assert n_asignados_agglomerative == resumen.n_relatos
+    assert n_asignados_hdbscan <= resumen.n_relatos  # HDBSCAN no asigna el ruido a ningún grupo
+    assert asignacion.height == n_asignados_hdbscan + n_asignados_nmf + n_asignados_agglomerative
+    assert set(asignacion.columns) == {"registro_uid", "grupo_id", "metodo", "run_id"}
 
 
 def test_taxonomia_borrador_no_es_v1(
@@ -101,8 +115,12 @@ def test_taxonomia_borrador_no_es_v1(
     contenido = yaml.safe_load(ruta_taxonomia.read_text(encoding="utf-8"))
     assert contenido["version"] == "0.1-borrador"
     assert all(grupo["estado"] == "pendiente_revision" for grupo in contenido["grupos"])
-    # nunca se escribe sobre config/taxonomia/v1.0.yaml del repo real desde una prueba
-    assert not (RAIZ_PROYECTO / "config" / "taxonomia" / "v1.0.yaml").exists()
+    # config/taxonomia/v1.0.yaml del repo real SÍ existe desde que el taller lo congeló
+    # (ADR 0013) — lo que esta prueba garantiza es que el fixture escribió en `ruta_taxonomia`
+    # (un tmp_path), nunca en esa ruta real: `_escribir_taxonomia_borrador` siempre recibe la
+    # ruta de salida como parámetro, nunca hardcodea `config/taxonomia/v1.0.yaml`.
+    ruta_v1_real = RAIZ_PROYECTO / "config" / "taxonomia" / "v1.0.yaml"
+    assert ruta_taxonomia != ruta_v1_real
 
 
 def test_recuperacion_de_fenomeno_plantado_supera_el_azar(
@@ -117,14 +135,16 @@ def test_recuperacion_de_fenomeno_plantado_supera_el_azar(
     asignacion = conexion.sql(
         "SELECT a.registro_uid, a.grupo_id, r.caso_notica "
         "FROM fenomenos.grupo_asignacion_borrador a "
-        "JOIN entidades.relato r ON a.registro_uid = r.registro_uid"
+        "JOIN entidades.relato r ON a.registro_uid = r.registro_uid "
+        "WHERE a.metodo = 'hdbscan'"
     ).pl()
     verdad = pl.read_parquet(RAIZ_FIXTURES / "verdad.parquet")
     fenomeno_por_caso = dict(
         zip(verdad["caso_noticia"].to_list(), verdad["fenomeno_plantado"].to_list(), strict=False)
     )
 
-    etiquetas = asignacion["grupo_id"].to_list()
+    # grupo_id lleva el prefijo del método ("hdbscan_0"): se quita para comparar como entero.
+    etiquetas = [g.removeprefix("hdbscan_") for g in asignacion["grupo_id"].to_list()]
     fenomenos_en_orden = [
         fenomeno_por_caso.get(caso, "desconocido") for caso in asignacion["caso_notica"].to_list()
     ]
@@ -140,8 +160,11 @@ def test_herramienta_revision_funciona_sobre_grupos_reales(
     pipeline_completo: tuple[duckdb.DuckDBPyConnection, ResumenFenomenos, Path],
 ) -> None:
     conexion, _, _ = pipeline_completo
+    # Se filtra a un solo método: cada registro_uid aparece una vez por método, así que mezclar
+    # métodos haría que el mismo relato cayera en "del grupo" y en "de otro grupo" a la vez.
     asignacion = conexion.sql(
-        "SELECT registro_uid, grupo_id FROM fenomenos.grupo_asignacion_borrador"
+        "SELECT registro_uid, grupo_id FROM fenomenos.grupo_asignacion_borrador "
+        "WHERE metodo = 'nmf'"
     ).pl()
 
     grupos_unicos = asignacion["grupo_id"].unique().to_list()

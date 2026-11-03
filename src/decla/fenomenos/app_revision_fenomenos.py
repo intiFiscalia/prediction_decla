@@ -58,74 +58,99 @@ def _cargar_grupos() -> pl.DataFrame:
 
 @st.cache_data
 def _cargar_asignacion() -> pl.DataFrame:
-    return _conexion().sql(
-        "SELECT a.registro_uid, a.grupo_id, r.relato_enmascarado "
-        "FROM fenomenos.grupo_asignacion_borrador a "
-        "JOIN texto.relato_procesado r ON a.registro_uid = r.registro_uid"
-    ).pl()
+    return (
+        _conexion()
+        .sql(
+            "SELECT a.registro_uid, a.grupo_id, a.metodo, r.relato_enmascarado "
+            "FROM fenomenos.grupo_asignacion_borrador a "
+            "JOIN texto.relato_procesado r ON a.registro_uid = r.registro_uid"
+        )
+        .pl()
+    )
 
 
 def _pagina_fichas(grupos: pl.DataFrame, calificador: str) -> None:
     st.header("Fichas de grupo")
-    for fila in grupos.iter_rows(named=True):
-        with st.expander(f"Grupo {fila['grupo_id']} (n={fila['n_miembros']})"):
-            st.write(f"**Términos dominantes:** {fila['terminos_c_tfidf']}")
-            st.write(
-                f"Dominancia de plantilla: {fila['dominancia_plantilla']} · "
-                f"Dominancia de unidad: {fila['dominancia_unidad']}"
-            )
-            if fila["dominancia_plantilla"] > 0.7:
-                st.warning(
-                    "Dominancia de plantilla alta: revisar si este grupo refleja un fenómeno "
-                    "real o solo el estilo de redacción (ADR 0010)."
+    st.caption(
+        "HDBSCAN es el método principal; NMF y aglomerativo son contrastes que pueden mostrar "
+        "estructura más fina (más mecanismos distintos) que HDBSCAN no separó."
+    )
+    for metodo in sorted(grupos["metodo"].unique().to_list()):
+        st.subheader(f"Método: {metodo}")
+        grupos_metodo = grupos.filter(pl.col("metodo") == metodo).sort(
+            "n_miembros", descending=True
+        )
+        for fila in grupos_metodo.iter_rows(named=True):
+            with st.expander(f"{fila['metodo']} · {fila['grupo_id']} (n={fila['n_miembros']})"):
+                st.write(f"**Términos dominantes:** {fila['terminos_c_tfidf']}")
+                st.write(
+                    f"Dominancia de plantilla: {fila['dominancia_plantilla']} · "
+                    f"Dominancia de unidad: {fila['dominancia_unidad']}"
                 )
+                if fila["dominancia_plantilla"] > 0.7:
+                    st.warning(
+                        "Dominancia de plantilla alta: revisar si este grupo refleja un "
+                        "fenómeno real o solo el estilo de redacción (ADR 0010)."
+                    )
 
-            col1, col2, col3, col4, col5 = st.columns(5)
-            if col1.button("Aprobar", key=f"apr_{fila['grupo_id']}"):
-                guardar_decision(_conexion(), fila["grupo_id"], APROBAR, calificador)
-                st.success("Guardado")
-            if col2.button("Artefacto", key=f"art_{fila['grupo_id']}"):
-                guardar_decision(_conexion(), fila["grupo_id"], ARTEFACTO, calificador)
-                st.success("Guardado")
-            if col3.button("Descartar", key=f"des_{fila['grupo_id']}"):
-                guardar_decision(_conexion(), fila["grupo_id"], DESCARTAR, calificador)
-                st.success("Guardado")
-            if col4.button("Dividir", key=f"div_{fila['grupo_id']}"):
-                guardar_decision(_conexion(), fila["grupo_id"], DIVIDIR, calificador)
-                st.success("Guardado")
+                col1, col2, col3, col4, col5 = st.columns(5)
+                if col1.button("Aprobar", key=f"apr_{fila['grupo_id']}"):
+                    guardar_decision(_conexion(), fila["grupo_id"], APROBAR, calificador)
+                    st.success("Guardado")
+                if col2.button("Artefacto", key=f"art_{fila['grupo_id']}"):
+                    guardar_decision(_conexion(), fila["grupo_id"], ARTEFACTO, calificador)
+                    st.success("Guardado")
+                if col3.button("Descartar", key=f"des_{fila['grupo_id']}"):
+                    guardar_decision(_conexion(), fila["grupo_id"], DESCARTAR, calificador)
+                    st.success("Guardado")
+                if col4.button("Dividir", key=f"div_{fila['grupo_id']}"):
+                    guardar_decision(_conexion(), fila["grupo_id"], DIVIDIR, calificador)
+                    st.success("Guardado")
 
-            nombre_nuevo = col5.text_input("Renombrar a", key=f"nombre_{fila['grupo_id']}")
-            if col5.button("Guardar nombre", key=f"guardar_nombre_{fila['grupo_id']}"):
-                guardar_decision(
-                    _conexion(), fila["grupo_id"], RENOMBRAR, calificador, nombre_nuevo=nombre_nuevo
+                nombre_nuevo = col5.text_input("Renombrar a", key=f"nombre_{fila['grupo_id']}")
+                if col5.button("Guardar nombre", key=f"guardar_nombre_{fila['grupo_id']}"):
+                    guardar_decision(
+                        _conexion(),
+                        fila["grupo_id"],
+                        RENOMBRAR,
+                        calificador,
+                        nombre_nuevo=nombre_nuevo,
+                    )
+                    st.success("Guardado")
+
+                grupo_destino = st.selectbox(
+                    "Fusionar con el grupo (de cualquier método)",
+                    [g for g in grupos["grupo_id"].to_list() if g != fila["grupo_id"]],
+                    key=f"fusion_{fila['grupo_id']}",
                 )
-                st.success("Guardado")
-
-            grupo_destino = st.selectbox(
-                "Fusionar con el grupo",
-                [g for g in grupos["grupo_id"].to_list() if g != fila["grupo_id"]],
-                key=f"fusion_{fila['grupo_id']}",
-            )
-            if st.button("Guardar fusión", key=f"guardar_fusion_{fila['grupo_id']}"):
-                guardar_decision(
-                    _conexion(),
-                    fila["grupo_id"],
-                    FUSIONAR,
-                    calificador,
-                    grupo_fusion_destino=grupo_destino,
-                )
-                st.success("Guardado")
+                if st.button("Guardar fusión", key=f"guardar_fusion_{fila['grupo_id']}"):
+                    guardar_decision(
+                        _conexion(),
+                        fila["grupo_id"],
+                        FUSIONAR,
+                        calificador,
+                        grupo_fusion_destino=grupo_destino,
+                    )
+                    st.success("Guardado")
 
 
 def _pagina_intrusion(asignacion: pl.DataFrame, calificador: str) -> None:
     st.header("Prueba de intrusión")
-    grupos_disponibles = asignacion["grupo_id"].unique().to_list()
+    st.caption(
+        "Compara dentro de un mismo método: mezclar grupos de métodos distintos no mide lo "
+        "mismo (cada método particiona el corpus completo a su manera)."
+    )
+    metodos_disponibles = sorted(asignacion["metodo"].unique().to_list())
+    metodo_elegido = st.selectbox("Método", metodos_disponibles)
+    asignacion_metodo = asignacion.filter(pl.col("metodo") == metodo_elegido)
+
+    grupos_disponibles = asignacion_metodo["grupo_id"].unique().to_list()
     grupo_elegido = st.selectbox("Grupo a probar", grupos_disponibles)
 
-    registros_del_grupo = asignacion.filter(pl.col("grupo_id") == grupo_elegido)[
+    registros_del_grupo = asignacion_metodo.filter(pl.col("grupo_id") == grupo_elegido)[
         "registro_uid"
     ].to_list()
-    registros_de_otro_grupo = asignacion.filter(pl.col("grupo_id") != grupo_elegido)[
+    registros_de_otro_grupo = asignacion_metodo.filter(pl.col("grupo_id") != grupo_elegido)[
         "registro_uid"
     ].to_list()
 
@@ -137,8 +162,8 @@ def _pagina_intrusion(asignacion: pl.DataFrame, calificador: str) -> None:
         st.info("Este grupo no tiene suficientes relatos para la prueba de intrusión.")
         return
 
-    uids = asignacion["registro_uid"].to_list()
-    textos = asignacion["relato_enmascarado"].to_list()
+    uids = asignacion_metodo["registro_uid"].to_list()
+    textos = asignacion_metodo["relato_enmascarado"].to_list()
     texto_por_uid = dict(zip(uids, textos, strict=True))
     for i, uid in enumerate(caso.registros_uid_mostrados):
         st.text_area(f"Relato {i + 1}", texto_por_uid.get(uid, ""), height=150, key=f"intr_{uid}")
