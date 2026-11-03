@@ -123,3 +123,42 @@ def generar_mapa_municipal(
         conexion, RUTA_CARTOGRAFIA_MUNICIPIOS, "divipola_mun", "cod_mpio_hechos",
         "Noticias por municipio de los hechos", ruta_salida, vmin, vmax,
     )
+
+
+def generar_mapa_flujos(
+    conexion: duckdb.DuckDBPyConnection,
+    ruta_salida: Path,
+    umbral_minimo_flujo: int = 1,
+) -> None:
+    """Línea entre centroide del departamento de los HECHOS y de la UNIDAD que tramita, ancho y
+    opacidad proporcionales a `n_registros` de `matriz_origen_destino` (ya calculada, no se
+    repite el SQL). `umbral_minimo_flujo` descarta flujos de un solo registro por legibilidad —
+    sigue contado en la matriz/tabla, solo no se dibuja.
+    """
+    flujos = matriz_origen_destino(conexion)
+    geo = gpd.read_file(RUTA_CARTOGRAFIA_DEPARTAMENTOS)
+    centroides = dict(zip(geo["divipola_dep"], geo.geometry.centroid, strict=True))
+
+    fig, ax = plt.subplots(figsize=(8, 10))
+    geo.plot(ax=ax, color="#f0f0f0", edgecolor="grey", linewidth=0.2)
+
+    max_n = flujos["n_registros"].max() if flujos.height else 1
+    for fila in flujos.iter_rows(named=True):
+        origen = centroides.get(fila["cod_dpto_hechos"])
+        destino = centroides.get(fila["cod_dpto_unidad"])
+        if origen is None or destino is None or fila["n_registros"] < umbral_minimo_flujo:
+            continue
+        peso = fila["n_registros"] / max_n
+        ax.plot(
+            [origen.x, destino.x], [origen.y, destino.y],
+            color="crimson", linewidth=0.5 + 4 * peso, alpha=0.2 + 0.6 * peso,
+        )
+
+    ax.set_title(
+        f"Flujos hechos → unidad que tramita\n{NOTA_ACTIVIDAD_REGISTRADA}", fontsize=10
+    )
+    ax.axis("off")
+    fig.tight_layout()
+    ruta_salida.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(ruta_salida, dpi=120)
+    plt.close(fig)
