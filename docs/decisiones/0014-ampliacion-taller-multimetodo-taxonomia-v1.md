@@ -37,55 +37,73 @@ contrastes antes de aceptar una taxonomía de un solo fenómeno como definitiva.
    `hdbscan_1`→artefacto) y decidió sobre los 10 grupos nuevos de NMF y aglomerativo. Probó
    intrusión en NMF (acertó casi todas) y en aglomerativo (los relatos "eran similares" entre
    grupos — señal cualitativa de que aglomerativo separa con menos nitidez semántica que NMF en
-   este corpus, documentada aquí, no accionada todavía).
+   este corpus).
+6. **Primera ronda de nombrado (2026-11-03) produjo nombres duplicados entre métodos** y tuvo que
+   deshacerse — ver "Episodio: nombres duplicados" más abajo. El resultado final de este ADR es
+   el de la segunda ronda, después de corregirlo.
 
-## Resultado (`config/taxonomia/v1.0.yaml` recongelado)
+## Episodio: nombres duplicados entre métodos (detectado y corregido el mismo día)
 
-**Aprobados (8):**
+Al nombrar los 7 grupos aprobados sin nombre, varios pares de grupos de métodos distintos
+compartían vocabulario dominante casi idéntico (p. ej. `hdbscan_0`, `nmf_0` y `agglomerative_1`
+los tres con `persona, lavado, activo, delito, policía...`). Se les puso el **mismo nombre** a
+los pares que compartían vocabulario, razonando que probablemente era el mismo fenómeno
+redescubierto por métodos distintos. Eso fue correcto como lectura semántica, pero **incompleto
+como instrucción**: `construir_taxonomia_v1` no fusiona por nombre — cada `grupo_id` con
+`aprobar` se vuelve un `codigo` propio, y cuando el nombre colisiona solo le añade un sufijo
+(`_2`, `_3`) para no pisar el YAML. Resultado intermedio: 8 "fenómenos aprobados", 3 de ellos con
+el mismo `nombre` pero `codigo` distinto (`lavado_de_activos`/`_2`/`_3`). Como
+`fenomenos.grupo_asignacion_borrador` asigna cada relato una vez **por método**, un mismo relato
+puede quedar asignado simultáneamente a `lavado_de_activos` (hdbscan) y a `lavado_de_activos_2`
+(nmf) — sumar esos códigos en un indicador de I3 lo habría contado hasta 3 veces.
 
-| código | nombre | n_miembros | dominancia_plantilla |
-|---|---|---|---|
-| `lavado_de_activos` | Lavado de activos | 293 | 0,8294 |
-| `grupo_nmf_0_sin_nombre_asignado` | *(sin nombre)* | 98 | 0,8469 |
-| `grupo_nmf_2_sin_nombre_asignado` | *(sin nombre)* | 84 | 0,8810 |
-| `grupo_nmf_3_sin_nombre_asignado` | *(sin nombre)* | 45 | 0,6444 |
-| `grupo_nmf_4_sin_nombre_asignado` | *(sin nombre)* | 65 | 0,8615 |
-| `grupo_agglomerative_0_sin_nombre_asignado` | *(sin nombre)* | 72 | 0,7500 |
-| `grupo_agglomerative_1_sin_nombre_asignado` | *(sin nombre)* | 113 | 0,8319 |
-| `grupo_agglomerative_4_sin_nombre_asignado` | *(sin nombre)* | 57 | 0,8772 |
+**Corrección:** para cada nombre duplicado se eligió un único código canónico con una regla
+explícita (no arbitraria): HDBSCAN (método principal) gana si participa; si no, gana NMF sobre
+aglomerativo (ya documentado arriba: NMF separó con más nitidez en la prueba de intrusión). Los
+códigos no canónicos se volvieron a abrir en el taller y se marcaron `descartar` (con motivo
+"duplicado de un fenómeno ya aprobado", no "artefacto" — la diferencia queda solo en este ADR,
+`revision.decisiones_taxonomia` no tiene un motivo específico para duplicados todavía).
 
-**Excluidos (4):** `hdbscan_1` (artefacto), `nmf_1` (descartar), `agglomerative_2` (artefacto),
-`agglomerative_3` (descartar).
+## Resultado final (`config/taxonomia/v1.0.yaml` recongelado, segunda ronda)
+
+**Aprobados (4):**
+
+| código | nombre | n_miembros | dominancia_plantilla | origen |
+|---|---|---|---|---|
+| `lavado_de_activos` | Lavado de activos | 293 | 0,8294 | hdbscan_0 |
+| `lavado_de_activos_a_traves_de_empresas` | Lavado de activos a través de empresas | 65 | 0,8615 | nmf_4 |
+| `incautacion_y_conteo_de_efectivo` | Incautación y conteo de efectivo | 84 | 0,8810 | nmf_2 |
+| `organizacion_criminal` | Organización criminal | 45 | 0,6444 | nmf_3 |
+
+**Excluidos (8):** `hdbscan_1` (artefacto), `nmf_1` (descartar), `agglomerative_2` (artefacto),
+`agglomerative_3` (descartar), `nmf_0` (descartar, duplicado de `lavado_de_activos`),
+`agglomerative_1` (descartar, duplicado de `lavado_de_activos`), `agglomerative_4` (descartar,
+duplicado de `lavado_de_activos_a_traves_de_empresas`), `agglomerative_0` (descartar, duplicado
+de `incautacion_y_conteo_de_efectivo`).
 
 ## Limitaciones conocidas, no resueltas aquí
 
-- **7 de 8 fenómenos aprobados quedaron sin nombre** (`"Grupo X (sin nombre asignado)"` en
-  `nombre`, `grupo_x_sin_nombre_asignado` en `codigo`). El calificador decidió explícitamente
-  posponer el nombrado (sesión del 2026-11-03) en vez de inventarlo sin revisar los relatos con
-  más calma. El `codigo` que queda grabado hereda el `grupo_id` crudo del algoritmo — no es
-  estable entre corridas futuras (plan §7.2 exige "código estable"); renombrar y recongelar no es
-  destructivo, puede repetirse cuando el analista tenga los nombres.
-- **Dominancia de plantilla alta en 7 de 8 aprobados** (0,64 a 0,88 — el umbral de advertencia de
-  la app es 0,7). El calificador confirmó explícitamente que revisó esta señal antes de aprobar
-  (no es un descuido). Queda documentado como riesgo abierto: varios de estos fenómenos podrían
-  reflejar estilo de redacción institucional compartido más que mecanismos criminales distintos
-  entre sí — los términos dominantes de varios grupos se superponen fuertemente
-  (`persona, lavado, activo, delito, policía, información, empresa`). Dos grupos sí muestran
-  vocabulario más diferenciado: `nmf_2`/`agglomerative_0` (conteo de efectivo: `dinero, pesos,
-  color, billete`) y `nmf_3` (inteligencia/fuente: `moneda, fuente, alias, criminal,
-  organización`).
+- **Dominancia de plantilla alta en 3 de 4 aprobados** (0,83 a 0,88 — el umbral de advertencia de
+  la app es 0,7; solo `organizacion_criminal` queda debajo, en 0,64). El calificador confirmó
+  explícitamente que revisó esta señal antes de aprobar. Queda documentado como riesgo abierto:
+  estos fenómenos podrían reflejar estilo de redacción institucional compartido más que
+  mecanismos totalmente distintos entre sí.
 - **Aglomerativo mostró menor nitidez semántica que NMF en la prueba de intrusión** (observación
-  cualitativa del calificador: relatos de distintos grupos de aglomerativo "eran similares"). No
-  se descartó el método por esto, pero es una señal a favor de NMF como segundo método de
-  referencia si hay que elegir uno.
-- El clasificador multietiqueta (plan §7.3) ahora tiene 8 clases reales en vez de 1 — deja de ser
-  binario de facto — pero 7 sin nombre ni definición: probablemente conviene nombrarlas antes de
-  entrenar, para que las métricas por clase sean legibles.
+  cualitativa del calificador). No se descartó el método en general por esto, pero fue el
+  criterio de desempate usado en el episodio de duplicados — es una señal a favor de preferir
+  NMF sobre aglomerativo si hay que elegir uno como segundo método de referencia.
+- **`revision.decisiones_taxonomia` no distingue "descartar por artefacto" de "descartar por
+  duplicado de otro método"** — ambos quedan con `decision = "descartar"`. Si en el futuro se
+  quiere auditar cuántos descartes fueron por redundancia entre métodos (señal de que los
+  métodos convergen) vs. por ruido real, haría falta un motivo más granular en el esquema.
+- **`definicion` y `delitos_relacionados` de los 4 fenómenos siguen `"pendiente_de_redaccion_por_
+  analista"` / `"pendiente_de_calculo"`** (igual que en ADR 0013) — la app no captura definición
+  en texto.
 
 ## Consecuencias
 
-- `docs/informes/I2_cierre.md` se actualiza con los nuevos conteos y limitaciones.
-- I2 sigue cerrado (la compuerta ya se cumplió en ADR 0013); este ADR documenta una ampliación
-  posterior de la misma taxonomía v1.0, no una reapertura de la compuerta.
-- Antes de construir el clasificador multietiqueta o avanzar indicadores por fenómeno en I3, vale
-  la pena decidir con la persona si se nombran los 7 grupos pendientes primero.
+- `docs/informes/I2_cierre.md` se actualiza con los conteos finales (4 aprobados, 8 excluidos).
+- I2 sigue cerrado (la compuerta ya se cumplió en ADR 0013); este ADR documenta una ampliación y
+  corrección posterior de la misma taxonomía v1.0, no una reapertura de la compuerta.
+- El clasificador multietiqueta (plan §7.3), si se construye, parte de 4 clases reales con
+  nombre y definición parcial, sin riesgo de doble conteo entre códigos.
