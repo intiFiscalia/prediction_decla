@@ -37,8 +37,8 @@ fenomenos:
   estado: aprobado
   calificador: INPC
   fecha_decision: '2026-11-03T09:38:14.064438'
-- codigo: grupo_nmf_4_sin_nombre_asignado
-  nombre: Grupo nmf_4 (sin nombre asignado)
+- codigo: lavado_de_activos_a_traves_de_empresas
+  nombre: Lavado de activos a través de empresas
   definicion: pendiente_de_redaccion_por_analista
   nivel_jerarquico: 1
   delitos_relacionados: pendiente_de_calculo
@@ -70,8 +70,8 @@ fenomenos:
   estado: aprobado
   calificador: INPC
   fecha_decision: '2026-11-03T09:37:52.356502'
-- codigo: grupo_nmf_2_sin_nombre_asignado
-  nombre: Grupo nmf_2 (sin nombre asignado)
+- codigo: incautacion_y_conteo_de_efectivo
+  nombre: Incautación y conteo de efectivo
   definicion: pendiente_de_redaccion_por_analista
   nivel_jerarquico: 1
   delitos_relacionados: pendiente_de_calculo
@@ -103,8 +103,8 @@ fenomenos:
   estado: aprobado
   calificador: INPC
   fecha_decision: '2026-11-03T09:37:45.640514'
-- codigo: grupo_nmf_3_sin_nombre_asignado
-  nombre: Grupo nmf_3 (sin nombre asignado)
+- codigo: organizacion_criminal
+  nombre: Organización criminal
   definicion: pendiente_de_redaccion_por_analista
   nivel_jerarquico: 1
   delitos_relacionados: pendiente_de_calculo
@@ -136,147 +136,31 @@ fenomenos:
   estado: aprobado
   calificador: INPC
   fecha_decision: '2026-11-03T09:38:05.659903'
-- codigo: grupo_nmf_0_sin_nombre_asignado
-  nombre: Grupo nmf_0 (sin nombre asignado)
-  definicion: pendiente_de_redaccion_por_analista
-  nivel_jerarquico: 1
-  delitos_relacionados: pendiente_de_calculo
-  terminos_dominantes:
-  - persona
-  - lavado
-  - activo
-  - delito
-  - criminal
-  - policía
-  - dirección
-  - denuncia
-  - judicial
-  - investigación
-  ids_ejemplo:
-  - 979d86fe4ef470d74c8f51b0060016aaa67aec390c405a7203cfe81e87111356
-  - a35686840d7b4c3f579412e0eff1563974ec92b2ce0b5963aff4599ceb1355d5
-  - cd55931227d65586505ab004c1aaf1d3f410e6416565d3b012dc33404c5812c0
-  - a1b32c2583ab118bbda46dfc337a935db7f2190def85483956ec91d366c4595d
-  - c191e8551cf6cf60ebc5344d49776476d2241c3ddb61f9122f299c159b8989ba
-  - 143555a3d5c62383a046a99344635217b2f1ca84e9302744605fad9af2cc5457
-  - 15e9fee615f9a647a907d62ccad5363cd4e160e4c307c44ea9deb5c8d37aa2fd
-  - c8d5640a035a7b46fbc009db4e30987381ef8d89a23e6bb9866d3d91dc70f760
-  - 8399d27492f8b4894582bfdcbd6d7744afd5a4eecdabc5f5054ad5b6c482254d
-  - 49ca36bca14045b9b96999d7b964217b6217edc2e30d3baaeff8aa00dd75146a
-  n_miembros: 98
-  dominancia_plantilla: 0.8469
-  dominancia_unidad: 0.1224
-  estado: aprobado
-  calificador: INPC
-  fecha_decision: '2026-11-03T09:37:16.600621'
-- codigo: grupo_agglomerative_4_sin_nombre_asignado
-  nombre: Grupo agglomerative_4 (sin nombre asignado)
-  definicion: pendiente_de_redaccion_por_analista
-  nivel_jerarquico: 1
-  delitos_relacionados: pendiente_de_calculo
-  terminos_dominantes:
-  - persona
-  - activo
-  - lavado
-  - empresa
-  - operación
-  - recurso
-  - financiero
-  - informe
-  - sociedad
-  - delito
-  ids_ejemplo:
-  - c9a41319fe90652bc06fa32cb27554a87bff0af71a38f817e9fb475d1deccb50
-  - 439f9da3c2566c87c15392a595a93d94223189c25c1f042ad388087972f2fc38
-  - 892ecab37e69ce9aea8ff544788a6427c1981d3cddec6893780f44100db54986
-  - d1d66257f7846ec4d30753e3824debc90773a02389cf92f08022f27a394f30f5
-  - ee62e58604f88655e5b592f38324464763d013fe6d0ee588789e96ab682efb10
-  - 6e8795e8ce7a0050d9840c1a4c89675ab1249af3ba24fede858bf3e6793c8d7a
-  - 586f4381a5614a9dae6108d87969df0b50eb635b89351479316e4a018e579ac6
-  - 1dac9ea47697af6e9a21dad30179c933f12efffb7feab498942a5943e0776ed9
-  - e8b014d600180da4a1bec40c595a0868ccce6580b2328171af9426b20298b269
-  - 3b85996cfb231c0d470e16489c9dd5447f1ef4be2abeffa2d2b30063059966a1
-  n_miembros: 57
-  dominancia_plantilla: 0.8772
-  dominancia_unidad: 0.1228
-  estado: aprobado
-  calificador: INPC
-  fecha_decision: '2026-11-03T09:36:27.725694'
-- codigo: grupo_agglomerative_0_sin_nombre_asignado
-  nombre: Grupo agglomerative_0 (sin nombre asignado)
-  definicion: pendiente_de_redaccion_por_analista
-  nivel_jerarquico: 1
-  delitos_relacionados: pendiente_de_calculo
-  terminos_dominantes:
-  - persona
-  - señor
-  - pesos
-  - dinero
-  - color
-  - billete
-  - doc
-  - hora
-  - ciudadano
-  - manifestar
-  ids_ejemplo:
-  - 8313e6b41a01542d1738df92d9a6cb69812c5b89bb4d92b45b543bdfcd4f34c5
-  - ffb95acbc87eba74baf11a06fb232b609cef2277932f13a7b179b25455f6d06a
-  - 5c82adc178258641cdfef5162e00c56186946756ac8c91e702299aad820623fa
-  - c51f47f9289fd435879b300ffe168a2907b8ad256653f7cb4d76452df547f5bf
-  - 07398bfd5149efc9567a03085bc1ee055d1acac3d4e859612dc84857b9dadff0
-  - 87768e7d8a454205e02dff3a8865d61f520c4e519ee3bd8fe6340a46c7892027
-  - f71c1415ffd7e1b0d4326187f8b7f14355684758fa1a78951ffd8d050465a2fa
-  - fd7aced0150f262ed67fa0da21b7752f1b7a962e711cdfd2ac2dc75def03780c
-  - 08a4e9770bb3703a33949366532fcfd88effe43271d6e9aeebf6323997a51022
-  - 70d2b0ee969e0693544707d6e8b4844171cbf0b3c78e696a2a23e3eece5a5415
-  n_miembros: 72
-  dominancia_plantilla: 0.75
-  dominancia_unidad: 0.0972
-  estado: aprobado
-  calificador: INPC
-  fecha_decision: '2026-11-03T09:36:20.857215'
-- codigo: grupo_agglomerative_1_sin_nombre_asignado
-  nombre: Grupo agglomerative_1 (sin nombre asignado)
-  definicion: pendiente_de_redaccion_por_analista
-  nivel_jerarquico: 1
-  delitos_relacionados: pendiente_de_calculo
-  terminos_dominantes:
-  - persona
-  - lavado
-  - información
-  - activo
-  - delito
-  - doc
-  - policía
-  - empresa
-  - dirección
-  - judicial
-  ids_ejemplo:
-  - 617a113f72c49176cdc8dc180a841241ba7efb923cc1e26599e68c152d99b7f0
-  - e8b103a55b2c1e9ce349eecd9c5f766651b4011b3440173688ab122d755113b7
-  - a003236a33a5435b1915a07de511c799d5b59636f30f37fd61aa55c79492c709
-  - b0343430892c49b0af7de942fac9bdb9589001dff975832122715697e0212f85
-  - 920369b78cf5601693755ff2542ea31a124cd8ddc86c1de03012c9e9dd44efa6
-  - 888084a8c1822ba6d613453d72e3c3b646a2635434ad79f6bbae7913492b14be
-  - cf561145c834a92b9c6c5e7a7de95c69740d7808d19235a496280e1b02e3af8a
-  - 311918fea754c61864b0677c4e335b93d906e472fe08affa273f24458533b246
-  - a741e7a43d029e4a6b0af3676f094e8cc8775384df90ae499e7db8c96482248a
-  - 0113aca545038576fbd587e0ec4b7d3b81928869754af6e343574ff15773e984
-  n_miembros: 113
-  dominancia_plantilla: 0.8319
-  dominancia_unidad: 0.1062
-  estado: aprobado
-  calificador: INPC
-  fecha_decision: '2026-11-03T09:36:12.483361'
 excluidos:
 - grupo_id: hdbscan_1
   motivo: artefacto
   calificador: INPC
   fecha: '2026-11-03T09:38:25.217854'
+- grupo_id: nmf_0
+  motivo: descartar
+  calificador: INPC
+  fecha: '2026-11-03T16:01:07.079788'
 - grupo_id: nmf_1
   motivo: descartar
   calificador: INPC
   fecha: '2026-11-03T09:37:59.072931'
+- grupo_id: agglomerative_4
+  motivo: descartar
+  calificador: INPC
+  fecha: '2026-11-03T16:01:28.573811'
+- grupo_id: agglomerative_0
+  motivo: descartar
+  calificador: INPC
+  fecha: '2026-11-03T16:01:14.285585'
+- grupo_id: agglomerative_1
+  motivo: descartar
+  calificador: INPC
+  fecha: '2026-11-03T16:01:22.752594'
 - grupo_id: agglomerative_3
   motivo: descartar
   calificador: INPC
