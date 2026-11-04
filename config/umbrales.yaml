@@ -29,3 +29,21 @@ segmentacion_densidad:
   # sobre datos reales.
   umbral_densidad: 0.10
   min_tokens_oracion: 4
+emergencia:
+  # Reglas de declaración de fenómeno emergente (plan_trabajo.md §8.5): valores tomados
+  # directamente de los que el propio plan sugiere como punto de partida ("FDR ≤ 10 %,
+  # persistencia ≥ 2–3 periodos, tamaño mínimo ≥ 5-10, > 1 unidad registradora"), no calibrados
+  # todavía con retroprueba real — el dataset real solo cubre 10 meses (I2 §4-bis), muy poca
+  # historia para calibrar formalmente. Se recalibran cuando haya más periodos o cuando la
+  # persona revise los resultados de la retroprueba (plan §8.5, "validación por un analista").
+  fdr_maximo: 0.10
+  persistencia_minima_periodos: 2
+  tamanio_minimo_absoluto: 5
+  minimo_unidades_registradoras: 2
+  # Umbrales de los detectores (decla.emergencia.detectores) — documentados ahí también, no son
+  # valores mágicos escondidos en el código.
+  cusum_k: 0.5
+  cusum_h: 4.0
+  ears_umbral_c: 3.0
+  farrington_umbral_desviaciones: 2.58
+  farrington_umbral_anscombe_outlier: 1.0
