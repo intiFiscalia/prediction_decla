@@ -13,15 +13,16 @@ INDICE_PERIODO = 2026 * 12 + 1
 
 def _conexion_periodo(desp_ids: list[str], fechas: list[str]) -> duckdb.DuckDBPyConnection:
     conexion = duckdb.connect(":memory:")
-    relatos = [{"registro_uid": f"uid_{i}", "caso_notica": f"caso_{i}"} for i in range(len(desp_ids))]
+    n = len(desp_ids)
+    relatos = [{"registro_uid": f"uid_{i}", "caso_notica": f"caso_{i}"} for i in range(n)]
     registros = [
         {
             "caso_notica": f"caso_{i}", "cod_dpto_hechos": "11", "desp_id": desp_ids[i],
             "fecha_creacion": fechas[i], "anio_iso_creacion": 2026, "mes_creacion": 1,
         }
-        for i in range(len(desp_ids))
+        for i in range(n)
     ]
-    asignacion = [{"registro_uid": f"uid_{i}", "codigo_fenomeno": "x"} for i in range(len(desp_ids))]
+    asignacion = [{"registro_uid": f"uid_{i}", "codigo_fenomeno": "x"} for i in range(n)]
     escribir_tabla_polars(conexion, "texto", "relato_procesado", relatos)
     escribir_tabla_polars(conexion, "plata", "registros_limpios", registros)
     escribir_tabla_polars(conexion, "fenomenos", "asignacion_fenomeno", asignacion)

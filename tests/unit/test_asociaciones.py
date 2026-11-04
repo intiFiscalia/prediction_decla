@@ -172,3 +172,34 @@ def test_consolidar_con_correccion_multiple_ajusta_p() -> None:
     resultado = consolidar_con_correccion_multiple(filas)
     assert all(f["p_ajustado_bh"] is not None for f in resultado)
     assert resultado[0]["p_ajustado_bh"] >= resultado[0]["p"]  # BH nunca reduce el p-valor
+
+
+def test_chi2_fenomeno_delito_contra_formula_cerrada_2x2() -> None:
+    """Valida el estadístico contra la fórmula cerrada de chi² para tablas 2×2 **con corrección
+    de continuidad de Yates** (resultado conocido por cálculo directo, no por comparación contra
+    la misma librería que se está probando — `scipy.stats.chi2_contingency` aplica esta
+    corrección por defecto en tablas 2×2, que es lo que `chi2_fenomeno_delito` usa):
+    chi2 = N(|ad-bc| - N/2)²/[(a+b)(c+d)(a+c)(b+d)] sobre a=10, b=20, c=30, d=40 (N=100):
+    chi2 = 100·(|400-600| - 50)²/(30·70·40·60) = 100·150²/5 040 000 ≈ 0,446429.
+    """
+    conexion = duckdb.connect(":memory:")
+    celdas = {("A", "X"): 10, ("A", "Y"): 20, ("B", "X"): 30, ("B", "Y"): 40}
+    relatos, registros, asignacion = [], [], []
+    contador = 0
+    for (fenomeno, delito), n in celdas.items():
+        for _ in range(n):
+            uid, caso = f"uid_{contador}", f"caso_{contador}"
+            contador += 1
+            relatos.append({"registro_uid": uid, "caso_notica": caso})
+            registros.append({"caso_notica": caso, "delito_nombre": delito})
+            asignacion.append({"registro_uid": uid, "codigo_fenomeno": fenomeno})
+    escribir_tabla_polars(conexion, "texto", "relato_procesado", relatos)
+    escribir_tabla_polars(conexion, "plata", "registros_limpios", registros)
+    escribir_tabla_polars(conexion, "fenomenos", "asignacion_fenomeno", asignacion)
+
+    resultado = chi2_fenomeno_delito(conexion)
+    assert resultado["calculado"] is True
+    assert resultado["metodo"] == "chi2"  # todas las celdas >= 5, no debe caer a Fisher
+    assert abs(resultado["estadistico"] - 0.446429) < 0.001
+    assert abs(resultado["tamanio_efecto_v_cramer"] - 0.066815) < 0.001
+    conexion.close()

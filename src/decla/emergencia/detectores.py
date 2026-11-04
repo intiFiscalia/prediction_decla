@@ -11,6 +11,39 @@ from typing import Any
 import numpy as np
 from scipy.stats import poisson
 
+# --- p-valor de exceso de la ventana reciente vs. periodos base ------------------------------
+
+
+def p_valor_exceso_ventana_reciente(
+    observados: list[float], volumenes: list[float], ancho_ventana: int
+) -> float:
+    """p-valor (Poisson, un lado) de que la **ventana reciente completa** (los últimos
+    `ancho_ventana` periodos, el tamaño de la persistencia mínima exigida) exceda la tasa de los
+    periodos base (todos los anteriores).
+
+    Es el "p formal" que usa `decla.emergencia.orquestador` para la corrección de Benjamini-
+    Hochberg. No se usa un solo punto fuera de muestra (como un ajuste de tendencia con el último
+    periodo excluido) porque con series cortas (~6-10 periodos) dos o más periodos anómalos
+    consecutivos se "explican" entre sí en ese ajuste: el periodo evaluado nunca queda realmente
+    fuera de la influencia del anterior si éste también es parte del pico. Comparar la ventana
+    reciente agregada contra la tasa de los periodos base evita ese enmascaramiento — es la misma
+    lógica de `razon_de_tasas`, aplicada aquí como prueba formal de significancia.
+    """
+    if len(observados) <= ancho_ventana:
+        return 1.0  # no hay periodos base fuera de la ventana reciente: no se puede comparar
+
+    n_reciente = sum(observados[-ancho_ventana:])
+    volumen_reciente = sum(volumenes[-ancho_ventana:])
+    n_base = sum(observados[:-ancho_ventana])
+    volumen_base = sum(volumenes[:-ancho_ventana])
+    if volumen_base == 0:
+        return 1.0
+
+    tasa_base = n_base / volumen_base
+    esperado_reciente = tasa_base * volumen_reciente
+    return float(poisson.sf(max(n_reciente - 1, 0), max(esperado_reciente, 1e-6)))
+
+
 # --- CUSUM sobre residuos estandarizados -----------------------------------------------------
 
 

@@ -7,7 +7,7 @@ por comparaciones múltiples... FDR ≤ 10 %") — CUSUM/EARS/Farrington no prod
 comparable entre series, así que no pueden ser la base de la corrección múltiple; se guardan como
 columnas adicionales, no como el criterio de significancia. Se usa la ventana agregada (no un
 solo punto fuera de muestra) porque con series cortas dos periodos anómalos consecutivos se
-enmascaran entre sí en un ajuste de tendencia — ver `_p_valor_exceso_ventana_reciente`.
+enmascaran entre sí en un ajuste de tendencia — ver `detectores.p_valor_exceso_ventana_reciente`.
 
 Estados que el código asigna: `candidato_en_observacion` (exceso significativo que no cumple
 persistencia/tamaño/unidades todavía) y `alerta` (cumple todas las condiciones de §8.5) o
@@ -21,8 +21,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import duckdb
-import polars as pl
-from scipy.stats import poisson as poisson_dist
 from statsmodels.stats.multitest import multipletests
 
 from decla.emergencia.artefactos import (
@@ -31,7 +29,13 @@ from decla.emergencia.artefactos import (
     detectar_concentracion_en_una_unidad,
     detectar_un_dia_de_carga,
 )
-from decla.emergencia.detectores import cusum, ears_c, farrington_simplificado, puntos_de_cambio
+from decla.emergencia.detectores import (
+    cusum,
+    ears_c,
+    farrington_simplificado,
+    p_valor_exceso_ventana_reciente,
+    puntos_de_cambio,
+)
 from decla.emergencia.linea_base import ajustar_linea_base, construir_series_fenomeno_territorio
 
 CANDIDATO = "candidato_en_observacion"
@@ -60,32 +64,6 @@ def _n_unidades_registradoras(
     return int(resultado["n"].item()) if resultado.height else 0
 
 
-def _p_valor_exceso_ventana_reciente(serie: pl.DataFrame, ancho_ventana: int) -> float:
-    """p-valor (Poisson, un lado) de que la **ventana reciente completa** (los últimos
-    `ancho_ventana` periodos, el tamaño de la persistencia mínima exigida) exceda la tasa de los
-    periodos base (todos los anteriores).
-
-    No se usa un solo punto fuera de muestra (como `ajustar_linea_base`) porque con series cortas
-    (~6-10 periodos) dos o más periodos anómalos consecutivos se "explican" entre sí en un ajuste
-    de tendencia: el periodo evaluado nunca queda realmente fuera de la influencia del anterior
-    si éste también es parte del pico. Comparar la ventana reciente agregada contra la tasa de
-    los periodos base evita ese enmascaramiento — es la misma lógica de `detectores.
-    razon_de_tasas`, aplicada aquí como prueba formal de significancia en vez de solo como
-    descripción del cambio.
-    """
-    if serie.height <= ancho_ventana:
-        return 1.0  # no hay periodos base fuera de la ventana reciente: no se puede comparar
-
-    observados = serie["n"].to_list()
-    volumenes = serie["volumen_total"].to_list()
-    n_reciente, volumen_reciente = sum(observados[-ancho_ventana:]), sum(volumenes[-ancho_ventana:])
-    n_base, volumen_base = sum(observados[:-ancho_ventana]), sum(volumenes[:-ancho_ventana])
-    if volumen_base == 0:
-        return 1.0
-
-    tasa_base = n_base / volumen_base
-    esperado_reciente = tasa_base * volumen_reciente
-    return float(poisson_dist.sf(max(n_reciente - 1, 0), max(esperado_reciente, 1e-6)))
 
 
 @dataclass(frozen=True)
@@ -118,8 +96,9 @@ def procesar_emergencia(
         actual = base["n_observado"][-1]
         esperado_actual = base["n_esperado"][-1]
         periodo_actual = base["indice_periodo"][-1]
-        p = _p_valor_exceso_ventana_reciente(
-            serie, umbrales["persistencia_minima_periodos"]
+        p = p_valor_exceso_ventana_reciente(
+            serie["n"].to_list(), serie["volumen_total"].to_list(),
+            umbrales["persistencia_minima_periodos"],
         )
 
         resultado_cusum = cusum(
