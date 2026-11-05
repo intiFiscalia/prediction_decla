@@ -51,9 +51,12 @@ analitica:
 emergencia:
 	uv run python -m decla.emergencia.pipeline
 
-# I4 — Fase 9: pronósticos y detección de atípicos.
+# I4 — Fase 9: detección de atípicos (pronósticos y clasificación temática no son viables con
+# el dataset real — ver reports/agregados/i4/viabilidad.md y docs/informes/I4_cierre.md).
+# Necesita el lote_id que imprimió `make nlp` (sus embeddings de relato están en
+# data/embeddings/<lote_id>/): make prediccion LOTE_ID=<el-lote-id-de-make-nlp>
 prediccion:
-	uv run python -m decla.prediccion.pipeline
+	uv run python -m decla.prediccion.pipeline --lote-id $(LOTE_ID)
 
 # I3 — Fase 11: aplicación Streamlit local de consulta y validación.
 app:
