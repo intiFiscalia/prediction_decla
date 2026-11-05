@@ -47,3 +47,10 @@ emergencia:
   ears_umbral_c: 3.0
   farrington_umbral_desviaciones: 2.58
   farrington_umbral_anscombe_outlier: 1.0
+deriva:
+  # Lectura de PSI (plan_trabajo.md Fase 12): umbrales estándar de la literatura de riesgo
+  # crediticio (no inventados para este proyecto) — < 0,1 sin cambio relevante, 0,1-0,25 cambio
+  # moderado, > 0,25 cambio significativo (dispara revisión). decla.ingesta.lote y decla.comun.
+  # deriva los calculan; sin retroprueba real todavía (un solo lote procesado hasta ahora).
+  psi_moderado: 0.10
+  psi_significativo: 0.25
