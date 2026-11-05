@@ -1,4 +1,4 @@
-.PHONY: instalar test lint fixtures diagnostico etl analitica-descriptiva nlp conocimiento fenomenos analitica emergencia prediccion app informe
+.PHONY: instalar test lint fixtures diagnostico etl analitica-descriptiva nlp conocimiento fenomenos analitica emergencia prediccion app informe evaluar lote
 
 # Instala dependencias solo desde wheelhouse/ (sin red), con todos los extras del proyecto.
 instalar:
@@ -67,6 +67,13 @@ app:
 # render queda para cuando el costo de recalcular justifique cachear — ver ADR 0009).
 informe: analitica-descriptiva
 
-# Procesa un lote nuevo (I4 — Fase 12): valida esquema, detecta novedades, recalcula lo incremental.
+# I4 — Fase 10: evaluación consolidada (métricas históricas + recalculadas en vivo) en
+# reports/agregados/evaluacion/v1.md.
+evaluar:
+	uv run python -m decla.evaluacion.pipeline
+
+# Procesa un lote nuevo (I4 — Fase 12): valida esquema, clasifica nuevo/modificado/repetido por
+# caso_notica, guarda historia de cambios y calcula deriva. No recalcula nlp/fenómenos/analítica
+# automáticamente (paso manual, ver docs/manual_operacion.md).
 lote:
-	uv run python -m decla.ingesta.lote
+	uv run python -m decla.ingesta.lote --archivo $(ARCHIVO)

@@ -1,0 +1,99 @@
+version: 1
+# Métricas por componente ya medidas una vez (no se recalculan aquí — serían cifras nuevas sin
+# que haya pasado nada que las cambie) y su umbral acordado en plan_trabajo.md §9. Cada entrada
+# cita su fuente: CLAUDE.md "no inventes cifras" — ningún número aquí sin un ADR o informe de
+# cierre que lo respalde. decla.evaluacion.pipeline las combina con lo que sí se recalcula en
+# vivo contra la base real (ver reports/agregados/evaluacion/).
+#
+# estado: "cumple" | "no_cumple" | "pendiente_de_cifra_formal" (la decisión se tomó
+# cualitativamente — p. ej. un taller de revisión humana — y quedó documentada en el ADR, pero
+# nunca se publicó como una cifra comparable al umbral del plan; no se inventa una ahora).
+componentes:
+  - nombre: ETL y calidad (conciliación)
+    metrica: "filas de entrada = plata + cuarentena, reejecución produce el mismo hash"
+    valor: "978 = 24 + 608 + 346 (cinco corridas reales idénticas)"
+    umbral: "sin diferencias"
+    estado: cumple
+    fuente: docs/informes/I1_cierre.md
+
+  - nombre: Normalización territorial (mapeo DIVIPOLA)
+    metrica: "% exacto + % normalizado (cobertura de resolución)"
+    valor: "47,7 % exacto + 39,3 % normalizado = 87,0 % resuelto; 13,0 % no_resoluble"
+    umbral: "plan pide precisión ≥0,98 sobre 300 valores únicos revisados a mano"
+    estado: pendiente_de_cifra_formal
+    fuente: docs/informes/I1_cierre.md
+    nota: >
+      Lo medido es cobertura de resolución (match encontrado o no), no la precisión del match
+      en sí (¿el municipio asignado es el correcto?) — esa revisión manual de 300 valores no se
+      hizo. No se infiere una cosa de la otra.
+
+  - nombre: Reglas de extracción (menciones, 2B)
+    metrica: "precisión/exhaustividad por categoría sobre muestra anotada"
+    valor: "pendiente — meta de anotación reducida de 500-1.500 a 50-100 relatos (decisión de
+      alcance de I2), sin confirmación de que se completara con esa cifra medida"
+    umbral: "precisión ≥0,9"
+    estado: pendiente_de_cifra_formal
+    fuente: docs/informes/I2_cierre.md
+
+  - nombre: Sector CIIU inferido
+    metrica: "% indeterminado (sensibilidad del umbral de confianza)"
+    valor: "ADR 0010 (2026-10-28, antes de la mejora de segmentación): 0 % indeterminado de 335
+      inferidos — marcado como 'estadísticamente sospechoso'. Resultado real de I3 (2026-11-05,
+      tras ADR 0012): 95,09 % indeterminado, 3,18 % explícito, 1,73 % inferido alta confianza."
+    umbral: "precisión@1 ≥0,7 para 'alta confianza' (300 relatos anotados) — anotación nunca
+      se hizo"
+    estado: pendiente_de_cifra_formal
+    fuente: docs/decisiones/0010-confiabilidad-sector-inferido.md
+    nota: >
+      El síntoma cambió de dirección (de 0 % a 95 % indeterminado) entre ADR 0010 y la corrida
+      real de I3 — probablemente por la mejora de segmentación de ADR 0012, no confirmado
+      porque Claude Code no puede leer relatos reales para verificarlo. Sigue sin validación
+      humana en ningún extremo.
+
+  - nombre: Embeddings (elección de modelo)
+    metrica: "Spearman con criterio humano, 70 pares reales"
+    valor: "0,3273 (multilingual-e5-base) vs. 0,2109 (mpnet)"
+    umbral: "elegir el mejor de ≥2 modelos (plan no fija un mínimo absoluto de Spearman)"
+    estado: cumple
+    fuente: docs/decisiones/0005-modelo-embeddings-candidato.md
+    nota: "Correlación débil en términos absolutos (0,33) — documentado como limitación, no
+      oculto; sigue siendo la mejor opción medida de las comparadas."
+
+  - nombre: Grupos de fenómenos (descubrimiento, 2C)
+    metrica: "precision_recuperacion_fenomeno (fixtures con fenómeno plantado)"
+    valor: "~0,25"
+    umbral: "umbral de azar 0,083 (1/12 fenómenos plantados)"
+    estado: cumple
+    fuente: docs/decisiones/0012-segmentacion-por-densidad-administrativa.md
+    nota: "Supera el azar ~3×, pero está lejos de una recuperación alta — limitación ya
+      documentada (ADR 0011/0012: vector dominado por lenguaje institucional)."
+
+  - nombre: Taxonomía v1.0 (taller de revisión humana)
+    metrica: "prueba de intrusión (acierto cualitativo), decisiones registradas"
+    valor: "4 fenómenos aprobados, 8 excluidos — acierto cualitativo alto en NMF ('acertó casi
+      todas'), aglomerativo con relatos percibidos como similares entre grupos"
+    umbral: "intrusión ≥80 % (plan §9) — nunca se calculó como porcentaje, solo registrado
+      cualitativamente por el calificador"
+    estado: pendiente_de_cifra_formal
+    fuente: docs/decisiones/0013-taller-revision-taxonomia-v1.md
+    nota: "decla.fenomenos.herramienta_revision.calcular_tasa_intrusion existe y funciona (ver
+      sus pruebas unitarias) — lo que falta es que alguien la corra sistemáticamente y publique
+      el número, no que falte la herramienta."
+
+  - nombre: Asociaciones (I3)
+    metrica: "chi² fenómeno×delito, V de Cramér, p ajustado"
+    valor: "chi²=157,16; V de Cramér=0,33; p≈0; n=470"
+    umbral: "tamaño de efecto + IC + p ajustado reportados (plan no fija un mínimo de V de
+      Cramér, solo exige reportarlo)"
+    estado: cumple
+    fuente: docs/informes/I3_cierre.md
+
+  - nombre: Alertas de emergencia (retroprueba)
+    metrica: "tasa de falsas alarmas / sensibilidad, retroprueba sintética reproducible"
+    valor: "ver decla.emergencia.retroprueba (semilla fija) — no hay retroprueba sobre historia
+      real todavía: la corrida real de make emergencia dio 0 alertas, 0 candidatos"
+    umbral: "≤1 falsa alarma por fenómeno por año (plan §9, a definir con analistas)"
+    estado: pendiente_de_cifra_formal
+    fuente: docs/informes/I3_cierre.md
+    nota: "0 alertas reales no es una tasa observable sobre la que juzgar un umbral todavía —
+      ver I3_cierre.md, compuerta."
