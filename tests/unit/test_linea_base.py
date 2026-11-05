@@ -85,3 +85,37 @@ def test_ajustar_linea_base_detecta_tendencia_creciente() -> None:
     assert len(resultado["n_esperado"]) == 6
     # El último valor esperado debería ser mayor que el primero (tendencia positiva).
     assert resultado["n_esperado"][-1] > resultado["n_esperado"][0]
+
+
+def test_ajustar_linea_base_serie_totalmente_en_cero_no_falla() -> None:
+    """Reproduce un bug real encontrado al correr sobre datos reales: un fenómeno que nunca
+    ocurrió en un territorio (todo en cero) rompía la IRLS de Poisson de statsmodels con
+    "the first guess on the deviance function returned a nan" — se omite explícitamente en vez
+    de forzar un ajuste sin sentido numérico.
+    """
+    serie = pl.DataFrame(
+        {
+            "indice_periodo": list(range(24313, 24323)),
+            "n": [0] * 10,
+            "volumen_total": [50, 60, 45, 70, 55, 65, 80, 90, 75, 85],
+        }
+    )
+    resultado = ajustar_linea_base(serie)
+    assert resultado["calculado"] is False
+    assert resultado["motivo"] == "sin ninguna ocurrencia en este territorio"
+
+
+def test_ajustar_linea_base_fenomeno_emergente_sin_historia_no_falla() -> None:
+    """Mismo bug, pero solo en la historia (el fenómeno aparece por primera vez justo en el
+    último periodo): el ajuste "fuera de muestra" del último punto también rompía la IRLS.
+    """
+    serie = pl.DataFrame(
+        {
+            "indice_periodo": list(range(24313, 24323)),
+            "n": [0] * 9 + [5],
+            "volumen_total": [50, 60, 45, 70, 55, 65, 80, 90, 75, 85],
+        }
+    )
+    resultado = ajustar_linea_base(serie)
+    assert resultado["calculado"] is True
+    assert resultado["n_esperado"][-1] < resultado["n_observado"][-1]  # sigue viéndose como exceso

@@ -90,6 +90,13 @@ def ajustar_linea_base(serie: pl.DataFrame) -> dict[str, Any]:
     """
     if serie.height < 4:
         return {"calculado": False, "motivo": "menos de 4 periodos en la serie"}
+    if serie["n"].sum() == 0:
+        # Poisson GLM con endog todo en cero tiene un problema de frontera real en la IRLS de
+        # statsmodels ("first guess on the deviance function returned a nan" — reproducido con
+        # datos reales: un fenómeno que nunca ocurrió en ese territorio). No hay nada que
+        # detectar en una serie sin ninguna ocurrencia, así que se omite explícitamente en vez
+        # de forzar un ajuste que no tiene sentido numérico.
+        return {"calculado": False, "motivo": "sin ninguna ocurrencia en este territorio"}
 
     import statsmodels.api as sm
 
@@ -97,25 +104,40 @@ def ajustar_linea_base(serie: pl.DataFrame) -> dict[str, Any]:
     x = sm.add_constant(datos["indice_periodo"])
     offset = np.log(datos["volumen_total"].clip(lower=1))
 
-    modelo_pleno = sm.GLM(datos["n"], x, family=sm.families.Poisson(), offset=offset).fit()
-    residuos_dentro_de_muestra = modelo_pleno.resid_pearson
-    grados_libertad = modelo_pleno.df_resid
-    sobredispersion = (
-        float((residuos_dentro_de_muestra**2).sum() / grados_libertad)
-        if grados_libertad > 0
-        else 0.0
-    )
-    metodo = "poisson"
-    familia = sm.families.Poisson()
-    if sobredispersion > UMBRAL_SOBREDISPERSION:
-        familia = sm.families.NegativeBinomial()
-        metodo = "binomial_negativa"
-        modelo_pleno = sm.GLM(datos["n"], x, family=familia, offset=offset).fit()
+    try:
+        modelo_pleno = sm.GLM(datos["n"], x, family=sm.families.Poisson(), offset=offset).fit()
+        residuos_dentro_de_muestra = modelo_pleno.resid_pearson
+        grados_libertad = modelo_pleno.df_resid
+        sobredispersion = (
+            float((residuos_dentro_de_muestra**2).sum() / grados_libertad)
+            if grados_libertad > 0
+            else 0.0
+        )
+        metodo = "poisson"
+        familia = sm.families.Poisson()
+        if sobredispersion > UMBRAL_SOBREDISPERSION:
+            familia = sm.families.NegativeBinomial()
+            metodo = "binomial_negativa"
+            modelo_pleno = sm.GLM(datos["n"], x, family=familia, offset=offset).fit()
 
-    modelo_sin_ultimo = sm.GLM(
-        datos["n"].iloc[:-1], x.iloc[:-1], family=familia, offset=offset.iloc[:-1]
-    ).fit()
-    mu_fuera_de_muestra = modelo_sin_ultimo.predict(x, offset=offset).to_numpy()
+        if datos["n"].iloc[:-1].sum() == 0:
+            # Mismo problema de frontera que arriba, pero solo en la historia (el fenómeno
+            # nunca había ocurrido en este territorio antes del último periodo): no hay nada
+            # que ajustar, la tasa base es 0 por construcción — un epsilon, no un ajuste GLM
+            # que no converge.
+            mu_fuera_de_muestra = np.full(len(datos), 1e-6)
+        else:
+            modelo_sin_ultimo = sm.GLM(
+                datos["n"].iloc[:-1], x.iloc[:-1], family=familia, offset=offset.iloc[:-1]
+            ).fit()
+            mu_fuera_de_muestra = modelo_sin_ultimo.predict(x, offset=offset).to_numpy()
+    except ValueError as error:
+        # Red de seguridad: con ~120 series reales (4 fenómenos × ~30 departamentos) no se
+        # pueden enumerar a mano todos los patrones degenerados posibles de antemano. Dos ya
+        # se identificaron y se manejan explícitamente arriba (serie en cero, emergencia sin
+        # historia); cualquier otro problema numérico de la IRLS se reporta, no tumba el
+        # pipeline completo por una sola serie.
+        return {"calculado": False, "motivo": f"ajuste no numéricamente estable: {error}"}
 
     mu = modelo_pleno.fittedvalues.to_numpy().copy()
     mu[-1] = mu_fuera_de_muestra[-1]
