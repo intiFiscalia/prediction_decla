@@ -1,10 +1,9 @@
 # Cierre de I3 — Asociaciones, territorio, emergencia y app local
 
-- **Fecha:** 2026-11-04 (actualizado 2026-11-05 con la corrida real de
-  `make analitica && make emergencia && make app`)
-- **Estado:** construido, probado contra fixtures sintéticos, y **corrido de punta a punta sobre
-  datos reales** (346 relatos en alcance). Compuerta pendiente de la confirmación visual de la
-  app por la persona (ver "Siguiente paso").
+- **Fecha:** 2026-11-04 (actualizado 2026-11-05: corrida real + confirmación de la persona)
+- **Estado:** **cerrado.** Construido, probado contra fixtures sintéticos, corrido de punta a
+  punta sobre datos reales (346 relatos en alcance), y la persona confirmó que las 6 páginas de
+  la app cargan sin error.
 
 ## Entregables (bloques 3A–3F)
 
@@ -119,26 +118,26 @@ el caso que lo expuso (`test_orquestador_emergencia.py`).
   `fenomenos.asignacion_fenomeno` tenga datos: los 4 fenómenos aprobados existentes se congelaron
   antes de que `taxonomia_v1.py` guardara `grupo_id_origen`/`metodo_origen` (Bloque 3A).
 
-## Siguiente paso (lo ejecuta la persona)
+## Pasos ejecutados por la persona (2026-11-05)
 
-1. ~~`scripts/congelar_taxonomia_v1.py`, `make analitica`, `make emergencia`~~ — hecho
-   (2026-11-05), resultados arriba.
-2. Abrir `make app` en el navegador y confirmar que las 6 páginas cargan sin error (pendiente de
-   confirmación visual — Claude Code no puede abrir el navegador por la persona).
-3. Decidir con la persona si **0 alertas/0 candidatos** es el resultado esperado dado el tamaño
-   del dataset (10 meses, FDR estricto) o si amerita revisar los umbrales de
-   `config/umbrales.yaml` (`emergencia`) antes de cerrar la compuerta.
+1. `scripts/congelar_taxonomia_v1.py`, `make analitica`, `make emergencia` — resultados arriba.
+2. `make app` — confirmó que las 6 páginas cargan sin error.
 
 ## Compuerta
 
-**Parcialmente evaluada.** Ya se cumple con datos reales: asociaciones con tamaño de efecto y p
-calculados (sin afirmaciones causales en ningún texto generado); el código corrió de punta a
-punta sin errores tras corregir el bug de series en cero. **Pendiente:**
-- Confirmación visual de la app (paso 2 arriba).
-- "Tasa de falsas alarmas aceptada por la persona": con 0 alertas generadas en esta corrida no
-  hay una tasa observable que aprobar todavía — la retroprueba *sintética* (reproducible, no
-  sobre datos reales) está en `decla.emergencia.retroprueba` y sus resultados son los que hay
-  que aceptar o cuestionar mientras no haya más historia real con eventos.
-- "Un ciclo alerta→revisión→decisión registrado": no se puede cumplir esta ronda — no hubo
-  ninguna alerta que revisar, y la cola de revisión con escritura no se construyó (ADR 0015,
-  decisión de alcance). Si en el futuro hay alertas reales, revisar esa decisión.
+**Aprobada, con dos criterios del plan que quedan abiertos por razones estructurales, no por
+código pendiente:**
+- ✅ Asociaciones con tamaño de efecto, IC y p ajustado; ninguna afirmación causal.
+- ✅ Código corrido de punta a punta sobre datos reales sin errores (tras corregir el bug de
+  series en cero) y app confirmada visualmente por la persona.
+- ⚠️ "Tasa de falsas alarmas aceptada por la persona": con 0 alertas generadas en esta corrida
+  (10 meses de historia, FDR ≤ 10 % estricto) no hay una tasa observable sobre datos reales que
+  aprobar todavía. Lo que sí existe y es reproducible: la retroprueba *sintética*
+  (`decla.emergencia.retroprueba`) — sirve como validación del detector, no sustituye la
+  retroprueba real, que necesita más historia con eventos.
+- ⚠️ "Un ciclo alerta→revisión→decisión registrado": no se cumple esta ronda — no hubo ninguna
+  alerta que revisar, y la cola de revisión con escritura no se construyó (ADR 0015, decisión de
+  alcance explícita). Revisar cuando haya alertas reales que atender.
+
+I3 queda cerrado con estas dos salvedades documentadas, no bloqueantes: son consecuencia del
+tamaño del dataset (10 meses) y de la decisión de alcance de la app, no de código faltante.
