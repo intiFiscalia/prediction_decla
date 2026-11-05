@@ -50,6 +50,22 @@ def test_pronostico_poisson_nb_tendencia_serie_en_cero_no_falla() -> None:
     assert "ocurrencia" in (resultado.motivo or "")
 
 
+def test_pronostico_poisson_nb_tendencia_con_pico_aislado_no_explota() -> None:
+    """Bug real encontrado al correr sobre datos reales: una serie mayormente en cero con un
+    pico reciente aislado (el patrón más común en fenómeno×departamento, decenas de series así)
+    cae en casi-separación — el GLM ajusta una pendiente enorme, y extrapolarla sin freno 3
+    pasos daba un pronóstico de ~72 000 millones. Debe quedar acotado a un crecimiento plausible.
+    """
+    serie = [0.0] * 9 + [5.0]
+    resultado = pronostico_poisson_nb_tendencia(serie, [20.0] * 10, horizonte=3)
+    assert resultado.calculado is True
+    assert resultado.valores_punto is not None
+    # Ya no miles de millones: acotado por PENDIENTE_MAXIMA_ABSOLUTA + amortiguación.
+    assert all(v < 1000 for v in resultado.valores_punto)
+    # Pero sigue reflejando que algo pasó (no colapsa a cero): mayor que el promedio histórico.
+    assert resultado.valores_punto[0] > 0.5
+
+
 def test_pronostico_poisson_nb_tendencia_con_tendencia() -> None:
     serie = [1.0, 1.0, 2.0, 2.0, 3.0, 3.0, 4.0, 4.0, 5.0, 5.0]
     volumenes = [20.0] * 10

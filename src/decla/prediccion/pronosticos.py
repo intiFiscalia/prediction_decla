@@ -29,6 +29,28 @@ from scipy.stats import nbinom, poisson
 
 MINIMO_PERIODOS_ENTRENAMIENTO = 4  # mismo mínimo que decla.emergencia.linea_base.ajustar_linea_base
 
+# Factor de amortiguación de la tendencia (0 < phi < 1) para el pronóstico Poisson/NB — **bug
+# real encontrado al correr sobre datos reales**: con series mayormente en cero y un solo pico
+# reciente (el patrón más común en fenómeno×departamento, ver decla.emergencia.linea_base), la
+# pendiente estimada en escala logarítmica es enorme; extrapolarla sin freno 3 periodos daba un
+# pronóstico de miles de millones (verificado con un ejemplo mínimo: serie de 9 ceros + un 5
+# producía ~72 000 millones en el tercer paso). Se amortigua igual que el "damped trend" de Holt
+# (Gardner 1985): cada paso futuro suma phi^h de la pendiente en vez de h·pendiente completa, así
+# el crecimiento total converge a pendiente·phi/(1-phi) en vez de divergir. phi=0.9 es el valor
+# convencional de la literatura de pronóstico amortiguado, no ajustado a este dataset.
+PHI_AMORTIGUACION_TENDENCIA = 0.9
+
+# Cota a la pendiente (escala logarítmica) usada para extrapolar, **antes** de amortiguar.
+# Bug real encontrado al correr sobre datos reales: con una serie mayormente en cero y un pico
+# aislado reciente, el GLM cae en casi-separación (igual que el caso ya documentado en
+# decla.emergencia.linea_base) y la pendiente ajustada puede ser enorme (observado: suficiente
+# para que, incluso amortiguada, el pronóstico llegara a cientos de millones en 3 pasos). La
+# amortiguación por sí sola no corrige una pendiente ya patológica en el origen — se acota antes.
+# ln(3) ≈ 1,0986: permite triplicar (o reducirse a un tercio) por periodo en el peor caso, ya una
+# tasa de cambio mensual muy agresiva para actividad institucional registrada; no se calibró con
+# este dataset, es un límite de sanidad documentado, no una cifra inventada para un resultado.
+PENDIENTE_MAXIMA_ABSOLUTA = np.log(3)
+
 
 @dataclass(frozen=True)
 class ResultadoPronostico:
@@ -60,9 +82,14 @@ def pronostico_ingenuo(serie_n: list[float], horizonte: int) -> ResultadoPronost
 def pronostico_ets_tendencia(
     serie_n: list[float], horizonte: int, semilla: int = 20260101, repeticiones: int = 500
 ) -> ResultadoPronostico:
-    """Holt (tendencia aditiva, **sin estacionalidad** — ADR 0016). Intervalos por simulación de
-    innovaciones (`ExponentialSmoothing.simulate`), no por una fórmula gaussiana cerrada: con
-    tan pocos periodos, la distribución de los residuos no se puede asumir normal de antemano.
+    """Holt con tendencia **amortiguada** (`damped_trend=True`), **sin estacionalidad** —
+    ADR 0016. Amortiguada por la misma razón que `pronostico_poisson_nb_tendencia` (ver
+    `PHI_AMORTIGUACION_TENDENCIA`): con series tan cortas, una tendencia sin freno puede
+    extrapolar de forma poco realista — práctica estándar de la literatura de pronóstico con
+    series cortas (Hyndman), no un ajuste a este dataset en particular. Intervalos por
+    simulación de innovaciones (`ExponentialSmoothing.simulate`), no por una fórmula gaussiana
+    cerrada: con tan pocos periodos, la distribución de los residuos no se puede asumir normal
+    de antemano.
     """
     if len(serie_n) < MINIMO_PERIODOS_ENTRENAMIENTO:
         return ResultadoPronostico(
@@ -74,7 +101,11 @@ def pronostico_ets_tendencia(
     y = np.array(serie_n, dtype=float)
     try:
         modelo = ExponentialSmoothing(
-            y, trend="add", seasonal=None, initialization_method="estimated"
+            y,
+            trend="add",
+            damped_trend=True,
+            seasonal=None,
+            initialization_method="estimated",
         ).fit()
     except Exception as error:  # ver nota de red de seguridad en linea_base.py — mismo motivo
         return ResultadoPronostico(False, "ets_tendencia", motivo=f"ajuste no estable: {error}")
@@ -104,6 +135,35 @@ def pronostico_ets_tendencia(
         intervalo_80=intervalo_80,
         intervalo_95=intervalo_95,
     )
+
+
+def _extrapolar_tendencia_amortiguada(
+    parametros: np.ndarray, n_entrenamiento: int, horizonte: int, offset_futuro: np.ndarray
+) -> np.ndarray:
+    """`parametros` = [intercepto, pendiente] del GLM (escala logarítmica). Devuelve `mu`
+    (escala de conteos) para `horizonte` periodos futuros. `eta_ultimo` (el valor ajustado EN el
+    último periodo observado) usa la pendiente original — ahí el ajuste coincide con lo
+    observado y no hay nada que corregir. Las salvaguardas aplican solo a la extrapolación más
+    allá de ese punto, que es donde una pendiente patológica se vuelve catastrófica:
+    1. La pendiente se acota a `PENDIENTE_MAXIMA_ABSOLUTA` antes de extrapolar — una
+       casi-separación en el ajuste (serie mayormente cero + un pico) puede producir una
+       pendiente enorme que ni amortiguar corrige, porque el problema está en la pendiente
+       misma, no en cómo se extiende.
+    2. El incremento ya acotado se amortigua con `PHI_AMORTIGUACION_TENDENCIA` (Gardner 1985):
+       cada paso futuro suma `phi^h` de la pendiente en vez de `h` veces la pendiente completa,
+       así el crecimiento total converge en vez de divergir con `h`.
+    """
+    intercepto, pendiente = parametros[0], parametros[1]
+    eta_ultimo = intercepto + pendiente * (n_entrenamiento - 1)  # coincide con lo observado
+    pendiente_extrapolacion = float(
+        np.clip(pendiente, -PENDIENTE_MAXIMA_ABSOLUTA, PENDIENTE_MAXIMA_ABSOLUTA)
+    )
+    pasos = np.arange(1, horizonte + 1)
+    incremento_amortiguado = pendiente_extrapolacion * PHI_AMORTIGUACION_TENDENCIA * (
+        (1 - PHI_AMORTIGUACION_TENDENCIA**pasos) / (1 - PHI_AMORTIGUACION_TENDENCIA)
+    )
+    eta_futuro = eta_ultimo + incremento_amortiguado
+    return np.exp(eta_futuro + offset_futuro)
 
 
 def pronostico_poisson_nb_tendencia(
@@ -146,10 +206,8 @@ def pronostico_poisson_nb_tendencia(
             False, "poisson_nb_tendencia", motivo=f"ajuste no estable: {error}"
         )
 
-    indices_futuros = np.arange(len(serie_n), len(serie_n) + horizonte)
-    x_futuro = sm.add_constant(indices_futuros, has_constant="add")
     offset_futuro = np.full(horizonte, offset[-1])  # último volumen observado, supuesto explícito
-    mu = modelo.predict(x_futuro, offset=offset_futuro)
+    mu = _extrapolar_tendencia_amortiguada(modelo.params, len(serie_n), horizonte, offset_futuro)
 
     if metodo_familia == "binomial_negativa":
         alpha = 1.0  # mismo valor fijo que sm.families.NegativeBinomial() por defecto
