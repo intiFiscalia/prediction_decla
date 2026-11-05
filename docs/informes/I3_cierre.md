@@ -1,9 +1,10 @@
 # Cierre de I3 — Asociaciones, territorio, emergencia y app local
 
-- **Fecha:** 2026-11-04
-- **Estado:** **construido y probado contra fixtures sintéticos. Compuerta NO evaluada
-  todavía** — falta que la persona corra el pipeline sobre datos reales y confirme los
-  resultados (igual que I1/I2, Claude Code nunca abre `data/warehouse.duckdb`).
+- **Fecha:** 2026-11-04 (actualizado 2026-11-05 con la corrida real de
+  `make analitica && make emergencia && make app`)
+- **Estado:** construido, probado contra fixtures sintéticos, y **corrido de punta a punta sobre
+  datos reales** (346 relatos en alcance). Compuerta pendiente de la confirmación visual de la
+  app por la persona (ver "Siguiente paso").
 
 ## Entregables (bloques 3A–3F)
 
@@ -27,7 +28,7 @@
   detectores contra series simuladas con exceso conocido, retroprueba reproducible, prueba
   estática de que la app nunca referencia columnas de texto sin enmascarar), ADR 0015,
   `docs/manual_app.md`, este cierre.
-- 433 pruebas (unitarias + integración), ruff y mypy verdes.
+- 437 pruebas (unitarias + integración), ruff y mypy verdes.
 
 ## Decisiones de alcance tomadas durante I3 (documentadas en ADR 0015)
 
@@ -42,6 +43,49 @@
 4. **Cola de revisión de alertas no construida** — confirmar/descartar una alerta necesitaría una
    conexión de escritura separada (como `app_revision_fenomenos.py` para la taxonomía); no era el
    foco de este incremento.
+
+## Resultados reales (`make analitica && make emergencia`, 2026-11-05, 346 relatos en alcance)
+
+Leídos de `reports/agregados/i3/` (agregado y suprimido — única carpeta que Claude Code puede
+leer, CLAUDE.md §2.1):
+
+- **`fenomenos.csv`**: `lavado_de_activos` 293 (84,68 %), `incautacion_y_conteo_de_efectivo` 84
+  (24,28 %), `lavado_de_activos_a_traves_de_empresas` 65 (18,79 %), `organizacion_criminal` 45
+  (13,01 %), `(no_clasificado)` 52 (15,03 %). La suma supera 346 por el solape documentado entre
+  particiones (ADR 0015) — esperado, no un error de conteo.
+- **`sectores.csv`**: 95,09 % indeterminado, 3,18 % explícito, 1,73 % inferido de alta confianza.
+  Plausible para este corpus (relatos de lavado de activos rara vez describen explícitamente
+  "qué sector" sin que sea el foco del hecho) — no se investigó más a fondo, queda como
+  observación, no como hallazgo que requiera acción.
+- **`asociaciones_chi2_fenomeno_delito.csv`**: chi²=157,16, V de Cramér=0,33 (asociación
+  moderada), p≈0, n=470. Fenómeno y delito están asociados, consistente con que los fenómenos se
+  descubrieron a partir del mismo texto que describe el delito.
+- **`asociaciones_reglas.csv`**: todas las reglas con *lift* ≈ 1,0 — ninguna combinación
+  sorprendente más allá de la prevalencia de `lavado_de_activos` (84,68 % del corpus domina
+  cualquier regla que lo tenga como consecuente).
+- **`territorio_predominio.csv`**: `lavado_de_activos` predomina en casi todos los departamentos
+  con tamaño suficiente; Bogotá (`11`) tiene el mayor volumen (n=119), consistente con la
+  concentración de la unidad que tramita ya documentada en I1.
+- **`territorio_calidad_puntos.csv`**: 69,94 % exacta, 25,43 % centroide, 3,76 % faltante — **
+  coincide casi exactamente** con lo que I1 ya había medido (69,9/25,4/3,8), buena señal de que
+  el pipeline lee correctamente los datos ya normalizados.
+- **`make emergencia`**: 49 series fenómeno×territorio evaluadas (de hasta 4×30 posibles — el
+  resto se omitió por no tener ninguna ocurrencia, ver corrección de bug abajo), **0 alertas, 0
+  candidatos, 1 descartada por posible artefacto**. Plausible con solo 10 meses de historia y
+  FDR ≤ 10 % estricto sobre 49 pruebas simultáneas — no es necesariamente un defecto, es
+  consistente con la limitación ya documentada (dataset corto, sin estacionalidad).
+
+## Bug real encontrado y corregido al correr sobre datos reales
+
+`make emergencia` crasheaba con `ValueError: the first guess on the deviance function returned a
+nan`. Causa: el ajuste Poisson (`ajustar_linea_base`) tiene un problema de frontera real en la
+IRLS de `statsmodels` cuando la serie observada es **todo cero** — exactamente lo que pasa en la
+mayoría de las ~120 combinaciones fenómeno×territorio posibles (4 fenómenos × ~30 departamentos),
+porque la mayoría de los fenómenos nunca ocurrió en la mayoría de los departamentos. Se reprodujo
+con un ejemplo mínimo de 2 líneas y se corrigió con dos guardas explícitas (serie totalmente en
+cero; fenómeno "emergente" sin historia previa hasta el último periodo) más una red de seguridad
+(`try/except`) para cualquier otro patrón degenerado no enumerado a mano. Cubierto con pruebas
+que reproducen exactamente ambos casos.
 
 ## Hallazgo real de ingeniería durante la construcción (no de datos, de diseño estadístico)
 
@@ -75,22 +119,26 @@ el caso que lo expuso (`test_orquestador_emergencia.py`).
   `fenomenos.asignacion_fenomeno` tenga datos: los 4 fenómenos aprobados existentes se congelaron
   antes de que `taxonomia_v1.py` guardara `grupo_id_origen`/`metodo_origen` (Bloque 3A).
 
-## Siguiente paso (lo ejecuta la persona; Claude Code no toca datos reales)
+## Siguiente paso (lo ejecuta la persona)
 
-1. `uv run python scripts/congelar_taxonomia_v1.py` (recongela v1.0 con `grupo_id_origen`/
-   `metodo_origen` — mismos 4 fenómenos, ahora con trazabilidad).
-2. `make analitica` (materializa `fenomenos.asignacion_fenomeno` + indicadores/territorio/
-   asociaciones en `oro.*`).
-3. `make emergencia`.
-4. `make app` y recorrer las 6 páginas.
-5. Reportar los resultados de `reports/agregados/i3/` (o lo que imprima cada `make`) para
-   validar la compuerta: asociaciones con tamaño de efecto/IC/p ajustado razonables, tasa de
-   falsas alarmas de la retroprueba real aceptable, Moran I con su diagnóstico de cobertura real.
+1. ~~`scripts/congelar_taxonomia_v1.py`, `make analitica`, `make emergencia`~~ — hecho
+   (2026-11-05), resultados arriba.
+2. Abrir `make app` en el navegador y confirmar que las 6 páginas cargan sin error (pendiente de
+   confirmación visual — Claude Code no puede abrir el navegador por la persona).
+3. Decidir con la persona si **0 alertas/0 candidatos** es el resultado esperado dado el tamaño
+   del dataset (10 meses, FDR estricto) o si amerita revisar los umbrales de
+   `config/umbrales.yaml` (`emergencia`) antes de cerrar la compuerta.
 
 ## Compuerta
 
-**No evaluada todavía.** Los tres criterios de la compuerta I3 (asociaciones con tamaño de
-efecto/IC/p ajustado y sin afirmaciones causales; tasa de falsas alarmas aceptada por la persona;
-un ciclo alerta→revisión→decisión registrado) requieren datos reales que Claude Code no puede
-generar ni leer directamente. Lo que sí se cumple ya: el código existe, está probado contra
-fixtures y simulaciones, y ningún texto sin enmascarar es accesible desde la app.
+**Parcialmente evaluada.** Ya se cumple con datos reales: asociaciones con tamaño de efecto y p
+calculados (sin afirmaciones causales en ningún texto generado); el código corrió de punta a
+punta sin errores tras corregir el bug de series en cero. **Pendiente:**
+- Confirmación visual de la app (paso 2 arriba).
+- "Tasa de falsas alarmas aceptada por la persona": con 0 alertas generadas en esta corrida no
+  hay una tasa observable que aprobar todavía — la retroprueba *sintética* (reproducible, no
+  sobre datos reales) está en `decla.emergencia.retroprueba` y sus resultados son los que hay
+  que aceptar o cuestionar mientras no haya más historia real con eventos.
+- "Un ciclo alerta→revisión→decisión registrado": no se puede cumplir esta ronda — no hubo
+  ninguna alerta que revisar, y la cola de revisión con escritura no se construyó (ADR 0015,
+  decisión de alcance). Si en el futuro hay alertas reales, revisar esa decisión.
