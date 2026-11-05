@@ -28,7 +28,7 @@ Prefect/Dagster (alternativas que el propio plan ofrece), sin champion/challenge
 modelo), `make lote` sin recálculo incremental automático aguas abajo (un solo lote real
 procesado hasta ahora, sin base para diseñarlo bien).
 
-## Entregables (bloques 4A–4D)
+## Entregables (bloques 4A–4E)
 
 - **4A** (`decla.prediccion`): detección de atípicos con dos rankings independientes
   (Isolation Forest sobre variables estructuradas; distancia coseno al centroide de fenómeno más
@@ -42,9 +42,14 @@ procesado hasta ahora, sin base para diseñarlo bien).
   nuevo/repetido/modificado por `CASO_NOTICIA` (nunca por `registro_uid`, que cambia entre lotes
   por diseño), guarda historia de cambios en `meta.historico_cambios`, calcula deriva PSI.
 - **4D**: página "Salud del sistema" en `decla.app.main` (último lote, calidad, deriva, resumen
-  de evaluación, alertas abiertas — sigue sin login, ADR 0015); `docs/manual_operacion.md`; este
-  cierre.
-- 462 pruebas (unitarias + integración), ruff y mypy verdes.
+  de evaluación, alertas abiertas — sigue sin login, ADR 0015); `docs/manual_operacion.md`.
+- **4E** (`decla.prediccion.pronosticos`, ADR 0016): pronósticos de frecuencia por fenómeno con
+  modelo ingenuo obligatorio, ETS con tendencia (sin estacionalidad) y Poisson/NB con tendencia y
+  *offset* (reusa `decla.emergencia.linea_base.construir_series_fenomeno_territorio`, no la
+  duplica); *rolling origin* con MASE/WAPE frente al ingenuo. `make prediccion` ahora corre
+  atípicos y pronósticos juntos. No tiene página propia en la app todavía (fuera de alcance de
+  este bloque, posible extensión futura).
+- 473 pruebas (unitarias + integración), ruff y mypy verdes.
 
 ## Hallazgo real de ingeniería durante la construcción (no de datos)
 
@@ -78,21 +83,33 @@ no investigado más a fondo (fuera del alcance de I4).
   clasificación/deriva en producción.
 - **Respaldo cifrado sigue bloqueado** (ADR 0007, pendiente de la oficina jurídica).
 - **Clasificador temático sigue no viable** — se reabre cuando un analista anote una muestra de
-  relatos por fenómeno. Pronósticos ya no está en esta lista (ADR 0016, Bloque 4E).
+  relatos por fenómeno.
+- **Pronósticos con pocos orígenes de *rolling origin*** (10 meses de historia real): el MASE/
+  WAPE que se calculen serán estadísticamente débiles hasta acumular más entregas anuales — se
+  reportan igual, con `n_origenes_backtest` siempre visible, nunca se disfraza de validación
+  robusta (ADR 0016).
+- **Offset futuro de los pronósticos Poisson/NB es un supuesto, no un dato**: se asume que el
+  volumen total del territorio en los periodos futuros es igual al del último periodo observado
+  — documentado en el código (`decla.prediccion.pronosticos`), no oculto.
 
 ## Siguiente paso (lo ejecuta la persona)
 
-1. `make prediccion LOTE_ID=<el-lote-id-de-make-nlp>` (atípicos sobre datos reales).
+1. `make prediccion LOTE_ID=<el-lote-id-de-make-nlp>` (atípicos **y pronósticos** sobre datos
+   reales — un solo comando corre ambos).
 2. `make evaluar` (ensambla la evaluación consolidada con los valores reales de arriba).
 3. `make app` → página "Salud del sistema" → confirmar que carga sin error.
 4. Cuando llegue un archivo CASOS nuevo real: `make lote ARCHIVO=... LOTE_ID=...` y reportar el
    resultado (clasificación + deriva) para validar el diseño contra un caso real por primera vez.
+5. Reportar `oro.pronosticos` (cuántos orígenes de backtest hubo por serie, si algún método
+   superó al ingenuo) para decidir si los pronósticos ya son útiles o si hace falta más historia.
 
 ## Compuerta
 
-**Parcialmente evaluable sin datos reales.** Se cumple ya: los dos problemas no viables de
-Fase 9 quedan documentados como tales, sin implementarse (criterio explícito del plan). Pendiente
-de datos reales: que los atípicos y la evaluación consolidada corran sobre `data/warehouse.duckdb`
-real y la persona confirme que los resultados son razonables; "tres lotes consecutivos sin
-intervención manual" no se puede evaluar todavía con un solo lote real procesado en todo el
-proyecto.
+**Parcialmente evaluable sin datos reales.** Se cumple ya: la clasificación temática queda
+documentada como no viable, sin implementarse (criterio explícito del plan); pronósticos pasó de
+"no viable" a "construido, con limitaciones declaradas" (ADR 0016). Pendiente de datos reales:
+que atípicos, pronósticos y evaluación consolidada corran sobre `data/warehouse.duckdb` real y la
+persona confirme que los resultados son razonables — en particular, si algún método de pronóstico
+supera al ingenuo con la historia real (criterio exacto de la compuerta del plan); "tres lotes
+consecutivos sin intervención manual" no se puede evaluar todavía con un solo lote real procesado
+en todo el proyecto.
