@@ -110,9 +110,15 @@ def pronostico_ets_tendencia(
     except Exception as error:  # ver nota de red de seguridad en linea_base.py — mismo motivo
         return ResultadoPronostico(False, "ets_tendencia", motivo=f"ajuste no estable: {error}")
 
-    puntos = modelo.forecast(horizonte)
-    simulaciones = modelo.simulate(
-        horizonte, repetitions=repeticiones, rng=np.random.default_rng(semilla)
+    # Holt es aditivo: no restringe el pronóstico a valores no negativos. Un conteo de noticias
+    # no puede ser negativo (bug real encontrado al correr sobre datos reales: una serie con
+    # tendencia decreciente dio un punto de -1,69) — se recorta a 0 después de simular/pronosticar,
+    # nunca antes (recortar antes de simular distorsionaría la distribución de los intervalos).
+    puntos = np.clip(modelo.forecast(horizonte), 0, None)
+    simulaciones = np.clip(
+        modelo.simulate(horizonte, repetitions=repeticiones, rng=np.random.default_rng(semilla)),
+        0,
+        None,
     )
     intervalo_80 = list(
         zip(

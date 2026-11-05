@@ -25,6 +25,20 @@ def test_pronostico_ets_tendencia_requiere_minimo_de_periodos() -> None:
     assert "menos de" in (resultado.motivo or "")
 
 
+def test_pronostico_ets_tendencia_nunca_es_negativo() -> None:
+    """Bug real encontrado al correr sobre datos reales: Holt es aditivo y no restringe el
+    pronóstico a valores no negativos — una serie con tendencia decreciente dio un punto de
+    -1,69 noticias, algo sin sentido para un conteo. Se recorta a 0, nunca se reporta negativo.
+    """
+    serie_decreciente = [9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 0.0]
+    resultado = pronostico_ets_tendencia(serie_decreciente, horizonte=3)
+    assert resultado.calculado is True
+    assert resultado.valores_punto is not None
+    assert all(v >= 0 for v in resultado.valores_punto)
+    assert resultado.intervalo_80 is not None
+    assert all(bajo >= 0 for bajo, _ in resultado.intervalo_80)
+
+
 def test_pronostico_ets_tendencia_detecta_tendencia_creciente() -> None:
     serie = [2.0, 3.0, 2.0, 5.0, 4.0, 6.0, 5.0, 8.0, 7.0, 9.0]
     resultado = pronostico_ets_tendencia(serie, horizonte=3)
