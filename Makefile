@@ -51,9 +51,10 @@ analitica:
 emergencia:
 	uv run python -m decla.emergencia.pipeline
 
-# I4 — Fase 9: detección de atípicos (pronósticos y clasificación temática no son viables con
-# el dataset real — ver reports/agregados/i4/viabilidad.md y docs/informes/I4_cierre.md).
-# Necesita el lote_id que imprimió `make nlp` (sus embeddings de relato están en
+# I4 — Fase 9: detección de atípicos + pronósticos de frecuencia por fenómeno (ADR 0016: sin
+# umbral mínimo de historia, se construye con la disponible). Clasificación temática sigue sin
+# ser viable (falta anotación) — ver reports/agregados/i4/viabilidad.md y docs/informes/
+# I4_cierre.md. Necesita el lote_id que imprimió `make nlp` (sus embeddings de relato están en
 # data/embeddings/<lote_id>/): make prediccion LOTE_ID=<el-lote-id-de-make-nlp>
 prediccion:
 	uv run python -m decla.prediccion.pipeline --lote-id $(LOTE_ID)
