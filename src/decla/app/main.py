@@ -269,11 +269,66 @@ def pagina_buscador() -> None:
             )
 
 
+def pagina_salud_del_sistema() -> None:
+    st.header("Salud del sistema")
+    _nota()
+    conexion = _conexion()
+
+    st.subheader("Último lote procesado")
+    ejecuciones = conexion.sql(
+        "SELECT * FROM meta.ejecuciones ORDER BY inicio DESC LIMIT 10"
+    ).pl() if _tabla_existe(conexion, "meta", "ejecuciones") else None
+    if ejecuciones is not None and ejecuciones.height > 0:
+        st.dataframe(ejecuciones.to_pandas())
+    else:
+        st.info("Sin ejecuciones registradas todavía.")
+
+    st.subheader("Calidad del lote")
+    st.dataframe(ind.ind_calidad(conexion).to_pandas())
+
+    st.subheader("Deriva del último `make lote`")
+    if _tabla_existe(conexion, "meta", "historico_cambios"):
+        cambios = conexion.sql(
+            "SELECT * FROM meta.historico_cambios ORDER BY fecha DESC LIMIT 50"
+        ).pl()
+        st.write(f"{cambios.height} cambios registrados (últimos 50 mostrados).")
+        st.dataframe(cambios.to_pandas())
+    else:
+        st.info("Sin `make lote` corrido todavía (solo hay un lote inicial).")
+
+    st.subheader("Evaluación consolidada")
+    ruta_evaluacion = RAIZ_PROYECTO / "reports" / "agregados" / "evaluacion" / "v1.md"
+    if ruta_evaluacion.exists():
+        st.markdown(ruta_evaluacion.read_text(encoding="utf-8"))
+    else:
+        st.info("Sin `make evaluar` corrido todavía.")
+
+    st.subheader("Alertas abiertas")
+    if _tabla_existe(conexion, "oro", "alertas"):
+        abiertas = conexion.sql(
+            "SELECT * FROM oro.alertas WHERE estado IN ('candidato_en_observacion', 'alerta')"
+        ).pl()
+        st.dataframe(abiertas.to_pandas()) if abiertas.height else st.info(
+            "Sin alertas ni candidatos abiertos."
+        )
+    else:
+        st.info("Sin `make emergencia` corrido todavía.")
+
+
+def _tabla_existe(conexion: duckdb.DuckDBPyConnection, esquema: str, tabla: str) -> bool:
+    resultado = conexion.sql(
+        "SELECT count(*) AS n FROM information_schema.tables "
+        "WHERE table_schema = ? AND table_name = ?",
+        params=[esquema, tabla],
+    ).pl()
+    return bool(resultado["n"].item())
+
+
 def main() -> None:
     st.sidebar.title("DECLA")
     opciones = [
         "Indicadores", "Fenómenos", "Territorio", "Asociaciones", "Emergencia",
-        "Buscador semántico",
+        "Buscador semántico", "Salud del sistema",
     ]
     pagina = st.sidebar.radio("Vista", opciones)
     paginas = {
@@ -282,6 +337,7 @@ def main() -> None:
         "Territorio": pagina_territorio,
         "Asociaciones": pagina_asociaciones,
         "Emergencia": pagina_emergencia,
+        "Salud del sistema": pagina_salud_del_sistema,
         "Buscador semántico": pagina_buscador,
     }
     paginas[pagina]()
