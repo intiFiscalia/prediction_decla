@@ -69,4 +69,5 @@ DESP_CONOCIDO_CASO_APOYO, CASO_GRUPO_ESPECIALIZADO, "Eje temático APLICA".
   son casi constantes).
 - % real de columnas faltantes por año y departamento.
 - Confirmación o refutación de la hipótesis de estructura de CASO_NOTICIA a escala completa.
-- Periodo real cubierto y si permite pronósticos (≥ 36 meses, plan_trabajo.md §8.4).
+- Periodo real cubierto (respondido: 10 meses, ene–oct 2026). Ya no se exige un mínimo de 36
+  meses para pronósticos (ADR 0016) — se construyen con la historia disponible.

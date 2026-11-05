@@ -1,25 +1,29 @@
-# Cierre de I4 — Atípicos, evaluación consolidada y operación de lotes (acotado)
+# Cierre de I4 — Atípicos, evaluación consolidada, operación de lotes y pronósticos
 
-- **Fecha:** 2026-11-05
+- **Fecha:** 2026-11-05 (actualizado el mismo día: ADR 0016 reabrió pronósticos)
 - **Estado:** construido y probado contra fixtures sintéticos. Pendiente de que la persona
   corra `make prediccion`, `make evaluar` y `make lote` sobre datos reales y confirme
   resultados (igual que I1–I3, Claude Code no toca `data/raw/`, `data/private/` ni
   `data/warehouse.duckdb` directamente).
 
-## Alcance decidido (ver `reports/agregados/i4/viabilidad.md`)
+## Alcance decidido (ver `reports/agregados/i4/viabilidad.md`, ADR 0016)
 
-Dos piezas de la Fase 9 del plan **no son viables con el dataset real** y se documentan como
-tales, no se implementan:
+**Una pieza de la Fase 9 sigue sin ser viable**, por falta de etiquetas (no de historia):
 
-- **Pronóstico de frecuencia por fenómeno/territorio**: necesita ≥36 meses de historia; el
-  dataset real tiene 10 (ene–oct 2026, I2 §4-bis).
 - **Clasificación temática de relatos**: necesita relatos anotados por fenómeno (≥50-100 por
   clase, con kappa medido) para entrenar un clasificador supervisado; no existen (CLAUDE.md §2.3
   prohíbe entrenar sin esa guía). Es trabajo de anotación de un analista, no de ingeniería.
 
-Lo viable y construido: **detección de atípicos**, **evaluación consolidada** y **operación de
-lotes**, con varias simplificaciones deliberadas frente al enunciado completo de Fase 12
-(documentadas en el plan aprobado y en `docs/manual_operacion.md`): sin MLflow/Evidently/
+**Pronóstico de frecuencia por fenómeno/territorio se reabrió (ADR 0016, 2026-11-05):** el
+umbral de ≥36 meses que lo bloqueaba lo fijó la planeación inicial sin conocer que los datos
+llegan por entregas anuales — nunca se iban a acumular 36 meses continuos. La persona decidió
+construirlo con la historia disponible (10 meses), con modelo ingenuo obligatorio de referencia,
+sin estacionalidad (menos de 12 meses) e intervalos anchos declarados explícitamente. Ver
+Bloque 4E abajo.
+
+Lo demás viable y construido: **detección de atípicos**, **evaluación consolidada** y
+**operación de lotes**, con varias simplificaciones deliberadas frente al enunciado completo de
+Fase 12 (documentadas en el plan aprobado y en `docs/manual_operacion.md`): sin MLflow/Evidently/
 Prefect/Dagster (alternativas que el propio plan ofrece), sin champion/challenger (un solo
 modelo), `make lote` sin recálculo incremental automático aguas abajo (un solo lote real
 procesado hasta ahora, sin base para diseñarlo bien).
@@ -73,8 +77,8 @@ no investigado más a fondo (fuera del alcance de I4).
   sintéticos — no hay todavía un segundo lote real con el que validar el diseño de
   clasificación/deriva en producción.
 - **Respaldo cifrado sigue bloqueado** (ADR 0007, pendiente de la oficina jurídica).
-- **Pronósticos y clasificador temático siguen no viables** — se reabren cuando haya ≥36 meses
-  de historia o un analista anote una muestra de relatos por fenómeno.
+- **Clasificador temático sigue no viable** — se reabre cuando un analista anote una muestra de
+  relatos por fenómeno. Pronósticos ya no está en esta lista (ADR 0016, Bloque 4E).
 
 ## Siguiente paso (lo ejecuta la persona)
 

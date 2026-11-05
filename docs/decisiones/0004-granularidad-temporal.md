@@ -34,8 +34,10 @@ indicadores de volumen), con agregación a trimestral/anual solo en la capa de p
 
 ## Consecuencias
 
-- Si el periodo real sigue siendo de un solo año, I4 (pronósticos) queda explícitamente fuera de
-  alcance hasta acumular más lotes (CLAUDE.md §4.14), independientemente de esta decisión.
+- **Actualización 2026-11-05 (ADR 0016):** el umbral de 36 meses mencionado arriba como
+  condición para I4 se elimina — lo fijó la planeación inicial sin conocer el ciclo real de
+  entrega (datos anuales, nunca se acumulan 36 meses continuos). I4 construye pronósticos con la
+  historia disponible (10 meses), no queda fuera de alcance. Ver ADR 0016 para el detalle.
 - La granularidad elegida aquí determina el `offset` de volumen total en los modelos de línea
   base de emergencia (plan_trabajo.md §8.5): cambiarla después de construir esos modelos implica
   recalibrarlos, no solo re-agregar.
