@@ -9,6 +9,8 @@ fenomenos:
   definicion: pendiente_de_redaccion_por_analista
   nivel_jerarquico: 1
   delitos_relacionados: pendiente_de_calculo
+  grupo_id_origen: hdbscan_0
+  metodo_origen: hdbscan
   terminos_dominantes:
   - persona
   - lavado
@@ -42,6 +44,8 @@ fenomenos:
   definicion: pendiente_de_redaccion_por_analista
   nivel_jerarquico: 1
   delitos_relacionados: pendiente_de_calculo
+  grupo_id_origen: nmf_4
+  metodo_origen: nmf
   terminos_dominantes:
   - persona
   - empresa
@@ -75,6 +79,8 @@ fenomenos:
   definicion: pendiente_de_redaccion_por_analista
   nivel_jerarquico: 1
   delitos_relacionados: pendiente_de_calculo
+  grupo_id_origen: nmf_2
+  metodo_origen: nmf
   terminos_dominantes:
   - persona
   - señor
@@ -108,6 +114,8 @@ fenomenos:
   definicion: pendiente_de_redaccion_por_analista
   nivel_jerarquico: 1
   delitos_relacionados: pendiente_de_calculo
+  grupo_id_origen: nmf_3
+  metodo_origen: nmf
   terminos_dominantes:
   - persona
   - información
