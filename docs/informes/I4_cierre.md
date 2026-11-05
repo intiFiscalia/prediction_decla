@@ -1,10 +1,12 @@
 # Cierre de I4 — Atípicos, evaluación consolidada, operación de lotes y pronósticos
 
-- **Fecha:** 2026-11-05 (actualizado el mismo día: ADR 0016 reabrió pronósticos)
-- **Estado:** construido y probado contra fixtures sintéticos. Pendiente de que la persona
-  corra `make prediccion`, `make evaluar` y `make lote` sobre datos reales y confirme
-  resultados (igual que I1–I3, Claude Code no toca `data/raw/`, `data/private/` ni
-  `data/warehouse.duckdb` directamente).
+- **Fecha:** 2026-11-05 (actualizado el mismo día: ADR 0016 reabrió pronósticos; `make
+  prediccion` ya corrió sobre datos reales, dos bugs reales encontrados y corregidos en el
+  proceso — ver más abajo)
+- **Estado:** construido, probado contra fixtures sintéticos, y **`make prediccion` corrido
+  sobre datos reales** (346 relatos, 120 series fenómeno×departamento). Pendiente de que la
+  persona corra `make evaluar` y `make lote` sobre datos reales (igual que I1–I3, Claude Code no
+  toca `data/raw/`, `data/private/` ni `data/warehouse.duckdb` directamente).
 
 ## Alcance decidido (ver `reports/agregados/i4/viabilidad.md`, ADR 0016)
 
@@ -49,7 +51,39 @@ procesado hasta ahora, sin base para diseñarlo bien).
   duplica); *rolling origin* con MASE/WAPE frente al ingenuo. `make prediccion` ahora corre
   atípicos y pronósticos juntos. No tiene página propia en la app todavía (fuera de alcance de
   este bloque, posible extensión futura).
-- 473 pruebas (unitarias + integración), ruff y mypy verdes.
+- 475 pruebas (unitarias + integración), ruff y mypy verdes.
+
+## Resultados reales de pronósticos (`make prediccion`, 2026-11-05)
+
+120 series fenómeno×departamento evaluadas, 687 filas en `oro.pronosticos`. `valor_punto` en el
+rango [0, 23,57] (promedio 0,88) — acotado y sin negativos tras los dos arreglos de abajo. De
+las 10 filas con el valor pronosticado más alto, **solo 1** tiene `supera_ingenuo=True`
+(`organizacion_criminal` × departamento 66, ETS, MASE=0,80); las otras 9 tienen MASE > 1 (peor
+que el ingenuo). Esto es exactamente lo que ADR 0016 anticipaba: con 10 meses de historia, la
+mayoría de métodos más complejos todavía no le ganan a "repetir el último valor" — el sistema lo
+reporta honestamente (`supera_ingenuo=False`) en vez de ocultarlo o maquillarlo.
+
+## Dos bugs reales encontrados y corregidos al correr sobre datos reales (no en fixtures)
+
+Los 475 tests contra fixtures sintéticos pasaban en verde, pero ninguno reprodujo estos dos
+problemas porque las series sintéticas no tenían el patrón real (muy dispersas, con picos
+aislados en departamentos de bajo volumen) — otro recordatorio de por qué el protocolo del
+proyecto exige correr sobre datos reales antes de cerrar una compuerta:
+
+1. **Extrapolación sin freno por casi-separación**: series mayormente en cero con un pico
+   reciente aislado (el patrón más común en fenómeno×departamento) hacían que el GLM Poisson/NB
+   ajustara una pendiente patológica; extrapolarla 3 pasos, incluso amortiguada, daba
+   pronósticos de hasta ~72 000 millones. Corregido acotando la pendiente a
+   `PENDIENTE_MAXIMA_ABSOLUTA = ln(3)` antes de amortiguar (Gardner 1985) — el ajuste en el
+   último periodo observado no se toca, solo la extrapolación más allá de él.
+2. **Conteo negativo**: Holt (ETS) es aditivo y no restringe a valores no negativos — una serie
+   con tendencia decreciente puede cruzar cero y seguir bajando. `min(valor_punto)` real llegó a
+   -1,69 antes del fix. Corregido recortando a 0 el punto y las simulaciones (antes de calcular
+   los percentiles de los intervalos).
+
+Ambos quedaron cubiertos con pruebas de regresión que reproducen el caso exacto
+(`test_pronostico_poisson_nb_tendencia_con_pico_aislado_no_explota`,
+`test_pronostico_ets_tendencia_nunca_es_negativo`).
 
 ## Hallazgo real de ingeniería durante la construcción (no de datos)
 
@@ -94,22 +128,21 @@ no investigado más a fondo (fuera del alcance de I4).
 
 ## Siguiente paso (lo ejecuta la persona)
 
-1. `make prediccion LOTE_ID=<el-lote-id-de-make-nlp>` (atípicos **y pronósticos** sobre datos
-   reales — un solo comando corre ambos).
+1. ~~`make prediccion LOTE_ID=...`~~ — hecho (2026-11-05), resultados arriba.
 2. `make evaluar` (ensambla la evaluación consolidada con los valores reales de arriba).
 3. `make app` → página "Salud del sistema" → confirmar que carga sin error.
 4. Cuando llegue un archivo CASOS nuevo real: `make lote ARCHIVO=... LOTE_ID=...` y reportar el
    resultado (clasificación + deriva) para validar el diseño contra un caso real por primera vez.
-5. Reportar `oro.pronosticos` (cuántos orígenes de backtest hubo por serie, si algún método
-   superó al ingenuo) para decidir si los pronósticos ya son útiles o si hace falta más historia.
+5. Decidir con la persona si los pronósticos actuales (casi ninguno supera al ingenuo todavía)
+   se publican con esa advertencia explícita, o se esperan más entregas anuales antes de usarlos
+   para algo operativo — el código no fuerza una respuesta, solo la mide.
 
 ## Compuerta
 
-**Parcialmente evaluable sin datos reales.** Se cumple ya: la clasificación temática queda
-documentada como no viable, sin implementarse (criterio explícito del plan); pronósticos pasó de
-"no viable" a "construido, con limitaciones declaradas" (ADR 0016). Pendiente de datos reales:
-que atípicos, pronósticos y evaluación consolidada corran sobre `data/warehouse.duckdb` real y la
-persona confirme que los resultados son razonables — en particular, si algún método de pronóstico
-supera al ingenuo con la historia real (criterio exacto de la compuerta del plan); "tres lotes
-consecutivos sin intervención manual" no se puede evaluar todavía con un solo lote real procesado
-en todo el proyecto.
+**Pronósticos: evaluado sobre datos reales.** Se cumple: construido, sin errores (tras corregir
+los dos bugs de arriba), con `supera_ingenuo` calculado por serie (criterio exacto de la
+compuerta del plan) — hoy mayormente `False`, lo cual es un resultado honesto, no una falla del
+código. Clasificación temática: documentada como no viable, sin implementarse. **Atípicos y
+evaluación consolidada**: pendientes de que la persona corra `make evaluar` y confirme. **Lotes**:
+"tres lotes consecutivos sin intervención manual" no se puede evaluar todavía con un solo lote
+real procesado en todo el proyecto.
