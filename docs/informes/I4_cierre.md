@@ -1,8 +1,7 @@
 # Cierre de I4 — Atípicos, evaluación consolidada, operación de lotes y pronósticos
 
-- **Fecha:** 2026-11-05 (actualizado el mismo día: ADR 0016 reabrió pronósticos; `make
-  prediccion` ya corrió sobre datos reales, dos bugs reales encontrados y corregidos en el
-  proceso — ver más abajo)
+- **Fecha:** 2026-11-05 (actualizada 2026-11-06: ADR 0017 — legibilidad de la app para usuario
+  inexperto y pronóstico por `delito_nombre` además de por fenómeno, ver sección al final)
 - **Estado:** construido, probado contra fixtures sintéticos, y **`make prediccion` corrido
   sobre datos reales** (346 relatos, 120 series fenómeno×departamento). Pendiente de que la
   persona corra `make evaluar` y `make lote` sobre datos reales (igual que I1–I3, Claude Code no
@@ -49,9 +48,9 @@ procesado hasta ahora, sin base para diseñarlo bien).
   modelo ingenuo obligatorio, ETS con tendencia (sin estacionalidad) y Poisson/NB con tendencia y
   *offset* (reusa `decla.emergencia.linea_base.construir_series_fenomeno_territorio`, no la
   duplica); *rolling origin* con MASE/WAPE frente al ingenuo. `make prediccion` ahora corre
-  atípicos y pronósticos juntos. No tiene página propia en la app todavía (fuera de alcance de
-  este bloque, posible extensión futura).
-- 475 pruebas (unitarias + integración), ruff y mypy verdes.
+  atípicos y pronósticos juntos. Página propia en la app añadida 2026-11-06 (ADR 0017, ver
+  última sección).
+- 490+ pruebas (unitarias + integración), ruff y mypy verdes.
 
 ## Resultados reales de pronósticos (`make prediccion`, 2026-11-05)
 
@@ -129,7 +128,11 @@ no investigado más a fondo (fuera del alcance de I4).
 ## Siguiente paso (lo ejecuta la persona)
 
 1. ~~`make prediccion LOTE_ID=...`~~ — hecho (2026-11-05), resultados arriba.
-2. `make evaluar` (ensambla la evaluación consolidada con los valores reales de arriba).
+2. ~~`make evaluar`~~ — hecho (2026-11-06): `reports/agregados/evaluacion/v1.md` consolidó los
+   componentes históricos con los recalculados en vivo (retroprueba sintética, atípicos,
+   alertas reales, fenómenos vigentes). Sin sorpresas: los `pendiente_de_cifra_formal` ya
+   documentados siguen así porque ninguna anotación nueva se hizo; nada se inventó para llenar
+   la tabla.
 3. `make app` → página "Salud del sistema" → confirmar que carga sin error.
 4. Cuando llegue un archivo CASOS nuevo real: `make lote ARCHIVO=... LOTE_ID=...` y reportar el
    resultado (clasificación + deriva) para validar el diseño contra un caso real por primera vez.
@@ -137,12 +140,39 @@ no investigado más a fondo (fuera del alcance de I4).
    se publican con esa advertencia explícita, o se esperan más entregas anuales antes de usarlos
    para algo operativo — el código no fuerza una respuesta, solo la mide.
 
+## Actualización 2026-11-06 — legibilidad de la app y pronóstico por delito (ADR 0017)
+
+La persona señaló que la app era ilegible para un usuario sin formación técnica (códigos
+DIVIPOLA, `articulo_cp`, `periodo` como entero sin decodificar) y, de fondo, que casi todos los
+resultados por fenómeno son triviales porque **todo el dataset es, por alcance, lavado de
+activos** — "predomina el lavado de activos" no dice nada nuevo; interesa el *tipo* de lavado.
+
+- **Capa de presentación** (`src/decla/app/legibilidad.py`, nueva): nombres DIVIPOLA y de
+  fenómeno en vez de códigos, tooltips, glosario por página, gráficos Plotly en cada tabla de
+  ranking (ordenadas explícitamente de mayor a menor, antes dependía del orden de iteración
+  interno). Corrige un bug real de visualización: `oro.alertas.periodo` se mostraba como
+  `24321` (entero interno `año*12+mes`) en vez de `2026-09`.
+- **Pronóstico nuevo por `delito_nombre`×territorio** (`oro.pronosticos_delito`), además del
+  existente por fenómeno (que se conserva sin cambios). Nueva página "Pronósticos" con ranking
+  de qué delito está en tendencia (comparado contra el pronóstico ingenuo, solo se reporta si
+  algún método lo superó en el backtest) y gráfico de serie histórica + pronóstico por
+  delito/departamento.
+- **"Sector económico predominante" por departamento** y **"patrones observados en los datos"**
+  por fenómeno (términos dominantes + delito/sector más frecuente), explícitamente etiquetados
+  como patrones de datos, no como definición jurídica — el campo `definicion` de la taxonomía
+  sigue `pendiente_de_redaccion_por_analista` en los 4 fenómenos, sin inventarse.
+- No se reabrió el clustering de fenómenos ni la taxonomía v1.0 congelada (decisión explícita de
+  la persona: vía rápida de cruce con campos ya extraídos, no re-clustering con nuevo taller).
+- Detalle completo en ADR `docs/decisiones/0017-legibilidad-app-y-pronostico-por-delito.md`.
+
 ## Compuerta
 
 **Pronósticos: evaluado sobre datos reales.** Se cumple: construido, sin errores (tras corregir
 los dos bugs de arriba), con `supera_ingenuo` calculado por serie (criterio exacto de la
 compuerta del plan) — hoy mayormente `False`, lo cual es un resultado honesto, no una falla del
 código. Clasificación temática: documentada como no viable, sin implementarse. **Atípicos y
-evaluación consolidada**: pendientes de que la persona corra `make evaluar` y confirme. **Lotes**:
-"tres lotes consecutivos sin intervención manual" no se puede evaluar todavía con un solo lote
-real procesado en todo el proyecto.
+evaluación consolidada**: `make evaluar` corrió (2026-11-06) y produjo
+`reports/agregados/evaluacion/v1.md` sin inventar ninguna cifra — los componentes sin medición
+formal siguen marcados `pendiente_de_cifra_formal`. **Lotes**: "tres lotes consecutivos sin
+intervención manual" no se puede evaluar todavía con un solo lote real procesado en todo el
+proyecto.

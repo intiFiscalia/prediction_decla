@@ -17,9 +17,13 @@ from pathlib import Path
 from typing import Any
 
 import duckdb
+import polars as pl
 
 from decla.comun.duckdb_io import escribir_tabla_polars
-from decla.emergencia.linea_base import construir_series_fenomeno_territorio
+from decla.emergencia.linea_base import (
+    construir_series_delito_territorio,
+    construir_series_fenomeno_territorio,
+)
 from decla.fenomenos.representacion import MEDIA, cargar_embeddings_segmento
 from decla.prediccion.atipicos import construir_tabla_atipicos
 from decla.prediccion.pronosticos import (
@@ -65,22 +69,16 @@ _FUNCIONES_PRONOSTICO = {
 }
 
 
-def procesar_pronosticos(
-    conexion: duckdb.DuckDBPyConnection,
-    run_id: str,
-    horizonte: int = 3,
-    columna_territorio: str = "cod_dpto_hechos",
-) -> ResumenPronosticos:
-    series = construir_series_fenomeno_territorio(conexion, columna_territorio)
-    if series.height == 0:
-        escribir_tabla_polars(conexion, "oro", "pronosticos", [])
-        return ResumenPronosticos(0, 0)
-
+def _ajustar_pronosticos_series(
+    series: pl.DataFrame, columna_dimension: str, run_id: str, horizonte: int
+) -> tuple[list[dict[str, Any]], int]:
+    """Corre los 3 métodos de pronóstico + backtest sobre cada serie (dimensión×territorio).
+    Reusado por fenómeno y por delito: misma lógica estadística, solo cambia qué columna
+    identifica la serie.
+    """
     filas: list[dict[str, Any]] = []
     n_series_evaluadas = 0
-    for (codigo_fenomeno, territorio), grupo in series.group_by(
-        ["codigo_fenomeno", "territorio"]
-    ):
+    for (valor_dimension, territorio), grupo in series.group_by([columna_dimension, "territorio"]):
         serie = grupo.sort("indice_periodo")
         serie_n = [float(v) for v in serie["n"].to_list()]
         volumenes = [float(v) for v in serie["volumen_total"].to_list()]
@@ -111,7 +109,7 @@ def procesar_pronosticos(
                 intervalo_95 = intervalos_95[paso]
                 filas.append(
                     {
-                        "codigo_fenomeno": codigo_fenomeno,
+                        columna_dimension: valor_dimension,
                         "territorio": territorio,
                         "periodo_pronosticado": fecha_corte + paso + 1,
                         "metodo": resultado.metodo,
@@ -129,5 +127,43 @@ def procesar_pronosticos(
                     }
                 )
 
+    return filas, n_series_evaluadas
+
+
+def procesar_pronosticos(
+    conexion: duckdb.DuckDBPyConnection,
+    run_id: str,
+    horizonte: int = 3,
+    columna_territorio: str = "cod_dpto_hechos",
+) -> ResumenPronosticos:
+    series = construir_series_fenomeno_territorio(conexion, columna_territorio)
+    if series.height == 0:
+        escribir_tabla_polars(conexion, "oro", "pronosticos", [])
+        return ResumenPronosticos(0, 0)
+
+    filas, n_series_evaluadas = _ajustar_pronosticos_series(
+        series, "codigo_fenomeno", run_id, horizonte
+    )
     escribir_tabla_polars(conexion, "oro", "pronosticos", filas)
+    return ResumenPronosticos(n_series_evaluadas=n_series_evaluadas, n_filas_escritas=len(filas))
+
+
+def procesar_pronosticos_delito(
+    conexion: duckdb.DuckDBPyConnection,
+    run_id: str,
+    horizonte: int = 3,
+    columna_territorio: str = "cod_dpto_hechos",
+) -> ResumenPronosticos:
+    """Igual que `procesar_pronosticos`, pero por `delito_nombre` en vez de `codigo_fenomeno`
+    (escribe `oro.pronosticos_delito`) — para distinguir qué tipo de delito está en tendencia,
+    no solo que el dataset entero es de lavado de activos."""
+    series = construir_series_delito_territorio(conexion, columna_territorio)
+    if series.height == 0:
+        escribir_tabla_polars(conexion, "oro", "pronosticos_delito", [])
+        return ResumenPronosticos(0, 0)
+
+    filas, n_series_evaluadas = _ajustar_pronosticos_series(
+        series, "delito_nombre", run_id, horizonte
+    )
+    escribir_tabla_polars(conexion, "oro", "pronosticos_delito", filas)
     return ResumenPronosticos(n_series_evaluadas=n_series_evaluadas, n_filas_escritas=len(filas))

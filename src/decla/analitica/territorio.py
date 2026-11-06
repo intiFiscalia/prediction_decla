@@ -156,7 +156,122 @@ def predominio_territorial(
             prueba = binomtest(n_top, n_top + n_segundo, p=0.5, alternative="greater")
             fila["p_valor_supera_segundo"] = round(prueba.pvalue, 4)
         filas.append(fila)
-    return pl.DataFrame(filas)
+    return pl.DataFrame(filas).sort("n_total", descending=True) if filas else pl.DataFrame(filas)
+
+
+def predominio_delito_dentro_de_fenomeno(
+    conexion: duckdb.DuckDBPyConnection,
+    codigo_fenomeno: str,
+    columna_territorio: str = "cod_dpto_hechos",
+    tamanio_minimo: int = TAMANIO_MINIMO_PREDOMINIO,
+) -> pl.DataFrame:
+    """Igual que `predominio_territorial`, pero **dentro de un solo fenómeno** y usando el delito
+    tipificado (`delito_nombre`) en vez del fenómeno como variable a predominar. Cuando el
+    fenómeno mismo es demasiado amplio para distinguir modalidades (p. ej. `lavado_de_activos`:
+    ADR 0014), esto responde "¿qué tipo de lavado predomina en este departamento?" en vez de
+    repetir trivialmente el nombre del fenómeno.
+    """
+    base = conexion.sql(
+        f"""
+        SELECT r.{columna_territorio} AS territorio,
+               coalesce(r.delito_nombre, '(no parseable)') AS delito_nombre
+        FROM fenomenos.asignacion_fenomeno a
+        JOIN texto.relato_procesado rp ON a.registro_uid = rp.registro_uid
+        JOIN plata.registros_limpios r ON rp.caso_notica = r.caso_notica
+        WHERE a.codigo_fenomeno = ? AND r.{columna_territorio} IS NOT NULL
+        """,
+        params=[codigo_fenomeno],
+    ).pl()
+    conteo = base.group_by(["territorio", "delito_nombre"]).agg(pl.len().alias("n"))
+
+    filas: list[dict[str, Any]] = []
+    for (territorio,), grupo in conteo.group_by(["territorio"]):
+        grupo = grupo.sort("n", descending=True)
+        n_total = int(grupo["n"].sum())
+        fila: dict[str, Any] = {
+            "territorio": territorio,
+            "n_total": n_total,
+            "cumple_tamanio_minimo": n_total >= tamanio_minimo,
+        }
+        if n_total < tamanio_minimo:
+            filas.append(fila)
+            continue
+
+        top = grupo.row(0, named=True)
+        n_top = int(top["n"])
+        segundo = grupo.row(1, named=True) if grupo.height > 1 else None
+        n_segundo = int(segundo["n"]) if segundo else 0
+
+        fila["delito_predominante"] = top["delito_nombre"]
+        fila["n_predominante"] = n_top
+        fila["pct_predominante"] = round(n_top * 100.0 / n_total, 2)
+        fila["delito_segundo"] = segundo["delito_nombre"] if segundo else None
+        fila["n_segundo"] = n_segundo
+
+        if n_segundo == 0:
+            fila["p_valor_supera_segundo"] = 0.0  # único delito presente: predominio trivial
+        else:
+            prueba = binomtest(n_top, n_top + n_segundo, p=0.5, alternative="greater")
+            fila["p_valor_supera_segundo"] = round(prueba.pvalue, 4)
+        filas.append(fila)
+    return pl.DataFrame(filas).sort("n_total", descending=True) if filas else pl.DataFrame(filas)
+
+
+def predominio_sector_territorial(
+    conexion: duckdb.DuckDBPyConnection,
+    columna_territorio: str = "cod_dpto_hechos",
+    tamanio_minimo: int = TAMANIO_MINIMO_PREDOMINIO,
+) -> pl.DataFrame:
+    """Sector económico predominante por territorio, con la misma prueba de predominio frente al
+    segundo que `predominio_delito_dentro_de_fenomeno`. Usa `texto.menciones` (categoria='sector',
+    polaridad='afirmada', CLAUDE.md §2.3/§6.4 excluye menciones negadas). Responde "¿en qué
+    sector se lava el dinero?" por departamento/municipio, en vez de repetir trivialmente que
+    todo el dataset es lavado de activos (mismo motivo que `predominio_delito_dentro_de_fenomeno`).
+    """
+    base = conexion.sql(
+        f"""
+        SELECT r.{columna_territorio} AS territorio,
+               coalesce(m.valor_normalizado, 'indeterminado') AS sector
+        FROM texto.menciones m
+        JOIN texto.relato_procesado rp ON m.registro_uid = rp.registro_uid
+        JOIN plata.registros_limpios r ON rp.caso_notica = r.caso_notica
+        WHERE m.categoria = 'sector' AND m.polaridad = 'afirmada'
+              AND r.{columna_territorio} IS NOT NULL
+        """
+    ).pl()
+    conteo = base.group_by(["territorio", "sector"]).agg(pl.len().alias("n"))
+
+    filas: list[dict[str, Any]] = []
+    for (territorio,), grupo in conteo.group_by(["territorio"]):
+        grupo = grupo.sort("n", descending=True)
+        n_total = int(grupo["n"].sum())
+        fila: dict[str, Any] = {
+            "territorio": territorio,
+            "n_total": n_total,
+            "cumple_tamanio_minimo": n_total >= tamanio_minimo,
+        }
+        if n_total < tamanio_minimo:
+            filas.append(fila)
+            continue
+
+        top = grupo.row(0, named=True)
+        n_top = int(top["n"])
+        segundo = grupo.row(1, named=True) if grupo.height > 1 else None
+        n_segundo = int(segundo["n"]) if segundo else 0
+
+        fila["sector_predominante"] = top["sector"]
+        fila["n_predominante"] = n_top
+        fila["pct_predominante"] = round(n_top * 100.0 / n_total, 2)
+        fila["sector_segundo"] = segundo["sector"] if segundo else None
+        fila["n_segundo"] = n_segundo
+
+        if n_segundo == 0:
+            fila["p_valor_supera_segundo"] = 0.0  # único sector presente: predominio trivial
+        else:
+            prueba = binomtest(n_top, n_top + n_segundo, p=0.5, alternative="greater")
+            fila["p_valor_supera_segundo"] = round(prueba.pvalue, 4)
+        filas.append(fila)
+    return pl.DataFrame(filas).sort("n_total", descending=True) if filas else pl.DataFrame(filas)
 
 
 def intervalo_confianza_participacion(n_exitos: int, n_total: int) -> tuple[float, float]:
@@ -362,4 +477,6 @@ def dispersion_puntos_por_fenomeno(conexion: duckdb.DuckDBPyConnection) -> pl.Da
                 "dispersion_grados": round(float(distancias.std()), 4),
             }
         )
-    return pl.DataFrame(filas)
+    if not filas:
+        return pl.DataFrame(filas)
+    return pl.DataFrame(filas).sort("n_puntos_validos", descending=True)

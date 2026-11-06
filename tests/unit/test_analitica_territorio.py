@@ -9,6 +9,8 @@ from decla.analitica.territorio import (
     distancia_hellinger,
     matriz_distancia_hellinger,
     matriz_perfil_territorial,
+    predominio_delito_dentro_de_fenomeno,
+    predominio_sector_territorial,
     predominio_territorial,
     resumen_calidad_puntos,
 )
@@ -41,6 +43,9 @@ def _conexion_territorio() -> duckdb.DuckDBPyConnection:
         {
             "caso_notica": f"caso_{i}", "cod_dpto_hechos": "11", "cod_mpio_hechos": "11001",
             "lat_hechos": 4.6 + i * 0.001, "long_hechos": -74.08, "calidad_coord_hechos": "exacta",
+            # Dentro del mismo fenómeno (lavado_de_activos) para casos 4-8: dos delitos distintos,
+            # para probar que predominio_delito_dentro_de_fenomeno los distingue.
+            "delito_nombre": "LAVADO DE ACTIVOS" if i <= 6 else "CONTRABANDO",
         }
         for i in range(4, 10)
     ]
@@ -58,6 +63,16 @@ def _conexion_territorio() -> duckdb.DuckDBPyConnection:
         {"registro_uid": "uid_9", "codigo_fenomeno": "organizacion_criminal"},
     ]
     escribir_tabla_polars(conexion, "fenomenos", "asignacion_fenomeno", asignacion)
+
+    # Sector económico mencionado en el relato, solo para los 6 casos del dpto "11" (>= tamaño
+    # mínimo): 4 "hotelero", 2 "ganado", para que predominio_sector_territorial tenga algo que
+    # distinguir sin depender del fenómeno.
+    menciones_sector = [
+        {"registro_uid": f"uid_{i}", "categoria": "sector", "polaridad": "afirmada",
+         "valor_normalizado": "hotelero" if i <= 7 else "ganado"}
+        for i in range(4, 10)
+    ]
+    escribir_tabla_polars(conexion, "texto", "menciones", menciones_sector)
     return conexion
 
 
@@ -105,6 +120,36 @@ def test_predominio_territorial_respeta_tamanio_minimo() -> None:
     assert fila_11["fenomeno_predominante"] == "lavado_de_activos"
     assert fila_11["n_predominante"] == 5
     assert fila_11["p_valor_supera_segundo"] < 0.5  # 5 contra 1, debería ganar claramente
+    conexion.close()
+
+
+def test_predominio_delito_dentro_de_fenomeno_distingue_dentro_del_mismo_fenomeno() -> None:
+    conexion = _conexion_territorio()
+    df = predominio_delito_dentro_de_fenomeno(conexion, "lavado_de_activos")
+    fila_11 = df.filter(df["territorio"] == "11").row(0, named=True)
+
+    # Dentro de lavado_de_activos en dpto "11": 3 casos LAVADO DE ACTIVOS, 2 CONTRABANDO (el
+    # caso_9, también CONTRABANDO, queda fuera por estar en organizacion_criminal).
+    assert fila_11["n_total"] == 5
+    assert fila_11["cumple_tamanio_minimo"] is True
+    assert fila_11["delito_predominante"] == "LAVADO DE ACTIVOS"
+    assert fila_11["n_predominante"] == 3
+    assert fila_11["delito_segundo"] == "CONTRABANDO"
+    assert fila_11["n_segundo"] == 2
+    conexion.close()
+
+
+def test_predominio_sector_territorial_distingue_sector_dentro_del_territorio() -> None:
+    conexion = _conexion_territorio()
+    df = predominio_sector_territorial(conexion)
+    fila_11 = df.filter(df["territorio"] == "11").row(0, named=True)
+
+    assert fila_11["n_total"] == 6
+    assert fila_11["cumple_tamanio_minimo"] is True
+    assert fila_11["sector_predominante"] == "hotelero"
+    assert fila_11["n_predominante"] == 4
+    assert fila_11["sector_segundo"] == "ganado"
+    assert fila_11["n_segundo"] == 2
     conexion.close()
 
 

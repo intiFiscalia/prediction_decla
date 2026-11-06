@@ -280,6 +280,67 @@ def ind_fenomenos(conexion: duckdb.DuckDBPyConnection) -> pl.DataFrame:
     ).pl()
 
 
+def ind_delito_dentro_de_fenomeno(
+    conexion: duckdb.DuckDBPyConnection, codigo_fenomeno: str
+) -> pl.DataFrame:
+    """Composición por delito tipificado (y artículo) **dentro de un fenómeno específico**.
+
+    Responde "¿qué tipo de lavado es?" cuando el fenómeno en sí (p. ej. `lavado_de_activos`, el
+    clúster más grande y menos diferenciado de la taxonomía v1.0 — ADR 0014: tres métodos de
+    agrupamiento distintos convergieron en el mismo grupo genérico) no distingue modalidades por
+    sí solo. Usa `delito_nombre`/`articulo_cp` (campo estructurado ya extraído y aprobado, no una
+    nueva categoría inventada) como proxy legible de la modalidad.
+    """
+    return conexion.sql(
+        """
+        SELECT
+            coalesce(r.delito_nombre, '(no parseable)') AS delito_nombre, r.articulo_cp,
+            count(*) AS n,
+            round(count(*) * 100.0 / sum(count(*)) OVER (), 2) AS pct
+        FROM fenomenos.asignacion_fenomeno a
+        JOIN texto.relato_procesado rp ON a.registro_uid = rp.registro_uid
+        JOIN plata.registros_limpios r ON rp.caso_notica = r.caso_notica
+        WHERE a.codigo_fenomeno = ?
+        GROUP BY r.delito_nombre, r.articulo_cp
+        ORDER BY n DESC
+        """,
+        params=[codigo_fenomeno],
+    ).pl()
+
+
+def ind_sector_dentro_de_fenomeno(
+    conexion: duckdb.DuckDBPyConnection, codigo_fenomeno: str
+) -> pl.DataFrame:
+    """Sector económico mencionado **dentro de un fenómeno específico** (mismo propósito que
+    `ind_delito_dentro_de_fenomeno`: diferenciar modalidades dentro de un fenómeno demasiado
+    amplio). A diferencia de `ind_sectores` (que agrupa por *origen* del dato: explícito/inferido/
+    indeterminado para no forzar una etiqueta), aquí se muestra el **valor** del sector cuando es
+    explícito o inferido de alta confianza, porque lo que se busca es la modalidad, no el origen.
+    """
+    return conexion.sql(
+        """
+        WITH base AS (
+            SELECT
+                CASE
+                    WHEN m.origen = 'explicito_regla' THEN m.valor_normalizado
+                    WHEN m.origen = 'inferido_modelo' AND m.valor_normalizado IS NOT NULL
+                         AND m.valor_normalizado != 'indeterminado' THEN m.valor_normalizado
+                    ELSE 'indeterminado'
+                END AS sector
+            FROM fenomenos.asignacion_fenomeno a
+            JOIN texto.menciones m ON m.registro_uid = a.registro_uid
+            WHERE a.codigo_fenomeno = ? AND m.categoria = 'sector' AND m.polaridad = 'afirmada'
+        )
+        SELECT sector, count(*) AS n,
+               round(count(*) * 100.0 / sum(count(*)) OVER (), 2) AS pct
+        FROM base
+        GROUP BY sector
+        ORDER BY n DESC
+        """,
+        params=[codigo_fenomeno],
+    ).pl()
+
+
 def ind_sectores(conexion: duckdb.DuckDBPyConnection) -> pl.DataFrame:
     """Sector explícito / inferido de alta confianza / indeterminado, **en columnas separadas**
     (plan_trabajo.md §6.4, §8.1: "no forzar una etiqueta"; CLAUDE.md §2.3). Excluye menciones
@@ -310,3 +371,63 @@ def ind_sectores(conexion: duckdb.DuckDBPyConnection) -> pl.DataFrame:
         ORDER BY n DESC
         """
     ).pl()
+
+
+def ranking_tendencia_delito(conexion: duckdb.DuckDBPyConnection) -> pl.DataFrame:
+    """Ranking de qué combinación delito×territorio se aleja más del pronóstico ingenuo (repetir
+    el último valor observado) en `oro.pronosticos_delito` (`make prediccion`, ADR 2026-11-06).
+
+    Responde "¿qué tipo de delito está en tendencia?" en vez de "¿qué fenómeno está en
+    tendencia?" (que siempre es `lavado_de_activos`, el único alcance del dataset — mismo motivo
+    que `ind_delito_dentro_de_fenomeno`). Solo reporta una serie si algún método con tendencia
+    superó al ingenuo en el backtest (`supera_ingenuo`): sin eso, no hay evidencia de tendencia
+    real distinta del ruido, y no se reporta nada (CLAUDE.md, "no inventes cifras").
+    """
+    try:
+        pronosticos = conexion.sql("SELECT * FROM oro.pronosticos_delito").pl()
+    except duckdb.CatalogException:
+        return pl.DataFrame()  # `make prediccion` todavía no corrió.
+    if pronosticos.height == 0:
+        return pl.DataFrame()
+
+    ultimo_horizonte = pronosticos.group_by(["delito_nombre", "territorio"]).agg(
+        pl.col("periodo_pronosticado").max().alias("periodo_pronosticado")
+    )
+    en_ultimo_horizonte = pronosticos.join(
+        ultimo_horizonte, on=["delito_nombre", "territorio", "periodo_pronosticado"]
+    )
+
+    base_ingenuo = en_ultimo_horizonte.filter(pl.col("metodo") == "ingenuo").select(
+        "delito_nombre", "territorio", pl.col("valor_punto").alias("valor_ingenuo")
+    )
+    con_tendencia = en_ultimo_horizonte.filter(
+        (pl.col("metodo") != "ingenuo") & pl.col("supera_ingenuo").fill_null(False)
+    )
+    if con_tendencia.height == 0:
+        return pl.DataFrame()
+
+    combinado = con_tendencia.join(base_ingenuo, on=["delito_nombre", "territorio"], how="inner")
+    combinado = combinado.with_columns(
+        (
+            (pl.col("valor_punto") - pl.col("valor_ingenuo"))
+            * 100
+            / pl.when(pl.col("valor_ingenuo") > 0).then(pl.col("valor_ingenuo")).otherwise(1.0)
+        )
+        .round(2)
+        .alias("variacion_pct_vs_ingenuo")
+    )
+    # Si más de un método superó el ingenuo para la misma serie, prioriza el de menor error de
+    # backtest (MASE) en vez de promediar métodos con calidad distinta.
+    combinado = combinado.sort("mase_backtest").unique(
+        subset=["delito_nombre", "territorio"], keep="first"
+    )
+    return combinado.select(
+        "delito_nombre",
+        "territorio",
+        "metodo",
+        "valor_punto",
+        "valor_ingenuo",
+        "variacion_pct_vs_ingenuo",
+        "mase_backtest",
+        "wape_backtest",
+    ).sort("variacion_pct_vs_ingenuo", descending=True)

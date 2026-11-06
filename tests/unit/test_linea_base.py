@@ -2,14 +2,19 @@ import duckdb
 import polars as pl
 
 from decla.comun.duckdb_io import escribir_tabla_polars
-from decla.emergencia.linea_base import ajustar_linea_base, construir_series_fenomeno_territorio
+from decla.emergencia.linea_base import (
+    ajustar_linea_base,
+    construir_series_delito_territorio,
+    construir_series_fenomeno_territorio,
+)
 
 
 def _conexion_serie() -> duckdb.DuckDBPyConnection:
     conexion = duckdb.connect(":memory:")
     relatos, registros, asignacion = [], [], []
     # 6 periodos (2026-01 a 2026-06), un territorio, con 2 relatos/mes del fenómeno "x" y 10 del
-    # "y" (volumen total del territorio = 12/mes).
+    # "y" (volumen total del territorio = 12/mes). Delito distinto por fenómeno para que
+    # construir_series_delito_territorio tenga algo que distinguir.
     for mes in range(1, 7):
         for i in range(2):
             uid = f"uid_x_{mes}_{i}"
@@ -19,6 +24,7 @@ def _conexion_serie() -> duckdb.DuckDBPyConnection:
                 {
                     "caso_notica": caso, "cod_dpto_hechos": "11",
                     "anio_iso_creacion": 2026, "mes_creacion": mes, "fecha_creacion_valida": True,
+                    "delito_nombre": "ENRIQUECIMIENTO ILICITO",
                 }
             )
             asignacion.append({"registro_uid": uid, "codigo_fenomeno": "x"})
@@ -30,6 +36,7 @@ def _conexion_serie() -> duckdb.DuckDBPyConnection:
                 {
                     "caso_notica": caso, "cod_dpto_hechos": "11",
                     "anio_iso_creacion": 2026, "mes_creacion": mes, "fecha_creacion_valida": True,
+                    "delito_nombre": "LAVADO DE ACTIVOS",
                 }
             )
             asignacion.append({"registro_uid": uid, "codigo_fenomeno": "y"})
@@ -60,6 +67,31 @@ def test_construir_series_rellena_con_cero_si_falta_el_fenomeno_en_un_periodo() 
     serie_x = series.filter(pl.col("codigo_fenomeno") == "x").sort("indice_periodo")
     assert serie_x.height == 6
     assert serie_x["n"].to_list()[0] == 0  # enero quedó en 0, no se omitió la fila
+    conexion.close()
+
+
+def test_construir_series_delito_incluye_periodos_con_cero() -> None:
+    conexion = _conexion_serie()
+    series = construir_series_delito_territorio(conexion)
+    serie_enriquecimiento = series.filter(pl.col("delito_nombre") == "ENRIQUECIMIENTO ILICITO")
+    assert serie_enriquecimiento.height == 6
+    assert serie_enriquecimiento["n"].to_list() == [2] * 6
+    assert serie_enriquecimiento["volumen_total"].to_list() == [12] * 6
+    conexion.close()
+
+
+def test_construir_series_delito_rellena_con_cero_si_falta_en_un_periodo() -> None:
+    conexion = _conexion_serie()
+    conexion.execute(
+        "UPDATE plata.registros_limpios SET delito_nombre = 'LAVADO DE ACTIVOS' "
+        "WHERE caso_notica LIKE 'caso_x_1_%'"
+    )
+    series = construir_series_delito_territorio(conexion)
+    serie_enriquecimiento = series.filter(
+        pl.col("delito_nombre") == "ENRIQUECIMIENTO ILICITO"
+    ).sort("indice_periodo")
+    assert serie_enriquecimiento.height == 6
+    assert serie_enriquecimiento["n"].to_list()[0] == 0
     conexion.close()
 
 

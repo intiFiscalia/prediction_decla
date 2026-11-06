@@ -19,6 +19,22 @@ import numpy as np
 import polars as pl
 
 
+def _completar_grilla(
+    volumen: pl.DataFrame,
+    conteo: pl.DataFrame,
+    columna_dimension: str,
+    valores_dimension: list[str],
+) -> pl.DataFrame:
+    """Cruza cada valor de la dimensión (fenómeno o delito) con cada (territorio, periodo) con
+    volumen, para que la serie tenga ceros explícitos donde no hubo conteo."""
+    completa = volumen.join(pl.DataFrame({columna_dimension: valores_dimension}), how="cross")
+    return (
+        completa.join(conteo, on=[columna_dimension, "territorio", "indice_periodo"], how="left")
+        .with_columns(pl.col("n").fill_null(0))
+        .sort([columna_dimension, "territorio", "indice_periodo"])
+    )
+
+
 def construir_series_fenomeno_territorio(
     conexion: duckdb.DuckDBPyConnection, columna_territorio: str = "cod_dpto_hechos"
 ) -> pl.DataFrame:
@@ -57,12 +73,53 @@ def construir_series_fenomeno_territorio(
         """
     ).pl()
 
-    completa = volumen.join(pl.DataFrame({"codigo_fenomeno": fenomenos}), how="cross")
-    return (
-        completa.join(conteo, on=["codigo_fenomeno", "territorio", "indice_periodo"], how="left")
-        .with_columns(pl.col("n").fill_null(0))
-        .sort(["codigo_fenomeno", "territorio", "indice_periodo"])
-    )
+    return _completar_grilla(volumen, conteo, "codigo_fenomeno", fenomenos)
+
+
+def construir_series_delito_territorio(
+    conexion: duckdb.DuckDBPyConnection, columna_territorio: str = "cod_dpto_hechos"
+) -> pl.DataFrame:
+    """Una fila por (delito_nombre, territorio, indice_periodo), igual que
+    `construir_series_fenomeno_territorio` pero por delito tipificado
+    (`plata.registros_limpios.delito_nombre`) en vez de fenómeno semántico.
+
+    El clustering de fenómenos convergió en un solo grupo indiferenciado para la mayoría de
+    relatos (ADR 0014): la tendencia por `codigo_fenomeno` casi siempre muestra
+    `lavado_de_activos` porque ese es el alcance completo del dataset, no un hallazgo. El delito
+    tipificado ya viene extraído en plata y distingue el tipo de lavado sin reabrir el
+    clustering.
+    """
+    delitos = conexion.sql(
+        "SELECT DISTINCT delito_nombre FROM plata.registros_limpios WHERE delito_nombre IS NOT NULL"
+    ).pl()["delito_nombre"].to_list()
+    if not delitos:
+        return pl.DataFrame()
+
+    volumen = conexion.sql(
+        f"""
+        SELECT {columna_territorio} AS territorio,
+               anio_iso_creacion * 12 + mes_creacion AS indice_periodo,
+               count(*) AS volumen_total
+        FROM plata.registros_limpios
+        WHERE {columna_territorio} IS NOT NULL AND fecha_creacion_valida
+        GROUP BY {columna_territorio}, anio_iso_creacion, mes_creacion
+        """
+    ).pl()
+    if volumen.height == 0:
+        return pl.DataFrame()
+
+    conteo = conexion.sql(
+        f"""
+        SELECT delito_nombre, {columna_territorio} AS territorio,
+               anio_iso_creacion * 12 + mes_creacion AS indice_periodo, count(*) AS n
+        FROM plata.registros_limpios
+        WHERE {columna_territorio} IS NOT NULL AND fecha_creacion_valida
+              AND delito_nombre IS NOT NULL
+        GROUP BY delito_nombre, {columna_territorio}, anio_iso_creacion, mes_creacion
+        """
+    ).pl()
+
+    return _completar_grilla(volumen, conteo, "delito_nombre", delitos)
 
 
 UMBRAL_SOBREDISPERSION = 1.5
