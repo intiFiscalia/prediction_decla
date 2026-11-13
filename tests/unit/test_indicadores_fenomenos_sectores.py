@@ -3,6 +3,8 @@ import duckdb
 from decla.analitica.indicadores import (
     ind_delito_dentro_de_fenomeno,
     ind_fenomenos,
+    ind_mecanismo,
+    ind_mecanismo_dentro_de_fenomeno,
     ind_sector_dentro_de_fenomeno,
     ind_sectores,
     ranking_tendencia_delito,
@@ -218,6 +220,57 @@ def test_ind_sector_dentro_de_fenomeno_usa_valor_no_origen() -> None:
     df = ind_sector_dentro_de_fenomeno(conexion, "lavado_de_activos")
     por_sector = dict(zip(df["sector"].to_list(), df["n"].to_list(), strict=True))
     assert por_sector == {"financiero": 1, "indeterminado": 1}
+    conexion.close()
+
+
+def _conexion_con_mecanismo() -> duckdb.DuckDBPyConnection:
+    conexion = duckdb.connect(":memory:")
+    escribir_tabla_polars(
+        conexion,
+        "fenomenos",
+        "asignacion_fenomeno",
+        [
+            {"registro_uid": "uid_1", "codigo_fenomeno": "lavado_de_activos"},
+            {"registro_uid": "uid_2", "codigo_fenomeno": "lavado_de_activos"},
+            {"registro_uid": "uid_3", "codigo_fenomeno": "organizacion_criminal"},
+        ],
+    )
+    escribir_tabla_polars(
+        conexion,
+        "texto",
+        "menciones",
+        [
+            {
+                "registro_uid": "uid_1", "categoria": "mecanismo", "polaridad": "afirmada",
+                "valor_normalizado": "compra_ganado",
+            },
+            {
+                "registro_uid": "uid_2", "categoria": "mecanismo", "polaridad": "afirmada",
+                "valor_normalizado": None,
+            },
+            # Mismo mecanismo, pero en otro fenómeno: no debe contarse en la versión "dentro de".
+            {
+                "registro_uid": "uid_3", "categoria": "mecanismo", "polaridad": "afirmada",
+                "valor_normalizado": "compra_ganado",
+            },
+        ],
+    )
+    return conexion
+
+
+def test_ind_mecanismo_incluye_no_clasificado() -> None:
+    conexion = _conexion_con_mecanismo()
+    df = ind_mecanismo(conexion)
+    por_mecanismo = dict(zip(df["mecanismo"].to_list(), df["n"].to_list(), strict=True))
+    assert por_mecanismo == {"compra_ganado": 2, "no_clasificado": 1}
+    conexion.close()
+
+
+def test_ind_mecanismo_dentro_de_fenomeno_filtra_por_fenomeno() -> None:
+    conexion = _conexion_con_mecanismo()
+    df = ind_mecanismo_dentro_de_fenomeno(conexion, "lavado_de_activos")
+    por_mecanismo = dict(zip(df["mecanismo"].to_list(), df["n"].to_list(), strict=True))
+    assert por_mecanismo == {"compra_ganado": 1, "no_clasificado": 1}
     conexion.close()
 
 

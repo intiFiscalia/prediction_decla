@@ -1,4 +1,4 @@
-.PHONY: instalar test lint fixtures diagnostico etl analitica-descriptiva nlp conocimiento fenomenos analitica emergencia prediccion app informe evaluar lote
+.PHONY: instalar test lint fixtures diagnostico columnas-usadas etl analitica-descriptiva nlp conocimiento diagnostico-umbral anotar-menciones calibrar-umbral fenomenos analitica emergencia prediccion app informe evaluar lote
 
 # Instala dependencias solo desde wheelhouse/ (sin red), con todos los extras del proyecto.
 instalar:
@@ -20,6 +20,11 @@ fixtures:
 diagnostico:
 	uv run python -m decla.calidad.diagnostico
 
+# Exporta CASOS/RELATOS originales con solo las columnas que el pipeline usa (lectura más fácil
+# para la persona; nunca lo corre ni lo lee Claude Code). Escribe en data/private/columnas_usadas/.
+columnas-usadas:
+	uv run python scripts/exportar_columnas_usadas.py
+
 # I1 — Fase 3: pipeline bronce→plata→entidades sobre datos reales.
 etl:
 	uv run python -m decla.ingesta.pipeline
@@ -36,6 +41,26 @@ nlp:
 # I2 — Fase 5: extracción de menciones con evidencia y confianza.
 conocimiento:
 	uv run python -m decla.conocimiento.pipeline
+
+# Diagnóstico de la distribución real de confianza del clasificador zero-shot (sector/mecanismo),
+# para recalibrar config/umbrales.yaml con evidencia del corpus real. Corre después de
+# `conocimiento`. Escribe reports/agregados/diagnostico/umbral_zero_shot_*.csv.
+diagnostico-umbral:
+	uv run python -m decla.conocimiento.diagnostico_umbral
+
+# Muestra estratificada y activa (confianza más incierta primero) de menciones de texto.menciones
+# para que un analista confirme/rechace/corrija. Calificaciones en data/private/ (nunca las lee
+# Claude Code). Por defecto el cupo se reparte entre sector y mecanismo.
+anotar-menciones:
+	uv run streamlit run src/decla/conocimiento/app_anotacion_menciones.py
+
+# Une las calificaciones humanas de `anotar-menciones` con la confianza real de texto.menciones:
+# precisión aproximada por umbral candidato (precision_por_umbral.csv) y códigos de mecanismo
+# nuevo propuestos en "valor correcto" que la taxonomía todavía no cubre
+# (candidatos_mecanismo_nuevo.csv). Solo agregados con supresión < 5. Corre después de
+# anotar-menciones.
+calibrar-umbral:
+	uv run python scripts/calibrar_umbral_desde_anotacion.py
 
 # I2 — Fase 6: descubrimiento y clasificación de fenómenos. Necesita el lote_id que imprimió
 # `make nlp` (sus embeddings de segmento están en data/embeddings/<lote_id>/): make fenomenos

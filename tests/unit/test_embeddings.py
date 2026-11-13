@@ -6,6 +6,7 @@ from decla.texto.embeddings import (
     MAXIMO,
     MEDIA,
     calcular_embeddings_relato,
+    calcular_vectores_fragmentos,
     cargar_modelo_embeddings,
     escribir_embeddings_parquet,
     fragmentar_por_limite,
@@ -45,6 +46,24 @@ def test_calcular_embeddings_relato_devuelve_media_y_maximo() -> None:
 def test_calcular_embeddings_relato_texto_vacio_devuelve_lista_vacia() -> None:
     assert calcular_embeddings_relato("u1", None, MODELO_RAPIDO) == []
     assert calcular_embeddings_relato("u1", "   ", MODELO_RAPIDO) == []
+
+
+def test_calcular_vectores_fragmentos_texto_vacio_devuelve_lista_vacia() -> None:
+    assert calcular_vectores_fragmentos(None, MODELO_RAPIDO) == []
+    assert calcular_vectores_fragmentos("   ", MODELO_RAPIDO) == []
+
+
+def test_calcular_vectores_fragmentos_un_fragmento_por_texto_corto() -> None:
+    fragmentos = calcular_vectores_fragmentos("El vehículo transportaba mercancía.", MODELO_RAPIDO)
+    assert len(fragmentos) == 1
+    assert fragmentos[0].texto == "El vehículo transportaba mercancía."
+    assert len(fragmentos[0].vector) == 768
+
+
+def test_calcular_vectores_fragmentos_varios_fragmentos_por_texto_largo() -> None:
+    texto_largo = " ".join(["El sujeto investigado realizó una transacción sospechosa."] * 60)
+    fragmentos = calcular_vectores_fragmentos(texto_largo, MODELO_RAPIDO)
+    assert len(fragmentos) > 1
 
 
 def test_escribir_embeddings_parquet(tmp_path: Path) -> None:

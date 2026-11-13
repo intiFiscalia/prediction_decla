@@ -27,7 +27,9 @@ from decla.analitica import asociaciones as aso
 from decla.analitica import indicadores as ind
 from decla.analitica import territorio as terr
 from decla.app.legibilidad import (
+    MECANISMOS,
     agregar_nombres_fenomeno,
+    agregar_nombres_mecanismo,
     agregar_nombres_territorio,
     decodificar_indice_periodo,
     divipola,
@@ -101,6 +103,21 @@ def pagina_indicadores() -> None:
         use_container_width=True,
     )
 
+    st.subheader("Mecanismo (modus operandi detectado)")
+    st.caption(
+        "Qué técnica se usó para dar apariencia de legalidad a los recursos (compra de ganado, "
+        "minería ilegal de oro, empresas fachada, testaferros, criptoactivos, etc.), detectada "
+        "por similitud de texto contra 12 definiciones semilla. Responde directamente 'qué tipo "
+        "de lavado' en vez de repetir el fenómeno amplio."
+    )
+    mecanismo_df = ind.ind_mecanismo(conexion)
+    mostrar(mecanismo_df)
+    mecanismo_legible = agregar_nombres_mecanismo(mecanismo_df.to_pandas())
+    st.plotly_chart(
+        grafico_barras(mecanismo_legible, "mecanismo", "n", "Noticias por mecanismo detectado"),
+        use_container_width=True,
+    )
+
     st.subheader("Sectores económicos mencionados")
     sectores_df = ind.ind_sectores(conexion)
     mostrar(sectores_df)
@@ -162,6 +179,7 @@ def pagina_fenomenos() -> None:
         with st.expander(titulo):
             delito_df = ind.ind_delito_dentro_de_fenomeno(conexion, fenomeno["codigo"])
             sector_df = ind.ind_sector_dentro_de_fenomeno(conexion, fenomeno["codigo"])
+            mecanismo_df = ind.ind_mecanismo_dentro_de_fenomeno(conexion, fenomeno["codigo"])
             terminos = ", ".join(fenomeno.get("terminos_dominantes", []))
             definicion = fenomeno.get("definicion", "")
 
@@ -176,6 +194,15 @@ def pagina_fenomenos() -> None:
                 patrones.append(
                     f"delito tipificado más frecuente: **{top_delito['delito_nombre']}** "
                     f"(n={top_delito['n']})"
+                )
+            mecanismo_df_valido = mecanismo_df.filter(pl.col("mecanismo") != "no_clasificado")
+            if mecanismo_df_valido.height:
+                top_mecanismo = mecanismo_df_valido.row(0, named=True)
+                nombre_mecanismo = MECANISMOS.get(
+                    top_mecanismo["mecanismo"], top_mecanismo["mecanismo"]
+                )
+                patrones.append(
+                    f"mecanismo más detectado: **{nombre_mecanismo}** (n={top_mecanismo['n']})"
                 )
             sector_df_valido = sector_df.filter(pl.col("sector") != "indeterminado")
             if sector_df_valido.height:
@@ -197,12 +224,15 @@ def pagina_fenomenos() -> None:
                 )
             st.write(f"**Dominancia de plantilla:** {fenomeno.get('dominancia_plantilla')}")
 
-            st.write("**¿Qué tipo, dentro de este fenómeno?** (delito tipificado y sector)")
-            st.caption(
-                "El fenómeno es una modalidad amplia; el delito y el sector ya extraídos del "
-                "expediente distinguen el tipo específico dentro de ella."
+            st.write(
+                "**¿Qué tipo, dentro de este fenómeno?** (delito, mecanismo y sector)"
             )
-            columna_delito, columna_sector = st.columns(2)
+            st.caption(
+                "El fenómeno es una modalidad amplia; el delito, el mecanismo (modus operandi) "
+                "y el sector ya extraídos del expediente distinguen el tipo específico dentro "
+                "de ella."
+            )
+            columna_delito, columna_mecanismo, columna_sector = st.columns(3)
             with columna_delito:
                 mostrar(delito_df)
                 if delito_df.height:
@@ -210,6 +240,15 @@ def pagina_fenomenos() -> None:
                         grafico_barras(delito_df.to_pandas(), "delito_nombre", "n"),
                         use_container_width=True,
                         key=f"grafico_delito_{fenomeno['codigo']}",
+                    )
+            with columna_mecanismo:
+                mecanismo_legible_fenomeno = agregar_nombres_mecanismo(mecanismo_df.to_pandas())
+                mostrar(mecanismo_df)
+                if mecanismo_df.height:
+                    st.plotly_chart(
+                        grafico_barras(mecanismo_legible_fenomeno, "mecanismo", "n"),
+                        use_container_width=True,
+                        key=f"grafico_mecanismo_{fenomeno['codigo']}",
                     )
             with columna_sector:
                 mostrar(sector_df)

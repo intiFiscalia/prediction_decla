@@ -2,9 +2,15 @@
 
 Aplica, sobre `texto.relato_procesado`: reglas de 2A (patrones_regex) → NER institución/lugar
 (2A, pipeline_spacy) → negación (2A) → sector CIIU (explícito→inferido→indeterminado) →
-mecanismo (zero-shot, sin cobertura de diccionario explícito todavía — ver docstring de
-`decla.conocimiento.zero_shot`), y escribe `texto.menciones`. El sector y el mecanismo se asignan
-siempre al relato (`registro_uid`), nunca a una persona u organización.
+mecanismo (explícito→zero-shot→no_clasificado, mismo patrón que sector desde 2026-11-06), y
+escribe `texto.menciones`. El sector y el mecanismo se asignan siempre al relato
+(`registro_uid`), nunca a una persona u organización.
+
+El diccionario explícito de mecanismo (`config/diccionarios/mecanismos_expresiones.yaml`) nunca
+sustituye al modelo como vía de descubrimiento: solo acelera y hace exacta la coincidencia de lo
+que el diccionario ya anticipa; todo lo que no coincide sigue dependiendo del modelo zero-shot,
+que puede seguir señalando mecanismos nuevos no listados (como candidato de baja confianza a
+revisar), nunca "quemados" a la lista de 12 códigos semilla.
 """
 
 from __future__ import annotations
@@ -25,6 +31,7 @@ from decla.conocimiento.menciones import (
     coincidencias_a_menciones,
 )
 from decla.conocimiento.sectores import (
+    SECTOR_INDETERMINADO,
     ClasificacionSector,
     calcular_vectores_ciiu,
     cargar_ciiu,
@@ -37,8 +44,10 @@ from decla.conocimiento.zero_shot import (
     NO_CLASIFICADO,
     ClasificacionZeroShot,
     calcular_vectores_vocabulario,
+    cargar_expresiones_mecanismo,
     cargar_vocabulario,
     clasificar_fragmento,
+    clasificar_mecanismo_explicito,
 )
 from decla.texto.negacion import AFIRMADA, clasificar_polaridad
 from decla.texto.patrones_regex import extraer_todas
@@ -53,6 +62,8 @@ EXTRACTOR_NER = "pipeline_spacy"
 VERSION_EXTRACTOR_NER = "1"
 EXTRACTOR_ZERO_SHOT = "zero_shot_embeddings"
 VERSION_EXTRACTOR_ZERO_SHOT = "1"
+EXTRACTOR_DICCIONARIO_MECANISMO = "diccionario_mecanismo"
+VERSION_EXTRACTOR_DICCIONARIO_MECANISMO = "1"
 
 ETIQUETAS_NER_A_CATEGORIA = {"INSTITUCION": "institucion", "LOC": "lugar"}
 
@@ -66,6 +77,9 @@ class ResumenConocimiento:
     n_sector_inferido: int
     n_sector_indeterminado: int
     n_sector_sin_texto: int
+    n_mecanismo_explicito: int
+    n_mecanismo_inferido: int
+    n_mecanismo_indeterminado: int
 
 
 def _menciones_desde_patrones(
@@ -171,6 +185,7 @@ def _mencion_mecanismo(
     registro_uid: str,
     run_id: str,
     segmento: str,
+    expresiones_mecanismo: list[dict[str, str]],
     vectores_vocabulario: dict[str, list[float]],
     nombre_modelo: str,
     confianza_minima: float,
@@ -179,6 +194,33 @@ def _mencion_mecanismo(
     if not texto or not texto.strip():
         return None
 
+    explicito = clasificar_mecanismo_explicito(texto, expresiones_mecanismo)
+    if explicito is not None:
+        inicio, fin = 0, len(texto)
+        return Mencion(
+            mencion_id=calcular_mencion_id(
+                registro_uid, "mecanismo", None, inicio, fin, EXTRACTOR_DICCIONARIO_MECANISMO
+            ),
+            registro_uid=registro_uid,
+            run_id=run_id,
+            categoria="mecanismo",
+            subcategoria=None,
+            valor_normalizado=explicito.codigo,
+            texto_evidencia=explicito.texto_evidencia,
+            inicio=inicio,
+            fin=fin,
+            segmento=segmento,
+            origen=ORIGEN_EXPLICITO_REGLA,
+            polaridad=AFIRMADA,
+            confianza=1.0,
+            extractor=EXTRACTOR_DICCIONARIO_MECANISMO,
+            version_extractor=VERSION_EXTRACTOR_DICCIONARIO_MECANISMO,
+        )
+
+    # Nada en el diccionario explícito coincidió: se deja la puerta abierta al modelo, nunca se
+    # fuerza "no_clasificado" solo porque el diccionario no lo anticipó (el modelo puede seguir
+    # señalando un mecanismo de los 12 semilla, o quedar como candidato de baja confianza a
+    # revisar si de verdad es un mecanismo nuevo).
     resultado: ClasificacionZeroShot = clasificar_fragmento(
         texto, vectores_vocabulario, nombre_modelo, confianza_minima, margen_minimo_top2
     )
@@ -196,7 +238,7 @@ def _mencion_mecanismo(
         categoria="mecanismo",
         subcategoria=None,
         valor_normalizado=valor,
-        texto_evidencia=texto[:200],
+        texto_evidencia=resultado.texto_evidencia or texto[:200],
         inicio=inicio,
         fin=fin,
         segmento=segmento,
@@ -222,6 +264,7 @@ def procesar_conocimiento(
 
     jerarquia = cargar_jerarquia_division_seccion()
     expresiones = cargar_expresiones()
+    expresiones_mecanismo = cargar_expresiones_mecanismo()
     vectores_ciiu = calcular_vectores_ciiu(cargar_ciiu(), nombre_modelo)
     vectores_mecanismo = calcular_vectores_vocabulario(
         cargar_vocabulario("mecanismo"), nombre_modelo
@@ -232,6 +275,7 @@ def procesar_conocimiento(
 
     todas_las_menciones: list[Mencion] = []
     n_sector_explicito = n_sector_inferido = n_sector_indeterminado = n_sector_sin_texto = 0
+    n_mecanismo_explicito = n_mecanismo_inferido = n_mecanismo_indeterminado = 0
 
     for fila in filas:
         texto_completo = fila.get("relato_enmascarado") or ""
@@ -266,7 +310,7 @@ def procesar_conocimiento(
             todas_las_menciones.append(mencion_sector)
             if mencion_sector.origen == ORIGEN_EXPLICITO_REGLA:
                 n_sector_explicito += 1
-            elif mencion_sector.valor_normalizado is None:
+            elif mencion_sector.valor_normalizado == SECTOR_INDETERMINADO:
                 n_sector_indeterminado += 1
             else:
                 n_sector_inferido += 1
@@ -276,6 +320,7 @@ def procesar_conocimiento(
             registro_uid,
             run_id,
             "descripcion_hecho",
+            expresiones_mecanismo,
             vectores_mecanismo,
             nombre_modelo,
             umbrales_mecanismo["confianza_minima"],
@@ -283,6 +328,12 @@ def procesar_conocimiento(
         )
         if mencion_mecanismo is not None:
             todas_las_menciones.append(mencion_mecanismo)
+            if mencion_mecanismo.origen == ORIGEN_EXPLICITO_REGLA:
+                n_mecanismo_explicito += 1
+            elif mencion_mecanismo.valor_normalizado is None:
+                n_mecanismo_indeterminado += 1
+            else:
+                n_mecanismo_inferido += 1
 
     filas_menciones = [
         {
@@ -321,4 +372,7 @@ def procesar_conocimiento(
         n_sector_inferido=n_sector_inferido,
         n_sector_indeterminado=n_sector_indeterminado,
         n_sector_sin_texto=n_sector_sin_texto,
+        n_mecanismo_explicito=n_mecanismo_explicito,
+        n_mecanismo_inferido=n_mecanismo_inferido,
+        n_mecanismo_indeterminado=n_mecanismo_indeterminado,
     )

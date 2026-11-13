@@ -24,7 +24,7 @@ from decla.calidad.territorio import EntradaDivipola
 from decla.comun.configuracion import cargar_yaml
 from decla.comun.duckdb_io import escribir_tabla_polars
 from decla.ingesta.esquema import cargar_contrato
-from decla.normalizacion.alcance import filtrar_por_alcance
+from decla.normalizacion.alcance import filtrar_por_alcance, filtrar_por_ruptura
 from decla.normalizacion.categoricas import normalizar_fila_categoricas
 from decla.normalizacion.coordenadas import cargar_geometrias_municipios, clasificar_coordenada
 from decla.normalizacion.delito import construir_dim_delito, normalizar_delito
@@ -93,6 +93,7 @@ class ResumenPlata:
     n_entrada: int
     n_cuarentena: int
     n_fuera_alcance: int
+    n_con_ruptura: int
     n_registros_limpios: int
     valores_excluidos_alcance: dict[str, int]
 
@@ -122,6 +123,7 @@ def procesar_plata(
     filas_en_alcance, resumen_alcance = filtrar_por_alcance(
         filas_validas, alcance_cfg["columna"], set(alcance_cfg["valores_incluidos"])
     )
+    filas_en_alcance, resumen_ruptura = filtrar_por_ruptura(filas_en_alcance)
 
     reglas_fechas = cargar_yaml(RUTA_REGLAS_FECHAS)
     valores_invalidos_conocidos = set(reglas_fechas.get("valores_invalidos_conocidos", []))
@@ -279,7 +281,7 @@ def procesar_plata(
     escribir_tabla_polars(conexion, "plata", "dim_tiempo", dim_tiempo, modo="reemplazar")
     escribir_tabla_polars(conexion, "plata", "dim_despacho", dim_despacho, modo="reemplazar")
     _escribir_reporte_calidad(
-        conexion, lote_id, run_id, resultado_validacion, resumen_alcance,
+        conexion, lote_id, run_id, resultado_validacion, resumen_alcance, resumen_ruptura,
         columnas_fecha_normalizadas, filas_limpias,
     )
 
@@ -287,6 +289,7 @@ def procesar_plata(
         n_entrada=n_entrada,
         n_cuarentena=resultado_validacion.n_cuarentena,
         n_fuera_alcance=resumen_alcance.n_fuera_alcance,
+        n_con_ruptura=resumen_ruptura.n_con_ruptura,
         n_registros_limpios=len(filas_limpias),
         valores_excluidos_alcance=resumen_alcance.valores_excluidos,
     )
@@ -352,6 +355,7 @@ def _escribir_reporte_calidad(
     run_id: str,
     resultado_validacion: Any,
     resumen_alcance: Any,
+    resumen_ruptura: Any,
     columnas_fecha_normalizadas: dict[str, Any],
     filas_limpias: list[dict[str, Any]],
 ) -> None:
@@ -367,6 +371,7 @@ def _escribir_reporte_calidad(
     filas_reporte: list[dict[str, str]] = [
         _fila("conciliacion", "n_cuarentena", resultado_validacion.n_cuarentena),
         _fila("conciliacion", "n_fuera_alcance", resumen_alcance.n_fuera_alcance),
+        _fila("conciliacion", "n_con_ruptura", resumen_ruptura.n_con_ruptura),
         _fila("conciliacion", "n_registros_limpios", len(filas_limpias)),
     ]
     for valor_excluido, conteo in resumen_alcance.valores_excluidos.items():

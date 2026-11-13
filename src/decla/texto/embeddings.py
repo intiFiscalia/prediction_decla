@@ -13,6 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
 import polars as pl
 from sentence_transformers import SentenceTransformer
 
@@ -75,9 +76,18 @@ class EmbeddingRelato:
     vector: list[float]
 
 
-def calcular_embeddings_relato(
-    registro_uid: str, texto: str | None, nombre_modelo: str
-) -> list[EmbeddingRelato]:
+@dataclass(frozen=True)
+class FragmentoEmbedding:
+    texto: str
+    vector: list[float]
+
+
+def calcular_vectores_fragmentos(texto: str | None, nombre_modelo: str) -> list[FragmentoEmbedding]:
+    """Embedding de cada fragmento (grupo de oraciones que respeta `max_seq_length`) por
+    separado, sin agregar — usado para construir MEDIA y MÁXIMO (abajo), donde agrupar oraciones
+    hasta el límite de tokens es una optimización razonable de eficiencia para un embedding de
+    documento completo.
+    """
     if not texto or not texto.strip():
         return []
 
@@ -85,7 +95,36 @@ def calcular_embeddings_relato(
     fragmentos = fragmentar_por_limite(texto, modelo)
     prefijo = PREFIJO_PASAJE_POR_MODELO.get(nombre_modelo, "")
     vectores = modelo.encode([prefijo + f for f in fragmentos], convert_to_numpy=True)
+    return [FragmentoEmbedding(f, v.tolist()) for f, v in zip(fragmentos, vectores, strict=True)]
 
+
+def calcular_vectores_oraciones(texto: str | None, nombre_modelo: str) -> list[FragmentoEmbedding]:
+    """Embedding de cada ORACIÓN por separado (sin agrupar varias en un fragmento, a diferencia
+    de `calcular_vectores_fragmentos`). Para comparar contra un vocabulario de categorías
+    (decla.conocimiento.zero_shot, decla.conocimiento.sectores) agrupar oraciones diluye una
+    mención puntual (p. ej. una sola oración que describe un mecanismo específico) con la oración
+    vecina de trámite genérico — agrupar por `max_seq_length` no evita esa dilución, solo la
+    hace menos predecible. El modelo trunca internamente oraciones más largas que su límite de
+    tokens (comportamiento normal de `SentenceTransformer.encode`).
+    """
+    if not texto or not texto.strip():
+        return []
+
+    modelo = cargar_modelo_embeddings(nombre_modelo)
+    oraciones = _oraciones(texto)
+    prefijo = PREFIJO_PASAJE_POR_MODELO.get(nombre_modelo, "")
+    vectores = modelo.encode([prefijo + o for o in oraciones], convert_to_numpy=True)
+    return [FragmentoEmbedding(o, v.tolist()) for o, v in zip(oraciones, vectores, strict=True)]
+
+
+def calcular_embeddings_relato(
+    registro_uid: str, texto: str | None, nombre_modelo: str
+) -> list[EmbeddingRelato]:
+    fragmentos = calcular_vectores_fragmentos(texto, nombre_modelo)
+    if not fragmentos:
+        return []
+
+    vectores = np.array([f.vector for f in fragmentos])
     return [
         EmbeddingRelato(registro_uid, nombre_modelo, MEDIA, vectores.mean(axis=0).tolist()),
         EmbeddingRelato(registro_uid, nombre_modelo, MAXIMO, vectores.max(axis=0).tolist()),

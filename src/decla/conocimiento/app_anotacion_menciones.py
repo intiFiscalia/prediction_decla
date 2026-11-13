@@ -62,10 +62,19 @@ def _cargar_menciones() -> pl.DataFrame:
 
 def main() -> None:
     menciones = _cargar_menciones()
+    categorias_disponibles = sorted(menciones["categoria"].unique().to_list())
+    categorias_defecto = [c for c in ("sector", "mecanismo") if c in categorias_disponibles]
+    categorias_elegidas = st.sidebar.multiselect(
+        "Categorías a calificar (el cupo se reparte solo entre estas)",
+        categorias_disponibles,
+        default=categorias_defecto or categorias_disponibles,
+    )
     n_pares_objetivo = st.sidebar.number_input(
         "Menciones a calificar", min_value=20, max_value=500, value=70
     )
     calificador = st.sidebar.text_input("Tu nombre o iniciales", value="")
+
+    menciones = menciones.filter(pl.col("categoria").is_in(categorias_elegidas))
 
     if "cola" not in st.session_state:
         candidatos = [
@@ -97,16 +106,33 @@ def main() -> None:
             f"polaridad: {fila['polaridad']}"
         )
 
+        notas = st.text_area(
+            "Notas / razonamiento (opcional, pero obligatorio cuando el valor correcto no es "
+            "una lectura literal del texto, p. ej. una inferencia como 'lingotes de oro "
+            "incautados sin origen documentado' → mineria_ilegal_oro)",
+            key=f"notas_{mencion_id}",
+        )
+
         col1, col2, col3 = st.columns(3)
         if col1.button("Confirmar"):
             guardar_calificacion_mencion(
-                RUTA_CALIFICACIONES_DEFECTO, mencion_id, fila["categoria"], CONFIRMADA, calificador
+                RUTA_CALIFICACIONES_DEFECTO,
+                mencion_id,
+                fila["categoria"],
+                CONFIRMADA,
+                calificador,
+                notas=notas or None,
             )
             st.session_state["indice"] += 1
             st.rerun()
         if col2.button("Rechazar"):
             guardar_calificacion_mencion(
-                RUTA_CALIFICACIONES_DEFECTO, mencion_id, fila["categoria"], RECHAZADA, calificador
+                RUTA_CALIFICACIONES_DEFECTO,
+                mencion_id,
+                fila["categoria"],
+                RECHAZADA,
+                calificador,
+                notas=notas or None,
             )
             st.session_state["indice"] += 1
             st.rerun()
@@ -122,6 +148,7 @@ def main() -> None:
                     calificador,
                     categoria_corregida=categoria_corregida or None,
                     valor_corregido=valor_corregido or None,
+                    notas=notas or None,
                 )
                 st.session_state["indice"] += 1
                 st.rerun()

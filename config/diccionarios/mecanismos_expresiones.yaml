@@ -1,0 +1,80 @@
+version: 1
+# Expresiones literales -> código de mecanismo (config/categorias_menciones.yaml, categoría
+# "mecanismo"). Mismo patrón que sectores_expresiones.yaml: capa EXPLÍCITA (evidencia literal,
+# confianza=1.0), que se intenta antes del modelo zero-shot (decla.conocimiento.zero_shot). Si
+# ninguna expresión aparece, el relato sigue cayendo al modelo — esta capa nunca cierra la
+# puerta a que el modelo encuentre un mecanismo que el diccionario no anticipó.
+#
+# Semilla inicial (2026-11-06), SIN validar contra una muestra real: pendiente de que la persona
+# (que conoce el corpus) la revise, corrija y amplíe con lo que surja en la anotación real —
+# igual que advierte sectores_expresiones.yaml para su propio diccionario. No se usa como
+# verdad de terreno hasta esa revisión.
+expresiones:
+  - expresion: compra de ganado
+    code: compra_ganado
+  - expresion: adquisición de ganado
+    code: compra_ganado
+  - expresion: adquisición de semovientes
+    code: compra_ganado
+  - expresion: cabezas de ganado
+    code: compra_ganado
+  - expresion: minería ilegal de oro
+    code: mineria_ilegal_oro
+  - expresion: extracción ilegal de oro
+    code: mineria_ilegal_oro
+  - expresion: explotación ilegal de oro
+    code: mineria_ilegal_oro
+  - expresion: minería sin título
+    code: mineria_ilegal_oro
+  - expresion: empresa fachada
+    code: empresas_fachada
+  - expresion: empresa de papel
+    code: empresas_fachada
+  - expresion: sin actividad económica real
+    code: empresas_fachada
+  - expresion: testaferro
+    code: testaferros
+  - expresion: testaferrato
+    code: testaferros
+  - expresion: contrabando de mercancía
+    code: contrabando_mercancias
+  - expresion: contrabando de mercancías
+    code: contrabando_mercancias
+  - expresion: contrabando de combustible
+    code: contrabando_combustibles
+  - expresion: contrabando de combustibles
+    code: contrabando_combustibles
+  - expresion: subfacturación
+    code: subfacturacion
+  - expresion: subfacturó
+    code: subfacturacion
+  - expresion: compra de inmueble
+    code: compra_inmuebles
+  - expresion: compra de inmuebles
+    code: compra_inmuebles
+  - expresion: adquisición de bienes inmuebles
+    code: compra_inmuebles
+  - expresion: casa de cambio
+    code: giros_casas_cambio
+  - expresion: giro internacional
+    code: giros_casas_cambio
+  - expresion: giros internacionales
+    code: giros_casas_cambio
+  - expresion: criptomoneda
+    code: criptoactivos
+  - expresion: criptoactivo
+    code: criptoactivos
+  - expresion: bitcoin
+    code: criptoactivos
+  - expresion: captación ilegal
+    code: captacion_ilegal
+  - expresion: captación masiva y habitual de dinero
+    code: captacion_ilegal
+  - expresion: pirámide financiera
+    code: captacion_ilegal
+  - expresion: fraccionamiento de consignaciones
+    code: fraccionamiento_consignaciones
+  - expresion: consignaciones fraccionadas
+    code: fraccionamiento_consignaciones
+  - expresion: fraccionó el dinero
+    code: fraccionamiento_consignaciones

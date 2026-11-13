@@ -8,12 +8,15 @@ etiqueta (CLAUDE.md §2.3). El sector se asigna siempre al relato/mención, nunc
 organización (CLAUDE.md §2.3, plan §6.4): estas funciones no reciben ni devuelven ningún
 identificador de persona.
 
-**Riesgo sin validar (ADR 0010):** sobre los 346 relatos reales, el sector inferido dio 0 %
-"indeterminado" en 335 casos — sospechosamente alto. Hipótesis de trabajo: el vector de entrada
-sigue siendo casi el relato completo (la segmentación contexto/hecho solo se activa en 4,9 % de
-los casos reales), así que el lenguaje institucional repetido puede estar dominando la similitud
-en vez del sector real. No usar `categoria='sector'`/`origen='inferido_modelo'` como insumo de
-indicadores sin la anotación humana pendiente.
+**ADR 0010 / ADR 0019:** sobre los 346 relatos reales, el sector inferido dio 0 % "indeterminado"
+en 335 casos — sospechosamente alto. Causa confirmada: el vector de entrada era el relato
+completo agregado por MEDIA, así que el lenguaje institucional repetido dominaba la similitud en
+vez del sector real. `clasificar_sector_inferido` ahora compara fragmento por fragmento
+(`decla.texto.embeddings.calcular_vectores_fragmentos`) y se queda con el de mayor confianza —
+mitiga la dilución, pero la recalibración de `confianza_minima` con evidencia real sigue
+pendiente (`make diagnostico-umbral`). No usar `categoria='sector'`/`origen='inferido_modelo'`
+como insumo de indicadores sin volver a correr el diagnóstico sobre datos reales tras este
+cambio.
 """
 
 from __future__ import annotations
@@ -26,7 +29,12 @@ import numpy as np
 import polars as pl
 
 from decla.comun.configuracion import cargar_yaml
-from decla.texto.embeddings import MEDIA, calcular_embeddings_relato
+from decla.texto.embeddings import (
+    MEDIA,
+    FragmentoEmbedding,
+    calcular_embeddings_relato,
+    calcular_vectores_oraciones,
+)
 
 RAIZ_PROYECTO = Path(__file__).resolve().parents[3]
 RUTA_CIIU = RAIZ_PROYECTO / "data" / "referencia" / "ciiu.csv"
@@ -165,6 +173,37 @@ def elegir_sector_por_similitud(
     )
 
 
+def elegir_mejor_fragmento_sector(
+    fragmentos: list[FragmentoEmbedding],
+    vectores_ciiu: dict[str, list[float]],
+    jerarquia: dict[str, str],
+    confianza_minima: float,
+    margen_minimo_top2: float,
+) -> ClasificacionSector:
+    """Igual que `elegir_sector_por_similitud`, pero fragmento por fragmento (ADR 0010: el
+    riesgo documentado de que el relato completo diluya el sector real con lenguaje
+    institucional repetido). Se queda con el fragmento de mayor confianza y su texto como
+    evidencia real, en vez de `texto[:200]`.
+    """
+    if not fragmentos or len(vectores_ciiu) < 2:
+        return ClasificacionSector(None, None, None, 0.0, ORIGEN_INFERIDO, None)
+
+    mejor: ClasificacionSector | None = None
+    mejor_texto: str | None = None
+    for fragmento in fragmentos:
+        resultado = elegir_sector_por_similitud(
+            fragmento.vector, vectores_ciiu, jerarquia, confianza_minima, margen_minimo_top2
+        )
+        if mejor is None or resultado.confianza > mejor.confianza:
+            mejor = resultado
+            mejor_texto = fragmento.texto
+
+    assert mejor is not None
+    return ClasificacionSector(
+        mejor.code, mejor.division, mejor.seccion, mejor.confianza, mejor.origen, mejor_texto
+    )
+
+
 def clasificar_sector_inferido(
     texto: str,
     vectores_ciiu: dict[str, list[float]],
@@ -176,11 +215,7 @@ def clasificar_sector_inferido(
     if not texto or not texto.strip() or len(vectores_ciiu) < 2:
         return ClasificacionSector(None, None, None, 0.0, ORIGEN_INFERIDO, None)
 
-    embeddings = calcular_embeddings_relato("_consulta_sector", texto, nombre_modelo)
-    vector_texto = next((e.vector for e in embeddings if e.agregacion == MEDIA), None)
-    if vector_texto is None:
-        return ClasificacionSector(None, None, None, 0.0, ORIGEN_INFERIDO, None)
-
-    return elegir_sector_por_similitud(
-        vector_texto, vectores_ciiu, jerarquia, confianza_minima, margen_minimo_top2
+    fragmentos = calcular_vectores_oraciones(texto, nombre_modelo)
+    return elegir_mejor_fragmento_sector(
+        fragmentos, vectores_ciiu, jerarquia, confianza_minima, margen_minimo_top2
     )

@@ -19,8 +19,12 @@ def test_procesar_plata_extremo_a_extremo(tmp_path: Path) -> None:
 
     assert resumen.n_entrada > 0
     assert resumen.n_cuarentena >= 0
+    assert resumen.n_con_ruptura >= 0
     assert resumen.n_registros_limpios == (
-        resumen.n_entrada - resumen.n_cuarentena - resumen.n_fuera_alcance
+        resumen.n_entrada
+        - resumen.n_cuarentena
+        - resumen.n_fuera_alcance
+        - resumen.n_con_ruptura
     )
 
     n_plata = conexion.execute("SELECT count(*) FROM plata.registros_limpios").fetchone()[0]

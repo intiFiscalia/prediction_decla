@@ -373,6 +373,48 @@ def ind_sectores(conexion: duckdb.DuckDBPyConnection) -> pl.DataFrame:
     ).pl()
 
 
+def ind_mecanismo(conexion: duckdb.DuckDBPyConnection) -> pl.DataFrame:
+    """Mecanismo (modus operandi) detectado por similitud zero-shot contra las 12 definiciones
+    semilla de `config/categorias_menciones.yaml` (`decla.conocimiento.zero_shot`): compra de
+    ganado, minería ilegal de oro, empresas fachada, testaferros, criptoactivos, captación
+    ilegal, etc. — ya se calculaba en `make conocimiento` (plan §6.2) pero nunca se mostró en la
+    app. Responde directamente "qué tipo de lavado" en vez de repetir el fenómeno amplio. Por
+    debajo del umbral de confianza (`config/umbrales.yaml`, `zero_shot_mecanismo`) queda
+    `no_clasificado`, un resultado legítimo, no un error.
+    """
+    return conexion.sql(
+        """
+        SELECT coalesce(valor_normalizado, 'no_clasificado') AS mecanismo, count(*) AS n,
+               round(count(*) * 100.0 / sum(count(*)) OVER (), 2) AS pct
+        FROM texto.menciones
+        WHERE categoria = 'mecanismo' AND polaridad = 'afirmada'
+        GROUP BY mecanismo
+        ORDER BY n DESC
+        """
+    ).pl()
+
+
+def ind_mecanismo_dentro_de_fenomeno(
+    conexion: duckdb.DuckDBPyConnection, codigo_fenomeno: str
+) -> pl.DataFrame:
+    """Igual que `ind_mecanismo`, pero **dentro de un fenómeno específico** (mismo propósito que
+    `ind_delito_dentro_de_fenomeno`/`ind_sector_dentro_de_fenomeno`: diferenciar modalidades
+    dentro de un fenómeno demasiado amplio, sin reabrir el clustering).
+    """
+    return conexion.sql(
+        """
+        SELECT coalesce(m.valor_normalizado, 'no_clasificado') AS mecanismo, count(*) AS n,
+               round(count(*) * 100.0 / sum(count(*)) OVER (), 2) AS pct
+        FROM fenomenos.asignacion_fenomeno a
+        JOIN texto.menciones m ON m.registro_uid = a.registro_uid
+        WHERE a.codigo_fenomeno = ? AND m.categoria = 'mecanismo' AND m.polaridad = 'afirmada'
+        GROUP BY mecanismo
+        ORDER BY n DESC
+        """,
+        params=[codigo_fenomeno],
+    ).pl()
+
+
 def ranking_tendencia_delito(conexion: duckdb.DuckDBPyConnection) -> pl.DataFrame:
     """Ranking de qué combinación delito×territorio se aleja más del pronóstico ingenuo (repetir
     el último valor observado) en `oro.pronosticos_delito` (`make prediccion`, ADR 2026-11-06).

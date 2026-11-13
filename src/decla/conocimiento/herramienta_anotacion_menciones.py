@@ -33,6 +33,7 @@ CAMPOS_CSV = [
     "categoria_corregida",
     "valor_corregido",
     "calificador",
+    "notas",
 ]
 
 
@@ -71,6 +72,28 @@ def muestrear_menciones_estratificado_activo(
     return seleccionados[:n_total]
 
 
+def _migrar_encabezado_si_falta_notas(ruta_csv: Path) -> None:
+    """Las calificaciones guardadas antes de que existiera `notas` (2026-11-09) tienen un
+    encabezado de 6 columnas; `guardar_calificacion_mencion` solo escribe encabezado si el
+    archivo no existe, así que agregar una fila de 7 columnas sin migrar desalinearía el CSV.
+    Reescribe una sola vez con el encabezado nuevo y `notas=""` para las filas viejas — nunca
+    borra calificaciones existentes.
+    """
+    if not ruta_csv.exists():
+        return
+    with ruta_csv.open(newline="", encoding="utf-8") as archivo:
+        encabezado = archivo.readline()
+    if "notas" in encabezado:
+        return
+
+    filas_previas = cargar_calificaciones_menciones(ruta_csv)
+    with ruta_csv.open("w", newline="", encoding="utf-8") as archivo:
+        escritor = csv.DictWriter(archivo, fieldnames=CAMPOS_CSV)
+        escritor.writeheader()
+        for fila in filas_previas:
+            escritor.writerow({campo: fila.get(campo, "") for campo in CAMPOS_CSV})
+
+
 def guardar_calificacion_mencion(
     ruta_csv: Path,
     mencion_id: str,
@@ -79,8 +102,16 @@ def guardar_calificacion_mencion(
     calificador: str,
     categoria_corregida: str | None = None,
     valor_corregido: str | None = None,
+    notas: str | None = None,
 ) -> None:
+    """`notas` registra el razonamiento cuando el valor correcto no es una lectura literal del
+    texto (p. ej. "lingotes de oro incautados sin documentación de origen" → `mineria_ilegal_oro`
+    es una inferencia, no una coincidencia textual): sin esto se pierde el criterio detrás de
+    cada corrección, y no se puede distinguir una corrección obvia de una discutible al revisar
+    después o al ampliar `mecanismos_expresiones.yaml`.
+    """
     ruta_csv.parent.mkdir(parents=True, exist_ok=True)
+    _migrar_encabezado_si_falta_notas(ruta_csv)
     escribir_encabezado = not ruta_csv.exists()
     with ruta_csv.open("a", newline="", encoding="utf-8") as archivo:
         escritor = csv.DictWriter(archivo, fieldnames=CAMPOS_CSV)
@@ -94,6 +125,7 @@ def guardar_calificacion_mencion(
                 "categoria_corregida": categoria_corregida or "",
                 "valor_corregido": valor_corregido or "",
                 "calificador": calificador,
+                "notas": notas or "",
             }
         )
 
@@ -131,6 +163,84 @@ def calcular_metricas_por_categoria(
             MetricaCategoria(categoria, n, n_confirmadas, round(n_confirmadas / n, 4) if n else 0.0)
         )
     return metricas
+
+
+@dataclass(frozen=True)
+class CandidatoMecanismoNuevo:
+    codigo_propuesto: str
+    n_propuesto: int
+
+
+def identificar_candidatos_mecanismo_nuevo(
+    calificaciones: list[dict[str, str]], codigos_conocidos: set[str]
+) -> list[CandidatoMecanismoNuevo]:
+    """Códigos de mecanismo que una persona escribió en "valor correcto" al corregir una
+    mención, y que NO están entre `codigos_conocidos` (los 12 ya definidos en
+    `config/categorias_menciones.yaml`, pasar `cargar_vocabulario("mecanismo")` convertido a
+    set de códigos). Es la señal de que el crimen organizado usa una técnica que la taxonomía
+    todavía no cubre: nunca se descarta, se cuenta para que la persona decida si la formaliza
+    (nueva definición + expresiones literales) — ninguna categoría se agrega sola, sin
+    aprobación humana (CLAUDE.md §2.3).
+    """
+    conteos: dict[str, int] = defaultdict(int)
+    for fila in calificaciones:
+        if fila.get("decision") != CORREGIDA:
+            continue
+        categoria_final = fila.get("categoria_corregida") or fila.get("categoria")
+        codigo = (fila.get("valor_corregido") or "").strip()
+        if categoria_final != "mecanismo" or not codigo or codigo in codigos_conocidos:
+            continue
+        conteos[codigo] += 1
+
+    return sorted(
+        (CandidatoMecanismoNuevo(codigo, n) for codigo, n in conteos.items()),
+        key=lambda c: (-c.n_propuesto, c.codigo_propuesto),
+    )
+
+
+@dataclass(frozen=True)
+class MetricaUmbral:
+    categoria: str
+    umbral_candidato: float
+    n_evaluadas: int
+    n_confirmadas: int
+    precision_aproximada: float | None
+
+
+def calcular_precision_por_umbral(
+    calificaciones: list[dict[str, str]],
+    confianza_por_mencion: dict[str, float],
+    categoria: str,
+    umbrales: list[float],
+) -> list[MetricaUmbral]:
+    """Precisión aproximada (confirmadas/evaluadas) entre las menciones YA ETIQUETADAS de
+    `categoria` cuya confianza real (tomada de `texto.menciones`, no se guarda en el CSV de
+    calificaciones) alcanza cada umbral candidato. Es una medida sobre la muestra etiquetada
+    (pequeña, sesgada hacia confianza baja por el muestreo activo), no sobre el corpus completo:
+    complementa a `decla.conocimiento.diagnostico_umbral` (que cubre todo el corpus, pero sin
+    saber si cada caso es un acierto), no lo sustituye. `precision_aproximada=None` cuando no
+    hay ninguna mención etiquetada en ese umbral (no se inventa un valor).
+    """
+    filas_categoria = [f for f in calificaciones if f["categoria"] == categoria]
+    resultados = []
+    for umbral in umbrales:
+        filas_umbral = [
+            f
+            for f in filas_categoria
+            if confianza_por_mencion.get(f["mencion_id"], -1.0) >= umbral
+        ]
+        n = len(filas_umbral)
+        n_confirmadas = sum(1 for f in filas_umbral if f["decision"] == CONFIRMADA)
+        resultados.append(
+            MetricaUmbral(
+                categoria=categoria,
+                umbral_candidato=umbral,
+                n_evaluadas=n,
+                n_confirmadas=n_confirmadas,
+                precision_aproximada=round(n_confirmadas / n, 4) if n else None,
+            )
+        )
+    return resultados
 
 
 def escribir_resumen(

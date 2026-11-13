@@ -41,3 +41,38 @@ def filtrar_por_alcance(
         valores_excluidos=excluidos,
     )
     return dentro, resultado
+
+
+def _ruptura_tiene_valor(valor: str | None) -> bool:
+    """`None`, cadena vacía tras `strip()`, o comillas vacías literales (`""`/`''`, artefacto de
+    lectura de CSV/Excel reportado por la persona) cuentan como "sin ruptura". Cualquier otro
+    contenido cuenta como "con ruptura".
+    """
+    if valor is None:
+        return False
+    texto = valor.strip()
+    return texto != "" and texto not in {'""', "''"}
+
+
+@dataclass
+class ResultadoFiltroRuptura:
+    n_entrada: int
+    n_con_ruptura: int
+    n_sin_ruptura: int
+
+
+def filtrar_por_ruptura(
+    filas: list[dict[str, str | None]], columna_ruptura: str = "RUPTURA"
+) -> tuple[list[dict[str, str | None]], ResultadoFiltroRuptura]:
+    """Excluye de `plata.registros_limpios` las filas de CASOS cuyo campo RUPTURA tiene un valor
+    real (decisión de la persona, 2026-11-13: ver ADR correspondiente). `bronce` nunca se
+    filtra; el `CASO_NOTICIA` de RELATOS correspondiente a una fila excluida aquí cae solo en
+    `entidades.relato_huerfano` (`decla.entidades.relato`, ya compara contra el conjunto de
+    `CASO_NOTICIA` que sobrevivió a `plata.registros_limpios`) — no se descarta en silencio.
+    """
+    sin_ruptura = [f for f in filas if not _ruptura_tiene_valor(f.get(columna_ruptura))]
+    n_con_ruptura = len(filas) - len(sin_ruptura)
+    resultado = ResultadoFiltroRuptura(
+        n_entrada=len(filas), n_con_ruptura=n_con_ruptura, n_sin_ruptura=len(sin_ruptura)
+    )
+    return sin_ruptura, resultado

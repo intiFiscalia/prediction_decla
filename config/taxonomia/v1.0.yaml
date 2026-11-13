@@ -4,41 +4,6 @@ nota: 'Taxonomía congelada a partir del taller de revisión humana (revision.de
   por un analista: esta herramienta no inventa contenido que no fue decidido en el
   taller.'
 fenomenos:
-- codigo: lavado_de_activos
-  nombre: Lavado de activos
-  definicion: pendiente_de_redaccion_por_analista
-  nivel_jerarquico: 1
-  delitos_relacionados: pendiente_de_calculo
-  grupo_id_origen: hdbscan_0
-  metodo_origen: hdbscan
-  terminos_dominantes:
-  - persona
-  - lavado
-  - activo
-  - doc
-  - señor
-  - dinero
-  - delito
-  - policía
-  - identificado
-  - información
-  ids_ejemplo:
-  - 617a113f72c49176cdc8dc180a841241ba7efb923cc1e26599e68c152d99b7f0
-  - 4c063506d78a9416285e31e86da01bc4f89b713a0d148396c2b5b73fdc06ee72
-  - e8b103a55b2c1e9ce349eecd9c5f766651b4011b3440173688ab122d755113b7
-  - 9fc32558d1c29ab06f6aece0e0d82fde1086ebd1b435473500cbd0418ca5ce19
-  - 80b62e13e64871f17e48688725a4e1485190190076198d7493fc85904e498f5b
-  - e015d6c10127f72e0330322fb060d85a5ba4131dad472464439cd85e169ecc68
-  - 6a3f9dcf6ce224a037fabf582a29fcfe66a1d04a90f368679dd447883d80fb5d
-  - afbcae4078c1d0d16e0cd9a1df83249ea3b2e34de33dca848bd07813b4be1824
-  - a35686840d7b4c3f579412e0eff1563974ec92b2ce0b5963aff4599ceb1355d5
-  - d9bf3e2fdfc3f846da32d70d35389f6f3ccd6912723248b7d56640c46c961aa7
-  n_miembros: 293
-  dominancia_plantilla: 0.8294
-  dominancia_unidad: 0.0956
-  estado: aprobado
-  calificador: INPC
-  fecha_decision: '2026-11-03T09:38:14.064438'
 - codigo: lavado_de_activos_a_traves_de_empresas
   nombre: Lavado de activos a través de empresas
   definicion: pendiente_de_redaccion_por_analista
@@ -145,6 +110,10 @@ fenomenos:
   calificador: INPC
   fecha_decision: '2026-11-03T09:38:05.659903'
 excluidos:
+- grupo_id: hdbscan_0
+  motivo: artefacto
+  calificador: INPC
+  fecha: '2026-11-06T16:12:38.144859'
 - grupo_id: hdbscan_1
   motivo: artefacto
   calificador: INPC

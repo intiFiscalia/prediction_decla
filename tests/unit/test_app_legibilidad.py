@@ -8,6 +8,7 @@ import pandas as pd
 
 from decla.app.legibilidad import (
     agregar_nombres_fenomeno,
+    agregar_nombres_mecanismo,
     decodificar_indice_periodo,
     formatear_periodo_alertas,
 )
@@ -40,3 +41,9 @@ def test_agregar_nombres_fenomeno_reemplaza_codigo_por_nombre() -> None:
     df = pd.DataFrame({"codigo_fenomeno": ["lavado_de_activos"], "n": [10]})
     resultado = agregar_nombres_fenomeno(df, taxonomia)
     assert resultado["codigo_fenomeno"].iloc[0] == "Lavado de activos"
+
+
+def test_agregar_nombres_mecanismo_traduce_codigo_conocido_y_deja_desconocido() -> None:
+    df = pd.DataFrame({"mecanismo": ["compra_ganado", "un_codigo_nuevo"], "n": [3, 1]})
+    resultado = agregar_nombres_mecanismo(df)
+    assert resultado["mecanismo"].tolist() == ["Compra de ganado", "un_codigo_nuevo"]

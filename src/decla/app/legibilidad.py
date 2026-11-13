@@ -46,6 +46,7 @@ ETIQUETAS: dict[str, str] = {
     "sector": "Sector económico mencionado",
     "sector_predominante": "Sector predominante",
     "sector_segundo": "Segundo sector más frecuente",
+    "mecanismo": "Mecanismo (modus operandi detectado)",
     "articulo_cp": "Artículo del Código Penal",
     "estado_norm": "Estado del caso",
     "etapa_norm": "Etapa procesal",
@@ -148,6 +149,10 @@ AYUDAS: dict[str, str] = {
     "'reparada', etc.).",
     "n_cerca_prescripcion_declarada": "Casos cuya fecha de prescripción declarada en el "
     "expediente vence en menos de un año.",
+    "mecanismo": "Modus operandi detectado por similitud de texto contra 12 definiciones "
+    "semilla (compra de ganado, minería ilegal de oro, empresas fachada, testaferros, "
+    "criptoactivos, etc.). 'no_clasificado' significa que ningún mecanismo superó el umbral de "
+    "confianza — es un resultado legítimo, no un error.",
     "categoria_sector": "'explicito' = el relato lo dice directamente; "
     "'inferido_alta_confianza' = lo dedujo el modelo con alta certeza; 'indeterminado' = no se "
     "pudo establecer con ninguno de los dos.",
@@ -261,6 +266,42 @@ def agregar_nombres_fenomeno(df: pd.DataFrame, taxonomia: dict) -> pd.DataFrame:
     return df
 
 
+# Nombres legibles de los 13 códigos semilla de `config/categorias_menciones.yaml` (categoría
+# "mecanismo"). Es una lista cerrada y conocida (no datos abiertos): prettificar sus códigos no
+# es inventar información, solo traducir snake_case a una frase legible.
+# "lavado_activos_sin_detalle" (ADR 0021) es distinto de "no_clasificado": el primero es un
+# hallazgo positivo (el relato confirma lavado de activos, sin técnica identificable); el
+# segundo es que el clasificador no alcanzó la confianza mínima para decidir nada.
+MECANISMOS: dict[str, str] = {
+    "fraccionamiento_consignaciones": "Fraccionamiento de consignaciones",
+    "empresas_fachada": "Empresas fachada",
+    "testaferros": "Testaferros",
+    "contrabando_mercancias": "Contrabando de mercancías",
+    "contrabando_combustibles": "Contrabando de combustibles",
+    "subfacturacion": "Subfacturación",
+    "compra_ganado": "Compra de ganado",
+    "compra_inmuebles": "Compra de inmuebles",
+    "mineria_ilegal_oro": "Minería ilegal de oro",
+    "giros_casas_cambio": "Giros y casas de cambio",
+    "criptoactivos": "Criptoactivos",
+    "captacion_ilegal": "Captación ilegal de dinero",
+    "lavado_activos_sin_detalle": "Lavado de activos sin detalle de mecanismo",
+    "no_clasificado": "Sin mecanismo identificado (confianza insuficiente)",
+}
+
+
+def agregar_nombres_mecanismo(df: pd.DataFrame) -> pd.DataFrame:
+    """Reemplaza el código de mecanismo (`compra_ganado`, `mineria_ilegal_oro`, etc.) por su
+    nombre legible. Deja cualquier código nuevo que se añada al diccionario semilla sin traducir
+    (snake_case) en vez de ocultarlo.
+    """
+    if "mecanismo" not in df.columns:
+        return df
+    df = df.copy()
+    df["mecanismo"] = df["mecanismo"].map(lambda v: MECANISMOS.get(v, v))
+    return df
+
+
 _PATRON_ITEM = re.compile(r"(fenomeno|sector|territorio)=([\w\-]+)")
 
 
@@ -332,6 +373,7 @@ def mostrar(datos: pl.DataFrame | pd.DataFrame, taxonomia: dict | None = None, *
         return
     df = formatear_periodo_alertas(df)
     df = agregar_nombres_territorio(df)
+    df = agregar_nombres_mecanismo(df)
     if taxonomia is not None:
         df = agregar_nombres_fenomeno(df, taxonomia)
     st.dataframe(df, column_config=config_columnas(df), **kwargs)
