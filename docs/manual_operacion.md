@@ -87,3 +87,114 @@ no permitidos, responsable) — ver `isolation_forest_atipicos.md` como ejemplo.
 
 No aplica todavía: un solo modelo nuevo (Isolation Forest de atípicos), sin historial de
 reentrenamientos que comparar. Documentado, no simulado.
+
+## Guía punto a punto: de datos nuevos al dashboard con fenómenos clasificados (ADR 0024/0025/0027)
+
+Todo lo de ingeniería ya está construido. Lo que sigue sin construirse **a propósito** son los
+pasos que exigen criterio humano (anotar, calibrar un umbral con evidencia, decidir si promover
+un modelo) — CLAUDE.md §2.3 y §4.6 no permiten que Claude Code los haga, y no hay atajo de
+código posible para eso. Esta es la secuencia completa, sin pasos de ingeniería pendientes entre
+medio.
+
+### Primera vez (o cuando cambia la taxonomía/el umbral)
+
+```
+1.  make etl && make nlp && make conocimiento
+2.  make fenomenos LOTE_ID=<el que imprimió make nlp>
+3.  uv run streamlit run src/decla/fenomenos/app_revision_fenomenos.py   # taller de taxonomía,
+    # si todavía no está congelada v1.0 (ya lo está en este dataset: config/taxonomia/v1.0.yaml)
+4.  make analitica    # materializa fenomenos.asignacion_fenomeno con la taxonomía congelada
+```
+
+### Anotar y entrenar el clasificador (humano, no tiene atajo)
+
+```
+5.  make anotar-fenomenos
+    # Anota ≥50-100 relatos por código (plan de muestreo ya estratificado por la app).
+    # Doble anotación: repite el muestreo con OTRO calificador (o vos mismo en una pasada
+    # ciega, sin ver tus respuestas anteriores) sobre ≥20% de la muestra — es el único paso
+    # que la app no puede forzar por sí sola; sin esto, kappa no se puede medir.
+    # Casilla "Sugerir con LLM local" (ADR 0026): reemplaza la sugerencia del borrador de
+    # clustering por la del modelo Qwen2.5-14B local (más detalle y evidencia citada) — más
+    # lento (~30-40s por relato), pero ayuda a llegar al piloto con mejor punto de partida.
+    # Sigue siendo el humano quien confirma o corrige; esto no cambia.
+6.  Dentro de la app, botón "Calcular resumen agregado":
+    - revisa reports/agregados/i4/anotacion_fenomenos.md (cobertura por código, ¿llega a 50?)
+    - revisa reports/agregados/i4/candidatos_fenomeno_nuevo.csv (¿hay un término que se repite
+      en "otro, especifica"? si sí, es candidato a nuevo fenómeno — decisión aparte, no
+      automática)
+7.  make clasificar-fenomenos-llm
+    # ADR 0027 — el LLM local (Qwen2.5-14B, MLX) clasifica el 100% de los relatos; no hay
+    # clasificador rápido filtrando qué revisar (decisión explícita: rigor sobre velocidad).
+    # Necesita el modelo descargado antes (`uv run python scripts/descargar_modelos.py --solo
+    # qwen2.5-14b-instruct-4bit`, ~8-9GB, una sola vez). Lento por diseño (~38s/relato medidos en
+    # Apple M5/16GB): la primera corrida sobre el histórico completo puede tardar horas o días
+    # según el volumen real; correrla en background. Las corridas siguientes son incrementales
+    # (solo clasifica relatos nuevos) — usar FORZAR=1 solo cuando ajustes el prompt (paso 9) y
+    # quieras reclasificar todo de nuevo para medir el efecto.
+    # Escribe fenomenos.asignacion_fenomeno_modelo con origen="inferido_modelo_llm".
+```
+
+### Evaluar e iterar el prompt (Claude Code lo hace, con la métrica, nunca con el relato)
+
+```
+8.  make evaluar-clasificador-llm
+    # Compara las predicciones del LLM contra tu anotación confirmada (paso 5) y escribe
+    # reports/agregados/i4/clasificador_fenomenos_llm_metricas.md (precisión/exhaustividad/F1
+    # por código). Esta es la única cosa que Claude Code lee para decidir si un código necesita
+    # mejor prompt — nunca el relato en sí.
+9.  Si algún código sale con precisión/exhaustividad baja: pídele a Claude Code que ajuste los
+    criterios de "confirmar"/"caso límite" de ese código en
+    src/decla/fenomenos/herramienta_anotacion_fenomeno.py:DESCRIPCION_CODIGO (la misma fuente
+    que usa el prompt del LLM) y vuelva a correr:
+    make clasificar-fenomenos-llm FORZAR=1 && make evaluar-clasificador-llm
+    # Repetir hasta que las métricas por código sean aceptables. No hay pesos que entrenar aquí
+    # (el modelo se usa por prompting): "reentrenar" es este ciclo de ajustar criterios/ejemplos
+    # y volver a medir, no afinamiento de pesos.
+```
+
+### Revisar y promover (humano, decisión por código)
+
+```
+10. Lee reports/agregados/i4/clasificador_fenomenos_llm_metricas.md. Para cada código: ¿la
+    precisión/F1 te convence? Si algún código sale mal, está bien promover solo los que sí
+    convencen (o no promover nada todavía y seguir iterando el prompt de ese código).
+11. make promover-clasificador-fenomenos VERSION_MODELO=<el que imprimió make clasificar-fenomenos-llm>
+    # Copia las filas (solo fenómenos reales de la taxonomía, nunca ruido_administrativo ni
+    # no_clasificado) hacia fenomenos.asignacion_fenomeno, con la confianza real del modelo.
+```
+
+**Nota sobre el clasificador rápido (sklearn, ADR 0024):** sigue existiendo en el repo
+(`make entrenar-clasificador-fenomenos`), pero ya no es parte del camino de producción — la
+persona decidió priorizar rigor sobre velocidad (ADR 0027). Queda como código probado, por si en
+el futuro se decide usarlo para otra cosa (p. ej. un filtro de primera pasada muy distinto); no
+se borró porque no se pidió borrarlo, pero no hay que correrlo para que el flujo de arriba
+funcione.
+
+### Ver el resultado en el dashboard
+
+```
+12. make emergencia && make prediccion LOTE_ID=<...> && make evaluar
+13. make app
+```
+
+**Importante — orden que hay que repetir en cada corrida futura:** `make analitica`
+reconstruye `fenomenos.asignacion_fenomeno` desde cero (solo clustering). Si volvés a correr
+`make analitica` después de promover, el paso 11 (`promover-clasificador-fenomenos`) hay que
+repetirlo antes de `make app` — si no, el dashboard vuelve a mostrar solo clustering, sin avisar
+con un error (es una tabla que se reconstruye silenciosamente, no un fallo).
+
+### Con un lote de datos nuevo (ya con el prompt validado)
+
+```
+make lote ARCHIVO=/ruta/al/CASOS_nuevo.csv LOTE_ID=<nuevo>
+make etl && make nlp && make conocimiento && make fenomenos LOTE_ID=<nuevo> && make analitica
+make clasificar-fenomenos-llm   # incremental: solo clasifica los relatos del lote nuevo
+make promover-clasificador-fenomenos VERSION_MODELO=<el que imprimió el paso anterior>
+make emergencia && make prediccion LOTE_ID=<nuevo> && make evaluar && make app
+```
+
+La anotación (paso 5) no hay que repetirla desde cero en cada lote: las calificaciones viejas
+siguen valiendo (`data/private/anotacion_fenomenos/calificaciones.csv` se acumula). Conviene
+anotar una muestra del lote nuevo si cambia mucho la composición (delito, territorio), para que
+el reentrenamiento vea ejemplos recientes.

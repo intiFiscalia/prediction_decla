@@ -1,8 +1,8 @@
-.PHONY: instalar test lint fixtures diagnostico columnas-usadas etl analitica-descriptiva nlp conocimiento diagnostico-umbral anotar-menciones calibrar-umbral fenomenos analitica emergencia prediccion app informe evaluar lote
+.PHONY: instalar test lint fixtures diagnostico columnas-usadas etl analitica-descriptiva nlp conocimiento diagnostico-umbral anotar-menciones calibrar-umbral fenomenos anotar-fenomenos entrenar-clasificador-fenomenos clasificar-fenomenos-llm evaluar-clasificador-llm resumen-organizaciones resumen-fenomenos-no-listados promover-clasificador-fenomenos analitica emergencia prediccion app informe evaluar lote
 
 # Instala dependencias solo desde wheelhouse/ (sin red), con todos los extras del proyecto.
 instalar:
-	uv sync --extra base --extra nlp --extra fenomenos --extra analitica --extra app --extra dev --no-index --find-links wheelhouse
+	uv sync --extra base --extra nlp --extra fenomenos --extra fenomenos_llm --extra analitica --extra app --extra dev --no-index --find-links wheelhouse
 
 # Corre la suite de pruebas unitarias e integración sobre fixtures sintéticos.
 test:
@@ -67,6 +67,58 @@ calibrar-umbral:
 # LOTE_ID=<el-lote-id-de-make-nlp>
 fenomenos:
 	uv run python -m decla.fenomenos.pipeline --lote-id $(LOTE_ID)
+
+# ADR 0024 — anotación de fenómenos por relato completo (multietiqueta), distinta de
+# anotar-menciones. Calificaciones en data/private/ (nunca las lee Claude Code).
+anotar-fenomenos:
+	uv run streamlit run src/decla/fenomenos/app_anotacion_fenomeno.py
+
+# ADR 0024 — entrena el clasificador de fenómenos sobre las calificaciones de anotar-fenomenos.
+# Rechaza entrenar si algún código no alcanza config/umbrales.yaml:
+# clasificador_fenomeno.minimo_ejemplos_por_codigo (CLAUDE.md §2.3). Necesita el lote_id que
+# imprimió `make nlp`: make entrenar-clasificador-fenomenos LOTE_ID=<el-lote-id-de-make-nlp>
+entrenar-clasificador-fenomenos:
+	uv run python -m decla.fenomenos.pipeline_clasificador --lote-id $(LOTE_ID)
+
+# ADR 0027 — el LLM local (Qwen2.5-14B, MLX) clasifica el 100% de los relatos (sin clasificador
+# rápido filtrando qué revisar: la persona priorizó rigor sobre velocidad). Por defecto solo
+# procesa relatos sin fila origen=inferido_modelo_llm todavía (incremental entre lotes); agregar
+# FORZAR=1 para reclasificar todo (al iterar el prompt). LIMITE=N procesa como máximo N relatos
+# (muestra aleatoria con semilla fija, reproducible) — útil para iterar rápido mientras la data
+# es de prueba/entrenamiento, no el universo real. Necesita el modelo descargado (`uv run python
+# scripts/descargar_modelos.py --solo qwen2.5-14b-instruct-4bit`, ~8-9GB, una sola vez).
+clasificar-fenomenos-llm:
+	uv run python -m decla.fenomenos.pipeline_clasificador_llm $(if $(FORZAR),--forzar,) $(if $(LIMITE),--limite $(LIMITE),)
+
+# ADR 0027 — compara las predicciones del LLM contra la anotación humana confirmada
+# (make anotar-fenomenos) y escribe reports/agregados/i4/clasificador_fenomenos_llm_metricas.md.
+# Es la métrica para decidir si el prompt necesita otra iteración antes de promover.
+evaluar-clasificador-llm:
+	uv run python scripts/evaluar_clasificador_llm.py
+
+# ADR 0028 — cuenta las organizaciones criminales que el LLM encontró mencionadas
+# explícitamente en los relatos (campo abierto, raro en los datos) y escribe
+# reports/agregados/i4/candidatos_organizacion_criminal.csv. Reporte de candidatos, no una lista
+# aprobada: normalizar variantes del mismo nombre es una decisión humana antes de usarlos en
+# indicadores oficiales.
+resumen-organizaciones:
+	uv run python scripts/resumen_organizaciones_mencionadas.py
+
+# ADR 0029 — cuenta los fenómenos que el LLM describió como relevantes pero fuera de la
+# taxonomía congelada (en vez de forzarlos en el código "más parecido") y escribe
+# reports/agregados/i4/candidatos_fenomeno_no_listado.csv. Reporte de candidatos, no un código
+# nuevo: formalizarlo es un taller de revisión humana.
+resumen-fenomenos-no-listados:
+	uv run python scripts/resumen_fenomenos_no_listados.py
+
+# ADR 0025 — copia una versión entrenada hacia fenomenos.asignacion_fenomeno (la que ya leen
+# indicadores, asociaciones, atípicos y la app). Revisa antes
+# reports/agregados/i4/clasificador_fenomenos_metricas.md. Correr DESPUÉS de `make analitica`
+# (que reconstruye asignacion_fenomeno desde cero) y ANTES de `make emergencia`/`make
+# prediccion`/`make app`: make promover-clasificador-fenomenos VERSION_MODELO=<el que imprimió
+# entrenar-clasificador-fenomenos>
+promover-clasificador-fenomenos:
+	uv run python scripts/promover_clasificador_fenomenos.py --version-modelo $(VERSION_MODELO) --confirmar
 
 # I3 — Fase 7: indicadores, territorio, asociaciones.
 analitica:

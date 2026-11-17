@@ -266,7 +266,7 @@ def agregar_nombres_fenomeno(df: pd.DataFrame, taxonomia: dict) -> pd.DataFrame:
     return df
 
 
-# Nombres legibles de los 13 códigos semilla de `config/categorias_menciones.yaml` (categoría
+# Nombres legibles de los 15 códigos semilla de `config/categorias_menciones.yaml` (categoría
 # "mecanismo"). Es una lista cerrada y conocida (no datos abiertos): prettificar sus códigos no
 # es inventar información, solo traducir snake_case a una frase legible.
 # "lavado_activos_sin_detalle" (ADR 0021) es distinto de "no_clasificado": el primero es un
@@ -286,6 +286,8 @@ MECANISMOS: dict[str, str] = {
     "criptoactivos": "Criptoactivos",
     "captacion_ilegal": "Captación ilegal de dinero",
     "lavado_activos_sin_detalle": "Lavado de activos sin detalle de mecanismo",
+    "transporte_de_divisas": "Transporte de divisas sin soporte de origen",
+    "transporte_de_oro": "Transporte de oro sin soporte de origen",
     "no_clasificado": "Sin mecanismo identificado (confianza insuficiente)",
 }
 

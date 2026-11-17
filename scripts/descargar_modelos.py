@@ -79,12 +79,23 @@ def _descargar_spacy_wheel(url: str, destino: Path) -> None:
     urllib.request.urlretrieve(url, destino / nombre_archivo)  # noqa: S310 (fuente fija y conocida)
 
 
+def _descargar_mlx_lm(repo_id: str, destino: Path) -> None:
+    """Descarga los pesos ya cuantizados (formato MLX) de un modelo generativo local (ADR 0026).
+    A diferencia de los embeddings, aquí no hay formatos de runtime alternativos que excluir: el
+    repo de `mlx-community` ya trae solo lo que `mlx-lm` necesita."""
+    from huggingface_hub import snapshot_download
+
+    snapshot_download(repo_id=repo_id, local_dir=str(destino))
+
+
 def descargar_modelo(entrada: dict, destino_base: Path = DESTINO_MODELOS) -> Path:
     destino = destino_base / entrada["id"]
     if entrada["tipo"] == "sentence-transformers":
         _descargar_sentence_transformer(entrada["repo_id"], destino)
     elif entrada["tipo"] == "spacy":
         _descargar_spacy_wheel(entrada["origen"], destino)
+    elif entrada["tipo"] == "mlx-lm":
+        _descargar_mlx_lm(entrada["repo_id"], destino)
     else:
         raise ValueError(f"Tipo de modelo no soportado: {entrada['tipo']}")
     return destino

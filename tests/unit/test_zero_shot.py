@@ -12,13 +12,15 @@ from decla.texto.embeddings import FragmentoEmbedding
 MODELO_RAPIDO = "paraphrase-multilingual-mpnet-base-v2"
 
 
-def test_cargar_vocabulario_mecanismo_tiene_los_12_fenomenos_plantados_mas_sin_detalle() -> None:
+def test_cargar_vocabulario_mecanismo_tiene_los_12_fenomenos_plantados_mas_excepciones() -> None:
     vocabulario = cargar_vocabulario("mecanismo")
     codigos = {d.codigo for d in vocabulario}
-    assert len(codigos) == 13
+    assert len(codigos) == 15
     assert "fraccionamiento_consignaciones" in codigos
     assert "captacion_ilegal" in codigos
     assert "lavado_activos_sin_detalle" in codigos
+    assert "transporte_de_divisas" in codigos
+    assert "transporte_de_oro" in codigos
 
 
 def test_cargar_vocabulario_categoria_inexistente_devuelve_vacio() -> None:

@@ -39,6 +39,16 @@
       "hash_sha256": "bfea8faf370a7551240f5eee63d1730244e516cabc686f6e8f95896b09bbb26c",
       "fecha": "2026-10-26",
       "descargado_en_utc": "2026-10-26T19:12:25.915345+00:00"
+    },
+    {
+      "nombre": "qwen2.5-14b-instruct-4bit",
+      "tipo": "mlx-lm",
+      "origen": "mlx-community/Qwen2.5-14B-Instruct-4bit",
+      "ruta_local": "models/qwen2.5-14b-instruct-4bit",
+      "licencia": "Apache-2.0 (pesos base Qwen2.5; verificar licencia exacta del repo al descargar)",
+      "hash_sha256": "40a9b4a212d8a42b81707a2507fd89eefa7e120961247c25b700f50f7091cf54",
+      "fecha": "2026-11-17",
+      "descargado_en_utc": "2026-11-17T14:07:57.154208+00:00"
     }
   ]
 }

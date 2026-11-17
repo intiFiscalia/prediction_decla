@@ -9,11 +9,24 @@
 
 ## Alcance decidido (ver `reports/agregados/i4/viabilidad.md`, ADR 0016)
 
-**Una pieza de la Fase 9 sigue sin ser viable**, por falta de etiquetas (no de historia):
+**Una pieza de la Fase 9 sigue sin ser viable en la práctica**, por falta de etiquetas (no de
+historia) — pero su infraestructura ya está construida (ADR 0024, 2026-11-13):
 
 - **Clasificación temática de relatos**: necesita relatos anotados por fenómeno (≥50-100 por
-  clase, con kappa medido) para entrenar un clasificador supervisado; no existen (CLAUDE.md §2.3
-  prohíbe entrenar sin esa guía). Es trabajo de anotación de un analista, no de ingeniería.
+  clase, con kappa medido) para entrenar un clasificador supervisado; no existen todavía
+  (CLAUDE.md §2.3 prohíbe entrenar sin esa guía). Anotar es trabajo de un analista, no de
+  ingeniería. Lo que sí se construyó: guía de anotación
+  (`docs/fichas/guia_anotacion_fenomenos.md`), herramienta y app de anotación por relato
+  (`make anotar-fenomenos`), y el clasificador entrenable con su compuerta de cobertura mínima
+  (`decla.fenomenos.clasificador`, `make entrenar-clasificador-fenomenos`) — rechaza entrenar
+  mientras la persona no haya anotado lo suficiente.
+- **Clasificador LLM local en cascada (ADR 0026, 2026-11-17):** se agregó un LLM generativo
+  local (Qwen2.5-14B-Instruct, `mlx-lm`) para dos roles — sugerir códigos con más detalle en
+  `make anotar-fenomenos` (acelera llegar al piloto de anotación) y reclasificar en producción
+  solo los relatos que el clasificador rápido marca `no_clasificado` (`make
+  clasificar-fenomenos-llm`), nunca el volumen completo (medido: ~38s/relato en este hardware,
+  inviable a escala de millones de filas si tocara cada una). No elimina el requisito de
+  anotación humana del punto anterior; lo complementa.
 
 **Pronóstico de frecuencia por fenómeno/territorio se reabrió (ADR 0016, 2026-11-05):** el
 umbral de ≥36 meses que lo bloqueaba lo fijó la planeación inicial sin conocer que los datos

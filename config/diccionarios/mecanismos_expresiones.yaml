@@ -78,3 +78,19 @@ expresiones:
     code: fraccionamiento_consignaciones
   - expresion: fraccionó el dinero
     code: fraccionamiento_consignaciones
+  - expresion: transporte de dinero en efectivo
+    code: transporte_de_divisas
+  - expresion: transportando dinero en efectivo
+    code: transporte_de_divisas
+  - expresion: sin justificar el origen del dinero
+    code: transporte_de_divisas
+  - expresion: sin acreditar el origen de los recursos
+    code: transporte_de_divisas
+  - expresion: transporte de oro
+    code: transporte_de_oro
+  - expresion: transportando oro
+    code: transporte_de_oro
+  - expresion: sin justificar el origen del oro
+    code: transporte_de_oro
+  - expresion: sin acreditar el origen del oro
+    code: transporte_de_oro

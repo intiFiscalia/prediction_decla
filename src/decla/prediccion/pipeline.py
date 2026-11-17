@@ -1,6 +1,7 @@
 """Punto de entrada de `make prediccion` (I4, Fase 9 — atípicos y pronósticos; clasificación
-temática no es viable todavía por falta de anotación, ver `reports/agregados/i4/viabilidad.md`
-y `docs/informes/I4_cierre.md`).
+temática sigue sin entrenarse por falta de anotación real, aunque su infraestructura ya existe
+—`make anotar-fenomenos` / `make entrenar-clasificador-fenomenos`, ADR 0024—, ver
+`reports/agregados/i4/viabilidad.md` y `docs/informes/I4_cierre.md`).
 
 Pronósticos reabiertos por ADR 0016 (2026-11-05): ya no exigen ≥36 meses de historia — se
 construyen con lo disponible, con modelo ingenuo obligatorio, sin estacionalidad (<12 meses) e

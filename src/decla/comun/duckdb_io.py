@@ -17,6 +17,15 @@ def conectar(ruta_bd: Path, solo_lectura: bool = True) -> duckdb.DuckDBPyConnect
     return duckdb.connect(str(ruta_bd), read_only=solo_lectura)
 
 
+def tabla_existe(conexion: duckdb.DuckDBPyConnection, esquema: str, tabla: str) -> bool:
+    resultado = conexion.sql(
+        "SELECT 1 FROM information_schema.tables "
+        "WHERE table_schema = $esquema AND table_name = $tabla",
+        params={"esquema": esquema, "tabla": tabla},
+    ).pl()
+    return resultado.height > 0
+
+
 def escribir_tabla_polars(
     conexion: duckdb.DuckDBPyConnection,
     esquema: str,

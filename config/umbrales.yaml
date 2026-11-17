@@ -54,3 +54,12 @@ deriva:
   # deriva los calculan; sin retroprueba real todavía (un solo lote procesado hasta ahora).
   psi_moderado: 0.10
   psi_significativo: 0.25
+clasificador_fenomeno:
+  # Clasificador multietiqueta de fenómenos sobre el relato completo (plan_trabajo.md §7.3; ADR
+  # 0024 reabre esta pieza de I4, cerrada como "no viable todavía" en I4_cierre.md por falta de
+  # anotación). `minimo_ejemplos_por_codigo` es el piso que pidió ese veredicto (50-100 relatos
+  # por clase) — `decla.fenomenos.clasificador.verificar_cobertura_minima` lo hace cumplir antes
+  # de entrenar, no es solo documentación. `confianza_minima` queda sin calibrar: no hay relatos
+  # anotados por fenómeno todavía (CLAUDE.md: no inventar un umbral sin evidencia).
+  minimo_ejemplos_por_codigo: 50
+  confianza_minima: pendiente_de_calibrar

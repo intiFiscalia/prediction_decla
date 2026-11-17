@@ -3,11 +3,12 @@ version: 1
 # colombiano. "mecanismo" y "actividad" llevan una definición en prosa (no solo palabras clave)
 # porque alimentan la clasificación zero-shot por similitud de embeddings
 # (decla.conocimiento.zero_shot): comparar contra una oración define mejor el significado que
-# comparar contra una palabra suelta. 12 de los 13 códigos de "mecanismo" reutilizan
+# comparar contra una palabra suelta. 12 de los 15 códigos de "mecanismo" reutilizan
 # deliberadamente los fenómenos plantados en tests/fixtures/verdad.parquet (CLAUDE.md §4.20),
 # para poder medir recuperación contra esa verdad de terreno. `lavado_activos_sin_detalle` (ADR
-# 0021, 2026-11-13) es la excepción: un catch-all explícito para relatos sin modus operandi
-# descrito, no una técnica — no tiene (todavía) ejemplos plantados en la verdad de terreno.
+# 0021, 2026-11-13), `transporte_de_divisas` (ADR 0022, 2026-11-13) y `transporte_de_oro` (ADR
+# 0023, 2026-11-13) son la excepción: no tienen (todavía) ejemplos plantados en la verdad de
+# terreno.
 
 categorias:
   - nombre: mecanismo
@@ -67,6 +68,14 @@ categorias:
           u operación concreta (no menciona bienes, empresas, testaferros, giros, minería,
           contrabando ni ningún otro modus operandi específico): no hay suficiente detalle en el
           texto para identificar un mecanismo más preciso.
+      - codigo: transporte_de_divisas
+        definicion: >
+          Persona capturada transportando grandes cantidades de dinero en efectivo sin poder
+          acreditar ni justificar documentalmente el origen de esos recursos.
+      - codigo: transporte_de_oro
+        definicion: >
+          Persona capturada transportando grandes cantidades de oro sin poder acreditar ni
+          justificar documentalmente el origen de ese oro.
 
   - nombre: actividad
     descripcion: Acción concreta descrita en el relato (verbo + objeto), más granular que el mecanismo.

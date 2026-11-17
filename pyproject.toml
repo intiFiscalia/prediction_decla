@@ -36,6 +36,10 @@ fenomenos = [
   "bertopic>=0.16",
   "scikit-learn>=1.5",
 ]
+fenomenos_llm = [
+  "mlx>=0.19",
+  "mlx-lm>=0.19",
+]
 analitica = [
   "statsmodels>=0.14",
   "scipy>=1.14",

@@ -40,8 +40,7 @@ Modo plan para el bloque 2A; al cerrar cada bloque, vuelve a modo plan para el s
 8. **Embeddings**: fragmentación por oraciones en ventanas que respeten el límite de cada modelo;
    agregación por relato (media y máximo, ambas guardadas) y por segmento `descripcion_hecho`.
    Compara ≥ 2 modelos de `models/MANIFEST.json` (incluido uno de contexto largo) con:
-   (a) fixtures (recuperación del fenómeno plantado: precisión@k), y (b) una herramienta local para que
-   analistas califiquen 200–300 pares de relatos reales (mismo fenómeno / distinto) que genere el
+   (a) fixtures (recuperación del fenómeno plantado: precisión@k), y (b) una herramienta local 
    cálculo de Spearman y precisión@k en `reports/agregados/i2/embeddings.md`. Mide tiempo y RAM.
    Guarda vectores en Parquet con `version_modelo`.
 9. **Buscador semántico** mínimo (CLI y función reutilizable): consulta en lenguaje natural o

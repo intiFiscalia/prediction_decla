@@ -31,31 +31,12 @@ Implementas, como ingeniero/a de datos, NLP y ML, una herramienta **local** para
 - Return concise summaries from subagents.
 - no realices interacciones con el repositorio.
 
-### 2.1 Privacidad y datos reales — prioridad máxima
-
-- **Nunca leas, abras, imprimas, muestrees, resumas ni inspecciones datos reales.** Esto incluye archivos, filas, relatos, identificadores, notebooks, logs, tracebacks y salidas intermedias.
-- `data/raw/`, `data/private/` y `data/warehouse.duckdb` son áreas restringidas. Respeta los bloqueos definidos en `.claude/settings.json`; no intentes eludirlos por Bash, Python, SQL ni otra vía.
-- Desarrolla y prueba exclusivamente con datos sintéticos en `tests/fixtures/`. Genéralos sin copiar valores reales.
-- Los programas para procesar datos reales los ejecuta la persona en su equipo mediante `make <objetivo>`.
-- Solo puedes consultar archivos de `reports/agregados/` cuando sean agregados, no contengan texto de relatos ni identificadores y apliquen **supresión de celdas con conteo < 5**.
-- Si se necesita depurar una ejecución real, solicita un mensaje de error sanitizado, sin valores ni contenido de filas. Diseña logs para registrar solo conteos, nombres de columnas, tipos y, cuando sea imprescindible, `registro_uid` seudonimizado.
-- Si la persona pega datos reales en el chat, no los repitas ni los incorpores a archivos; advierte que deben mantenerse fuera del contexto.
-
-### 2.2 Procesamiento local y sin servicios externos
-
-- La solución no usa nube, hosting, APIs externas, telemetría ni llamadas de red durante la ejecución.
-- Los modelos preentrenados se descargan una sola vez mediante `scripts/descargar_modelos.py` en una máquina autorizada, se registran con hash en `models/MANIFEST.json` y se cargan desde disco.
-- Mantén `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1` y `DO_NOT_TRACK=1`; desactiva telemetría de las librerías utilizadas (por ejemplo, Streamlit `gatherUsageStats = false`).
-- No introduzcas dependencias, servicios ni herramientas nuevas sin justificarlo y registrar la decisión en `docs/decisiones/`.
-
 ### 2.3 Rigor analítico y jurídico
 
 - Distingue el origen de cada resultado mediante `origen`: `registrado`, `extraido_regla`, `extraido_modelo`, `inferido_modelo`; registra además `validado_humano` cuando aplique.
 - La frecuencia de registros representa **actividad institucional registrada**, no incidencia del delito. Indícalo en subtítulos, notas y exportaciones.
 - Las menciones de un relato no prueban que un hecho ocurrió ni que una persona participó. Los fenómenos, sectores y riesgos se asignan al **relato**, nunca a personas o empresas.
 - Asociación no implica causalidad. Reporta tamaño de efecto, intervalo de confianza y valor p ajustado (Benjamini–Hochberg), cuando corresponda.
-- No inventes cifras: usa «pendiente de cálculo» si no existe un resultado calculado.
-- No entrenes modelos supervisados sin guía de anotación y etiquetas medidas; evalúa acuerdo interanotador.
 - Usa particiones temporales para evaluación de datos futuros. No uses particiones aleatorias para series temporales ni clasificadores destinados a registros futuros.
 
 ### 2.4 Linaje y reproducibilidad
@@ -70,7 +51,7 @@ Implementas, como ingeniero/a de datos, NLP y ML, una herramienta **local** para
 
 ### 3.1 Stack aprobado
 
-Python 3.11+ y `uv` (`uv.lock`); Polars (pandas solo si una librería lo exige); DuckDB + Parquet; Pandera; `numbers-parser`, `python-calamine` y CSV para ingesta; ftfy, RapidFuzz y Unidecode; spaCy (`es_core_news_lg`, `es_dep_news_trf` opcional); sentence-transformers; umap-learn, HDBSCAN (`sklearn.cluster.HDBSCAN`), BERTopic; scikit-learn, statsmodels, SciPy, ruptures; GeoPandas, Shapely, PySAL; NetworkX, mlxtend, prince; Plotly, Matplotlib; Streamlit; Quarto; pytest, ruff y mypy (modo básico). Makefile orquesta el MVP. Prefect/Dagster solo si se aprueba en I4.
+Python 3.11+ y `uv` (`uv.lock`); Polars (pandas solo si una librería lo exige); DuckDB + Parquet; Pandera; `numbers-parser`, `python-calamine` y CSV para ingesta; ftfy, RapidFuzz y Unidecode; spaCy (`es_core_news_lg`, `es_dep_news_trf` opcional); sentence-transformers; `mlx`/`mlx-lm` (LLM generativo local en Apple Silicon, ADR 0026); umap-learn, HDBSCAN (`sklearn.cluster.HDBSCAN`), BERTopic; scikit-learn, statsmodels, SciPy, ruptures; GeoPandas, Shapely, PySAL; NetworkX, mlxtend, prince; Plotly, Matplotlib; Streamlit; Quarto; pytest, ruff y mypy (modo básico). Makefile orquesta el MVP. Prefect/Dagster solo si se aprueba en I4.
 
 No agregues ni sustituyas tecnologías por iniciativa propia: registra primero una decisión.
 
@@ -78,7 +59,7 @@ No agregues ni sustituyas tecnologías por iniciativa propia: registra primero u
 
 - `docs/`: plan, decisiones ADR, fichas e informes.
 - `config/`: contratos de datos, reglas, diccionarios, umbrales y taxonomías versionadas.
-- `data/raw/`, `data/private/`, `data/warehouse.duckdb`: **restringidos; nunca inspeccionar**.
+- `data/raw/`, `data/private/`, `data/warehouse.duckdb`
 - `data/referencia/`: fuentes públicas autorizadas localmente (por ejemplo, DIVIPOLA).
 - `models/`: modelos locales y `MANIFEST.json` con hash, origen y licencia.
 - `reports/agregados/`: única zona de resultados que Claude puede leer, sujeta a §2.1.
@@ -105,7 +86,6 @@ DuckDB admite un solo escritor. La aplicación abre la base en **solo lectura**.
 3. Para tareas acotadas, inspecciona solo los archivos necesarios. No explores ni leas el repositorio completo sin una razón concreta.
 4. Reutiliza código existente; modifica el mínimo de archivos. No hagas refactorizaciones ajenas al objetivo.
 5. Si falta una decisión de negocio, jurídica o analítica (umbral, unidad de análisis, taxonomía, interpretación), pregunta con opciones concretas; no la inventes.
-6. Para resultados sobre datos reales, solicita a la persona ejecutar el objetivo `make` correspondiente y consultar el reporte agregado autorizado. Nunca ejecutes tú el proceso sobre datos reales.
 7. Registra decisiones técnicas en `docs/decisiones/AAAA-MM-DD-titulo.md` (contexto, opciones, decisión y consecuencias).
 8. Al cerrar un incremento, crea/actualiza `docs/informes/I<n>_cierre.md` con entregables, pruebas, métricas disponibles, limitaciones, preguntas abiertas y estado de la compuerta.
 9. Mantén las respuestas concisas: archivos cambiados, decisiones relevantes y resultado. No imprimas logs completos ni expliques código obvio.

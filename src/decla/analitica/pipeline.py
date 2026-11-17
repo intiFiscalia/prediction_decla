@@ -41,6 +41,7 @@ RUTA_AGREGADOS_I3_DEFECTO = RAIZ_PROYECTO / "reports" / "agregados" / "i3"
 _COLUMNAS_CONTEO = {
     "fenomenos": ["n_noticias"],
     "sectores": ["n"],
+    "mecanismo": ["n"],
     "territorio_predominio": ["n_total", "n_predominante", "n_segundo"],
     "territorio_dispersion_puntos": ["n_puntos_validos"],
 }
@@ -50,6 +51,7 @@ def _calcular_tablas_indicadores(conexion: Any) -> dict[str, pl.DataFrame]:
     return {
         "fenomenos": ind.ind_fenomenos(conexion),
         "sectores": ind.ind_sectores(conexion),
+        "mecanismo": ind.ind_mecanismo(conexion),
         "territorio_perfil": terr.matriz_perfil_territorial(conexion),
         "territorio_predominio": terr.predominio_territorial(conexion),
         "territorio_calidad_puntos": terr.resumen_calidad_puntos(conexion),

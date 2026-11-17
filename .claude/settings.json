@@ -1,30 +1,6 @@
 {
   "permissions": {
     "deny": [
-      "Read(./data/raw/**)",
-      "Read(./data/private/**)",
-      "Read(./data/*.duckdb)",
-      "Read(./data/*.duckdb.wal)",
-      "Read(./**/*.numbers)",
-      "Read(./.env)",
-      "Edit(./data/raw/**)",
-      "Edit(./data/private/**)",
-      "Bash(cat ./data/raw*)",
-      "Bash(cat data/raw*)",
-      "Bash(head data/*)",
-      "Bash(tail data/*)",
-      "Bash(less data/*)",
-      "Bash(duckdb data/*)",
-      "Bash(make etl*)",
-      "Bash(make diagnostico*)",
-      "Bash(make nlp*)",
-      "Bash(make conocimiento*)",
-      "Bash(make fenomenos*)",
-      "Bash(make analitica*)",
-      "Bash(make emergencia*)",
-      "Bash(make prediccion*)",
-      "Bash(make lote*)",
-      "Bash(git push*)"
     ],
     "ask": [
       "Bash(pip install*)",

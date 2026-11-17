@@ -28,3 +28,9 @@ modelos:
     repo_id: BAAI/bge-m3
     licencia: MIT
     uso: "Contexto largo (hasta 8192 tokens), útil para relatos extensos; más pesado (Fase 4, 6)."
+
+  - id: qwen2.5-14b-instruct-4bit
+    tipo: mlx-lm
+    repo_id: mlx-community/Qwen2.5-14B-Instruct-4bit
+    licencia: "Apache-2.0 (confirmado en README del repo tras descargar)"
+    uso: "Clasificación de fenómenos por relato con razonamiento sobre texto completo, en cascada con el clasificador sklearn (ADR 0026)."

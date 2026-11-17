@@ -256,9 +256,11 @@ def ind_fenomenos(conexion: duckdb.DuckDBPyConnection) -> pl.DataFrame:
     calcula contra el total de relatos procesados, no contra la suma de los `n_noticias` de cada
     fenómeno: esa suma puede superar el 100 %, y eso es esperado, no un error de conteo.
 
-    "Conteo ajustado" (plan §7.4, suma de probabilidades) no se reporta aparte: toda probabilidad
-    hoy es 1.0 (membresía de clustering, no de un clasificador calibrado — eso es Fase 9/I4), así
-    que coincide exactamente con `n_noticias`.
+    "Conteo ajustado" (plan §7.4, suma de probabilidades) no se reporta aparte todavía: las filas
+    de clustering siguen con `probabilidad=1.0`, pero desde ADR 0025 puede haber también filas
+    promovidas del clasificador (`make promover-clasificador-fenomenos`) con probabilidad real —
+    si conviven ambos métodos para un mismo código, `n_noticias` ya no es exactamente la suma de
+    probabilidades. Calcular el conteo ajustado queda pendiente de esa pieza.
     """
     return conexion.sql(
         """
