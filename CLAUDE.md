@@ -1,140 +1,137 @@
-# CLAUDE.md — Analítica local DECLA (Colombia)
+# CLAUDE.md — contexto del proyecto GIC
 
-## 1. Propósito y fuentes de verdad
+Este archivo da a Claude (o a cualquier asistente) el contexto y las reglas con que se construyó el proyecto, para editarlo sin romper lo que ya funciona. Léalo completo antes de cambiar algo.
 
-Implementas, como ingeniero/a de datos, NLP y ML, una herramienta **local** para analizar registros SPOA y relatos en español del ámbito de la Dirección Especializada contra el Lavado de Activos. El resultado incluye indicadores, fenómenos semánticos, análisis temporal y territorial, sectores económicos, asociaciones, alertas y pronósticos evaluables.
+## 1. Qué es y de dónde viene
 
-- Alcance, fases I0–I4 y criterios de aceptación: `docs/plan_trabajo.md` (**fuente de verdad del plan**).
-- Reglas permanentes de trabajo, privacidad y arquitectura: este archivo.
-- Hechos observados en los datos: §5 y diagnósticos agregados en `reports/agregados/diagnostico/`.
-- Decisiones técnicas aprobadas: `docs/decisiones/`.
-- Si hay contradicción: respeta el plan para el alcance; respeta los diagnósticos completos para describir los datos reales. No conviertas hallazgos de una muestra en reglas generales. Documenta discrepancias o decisiones nuevas en `docs/decisiones/`.
+- Reporte analítico de los relatos que llegan al **Grupo de Información Criminal (GIC)** de la Fiscalía, construido a
+  partir del Excel `DatosAn_lisisReumenGICLavado_V1.xlsx` (598 relatos, ingreso 26-sep-2024 a 10-nov-2026, 49 columnas).
+- Existe un tablero publicado en Claude (artefacto de tipo *Data*, «GIC · Reporte de fenómenos criminales») con la
+  misma página. Este proyecto lo reproduce fuera de Claude: `reporte/src/` es el mismo código de página y
+  `reporte/dash_shim.js` emula el entorno `dash` del tablero.
+- Regla del usuario: **«apégate al plan de la solicitud»**. El plan original pedía las páginas 1–8; después se
+  añadió la 9 (predicciones) y la 10 (fenómenos del lavado). El 2026-11-19 el usuario pidió simplificar la
+  interfaz: la 9 se fusionó dentro de la 7 (ambas son «predicción») y la 10 se absorbió en la 2 (ver más abajo),
+  así que hoy quedan 8 páginas:
+  1. Indicadores descriptivos: conteos y tasas por periodo, territorio, delito y etapa procesal, siempre con el
+     recordatorio de que miden **actividad institucional registrada, no incidencia real del delito**.
+  2. Fenómenos semánticos: distribución por fenómeno (taxonomía versionada; lavado por sector/mecanismo), con
+     **origen** (registrado / extraído_regla / extraído_modelo / inferido) y **confianza** visibles. Incluye los
+     fenómenos de «delito fuente» del lavado (narcotráfico, corrupción, captación, etc. — ver sección 4).
+  3. Territorio: mapas departamental y municipal normalizados contra **DIVIPOLA**, con cocientes de localización.
+  4. Sectores económicos: asociación fenómeno↔sector **CIIU** con tamaño de efecto (OR), IC95 y p ajustado
+     **Benjamini–Hochberg**; nunca «solo correlación».
+  5. Red de asociaciones: co-ocurrencias (actividad, mecanismo, bien, lugar) con NetworkX y reglas de asociación.
+  6. Emergencia/alertas: **EARS/CUSUM** sobre línea base Poisson/binomial negativa, con **tasa de falsas alarmas**;
+     siempre «señal para revisión», nunca alarma definitiva.
+  7. Predicciones: pronóstico de cuántos relatos llegarán (**modelo ingenuo de referencia obligatorio**, intervalos
+     amplios, poca historia — **ADR 0016**) junto con las «otras predicciones»: probabilidad de generar caso,
+     tiempo hasta el cierre, relatos abiertos y composición futura de fenómenos. Reescrita en lenguaje sencillo a
+     pedido del usuario.
+  8. Organizaciones criminales identificadas.
+- El plan mayor del usuario es una app Streamlit sobre DuckDB (tablas «oro», autenticación, exportación); este
+  proyecto es la versión de reporte y no la incluye.
 
-**Gestión de contexto:** no releas indiscriminadamente todo el repositorio. Consulta el plan, decisiones, fichas e informes solo cuando sean pertinentes para la tarea actual. No reproduzcas este archivo en tus respuestas.
+## 2. Cómo correr y verificar
 
-## 2. Reglas no negociables
+```bash
+pip install -r requirements.txt
+python run.py --verificar      # debe decir: Las 22 tablas coinciden exactamente con el resultado publicado.
+```
 
-### 2.0 optimizacion de tokens
+`run.py` ejecuta, en orden: `pipeline/pipeline.py` → `pipeline/predicciones.py` → `reporte/build_report.py`. Cada
+script recibe `<excel> <carpeta_out> <nombre_archivo>`. `predicciones.py` lee `hechos.json`, `etiquetas.json`,
+`organizaciones.json` y `calidad.json` del paso anterior.
 
-- Para ejecutar una funcionalidad nueva: empieza con /clear.
-- Para una corrección independiente: empieza con /clear.
-- Una tarea extensa que necesita continuidad: utiliza /compact.
-- Utiliza un subagente para analizar cuando se necesite analizar todo el proyecto o hacer investigaciones.
-- entrega respuestas breves y tecnicas de no mas de 300 palabras.
-- No expliques codigo obvio y evita explicaciones innecesarias.
-- Solo inspecciona archivos relevantes para el trabajo a realizar.
-- Do not load large logs, datasets or unnecessary documentation.
-- Report only relevant findings and changes.
-- Modify the minimum number of files.
-- Execute only relevant tests.
-- Do not run redundant validations.
-- Return concise summaries from subagents.
-- no realices interacciones con el repositorio.
+**Contrato de reproducibilidad:** con el mismo Excel, las 22 tablas de `out/` deben coincidir con
+`tests/referencia.json` (huella SHA-256 de las filas, sin el campo `meta`). Para mantenerlo:
+- No cambie semillas (`RNG = default_rng(20261118)`, `RNG_SUB = default_rng(777)` para series de subgrupo,
+  `random_state=7`/`1` en validación cruzada) ni el orden de los bucles que consumen números aleatorios.
+- Los relatos se ordenan por `FechaIngreso`, `IdEntrada` (orden estable) en los tres scripts; `rid` es la posición
+  1..N en ese orden. No cambie eso o todo se desalinea.
+- Las versiones de `requirements.txt` están fijadas a propósito.
+- Si un cambio *debe* mover cifras, dígaselo al usuario con el valor anterior y el nuevo, y solo entonces regenere
+  la referencia con `python tests/verificar.py out --crear`.
 
-### 2.3 Rigor analítico y jurídico
+## 3. Datos y privacidad
 
-- Distingue el origen de cada resultado mediante `origen`: `registrado`, `extraido_regla`, `extraido_modelo`, `inferido_modelo`; registra además `validado_humano` cuando aplique.
-- La frecuencia de registros representa **actividad institucional registrada**, no incidencia del delito. Indícalo en subtítulos, notas y exportaciones.
-- Las menciones de un relato no prueban que un hecho ocurrió ni que una persona participó. Los fenómenos, sectores y riesgos se asignan al **relato**, nunca a personas o empresas.
-- Asociación no implica causalidad. Reporta tamaño de efecto, intervalo de confianza y valor p ajustado (Benjamini–Hochberg), cuando corresponda.
-- Usa particiones temporales para evaluación de datos futuros. No uses particiones aleatorias para series temporales ni clasificadores destinados a registros futuros.
+- El Excel contiene nombres, cédulas y textos sensibles. **Ninguna tabla de `out/` incluye el texto de
+  `ResumenHechos`, nombres ni documentos.** La única excepción acordada es `IdEntrada` en `pred_abiertos.json`
+  (código interno para ubicar el caso), que el usuario puede pedir quitar.
+- Los nombres de organizaciones criminales (Clan del Golfo, ELN, etc.) sí se muestran: son públicos.
+- Calidad conocida de la base: sep-2024 y nov-2026 son meses parciales; jul-2025 (2 relatos) y ago-2025 (0) son un
+  posible vacío de registro; sep-2025 se marca «posterior a vacío: posible rezago acumulado»; oct-2026 tiene solo 6
+  relatos (posible carga incompleta).
+- `DecisionFiscalUGIC = "SIN ESPECIFICAR"` se trata igual que vacío («Sin decisión registrada»).
+- `LugarDeLosHechos` viene como «Municipio, Departamento, Colombia» (o «SIN DETERMINAR»). Un municipio solo se
+  acepta si coincide con su departamento. Los municipios que no están en `divipola.py` cuentan para su departamento,
+  pero no aparecen como punto en el mapa. Si el campo no sirve, se buscan municipios no ambiguos en el relato
+  (origen extraído_regla, confianza 0,6).
 
-### 2.4 Linaje y reproducibilidad
+## 4. Decisiones de método (no cambiar sin pedirlo)
 
-- Identificador de linaje: `registro_uid = sha256(lote_id | tabla_origen | n_fila | contenido_fila_normalizado)`.
-- Toda tabla derivada conserva `registro_uid` o llave agregada, `run_id`, `lote_id` y, cuando aplique, `version_taxonomia`, `version_modelo`, `origen` y `confianza`.
-- Registra en `meta.ejecuciones`: run_id, inicio/fin, commit Git, hash de entradas, parámetros, versiones de librerías/modelos, estado y conteos de entrada/salida/cuarentena.
-- Fija y registra semillas. Las transformaciones deben ser idempotentes: misma entrada y parámetros producen la misma salida.
-- Ninguna capa modifica la anterior. Las correcciones se implementan como reglas versionadas en `config/`.
+- **Taxonomía v1.0** (`taxonomia.py`): fenómenos, mecanismos de lavado, bienes, sectores CIIU por palabras clave y
+  códigos CIIU explícitos (confianza 0,9), organizaciones. Confianza de regla = `min(0,9; 0,55 + 0,15·(aciertos−1))`.
+- **Origen:** registrado (temática/delito SPOA, 1,0) > extraído_regla > extraído_modelo (TF-IDF + regresión
+  logística por fenómeno, p ≥ 0,6, predicción fuera de muestra) > inferido (0,5–0,55). Si una etiqueta llega por
+  varias vías, se conserva la más fuerte.
+- **Sectores:** Fisher bilateral, OR con corrección de Haldane e IC95 de Woolf, BH sobre todos los pares
+  (fenómenos con ≥10 relatos, sectores con ≥5). Mensaje: co-mención, no causalidad.
+- **Red:** nodos con ≥4 relatos; aristas con ≥3 relatos y lift ≥1,2; comunidades por modularidad voraz; posiciones
+  `spring_layout(seed=7)`.
+- **Alertas:** línea base de 6 meses con 2 de guarda (≥4 meses válidos); umbral cuantil 99 % Poisson/NB; CUSUM
+  k=0,5, h=4; tasa de falsas alarmas con 1.000 simulaciones bajo no cambio.
+- **Pronósticos:** ingenuo (obligatorio), media móvil 6 meses, suavizado exponencial simple; intervalos 80/95 % por
+  simulación con residuos y binomial negativa; validación con origen móvil (6 orígenes, horizontes 1–3, MAE y MASE).
+  En la página, el método «auto» usa el de menor MAE. Series: total, 7 fenómenos principales, 4 departamentos y
+  4 entidades.
+- **Predicciones (sección 7, «otras predicciones»):** regresión logística con TF-IDF + campos de entrada, entrenada solo con relatos con
+  decisión final (AUC ≈ 0,71 con texto, 0,67 sin texto); Kaplan–Meier por tipo de entrada con abiertos censurados;
+  composición = últimos 12 meses completos vs. anteriores, IC de Wilson.
+- **«Lavado de activos» como fenómeno residual (fusionado a la sección 2 el 2026-11-19, `taxonomia.py` +
+  `pipeline.py`):** casi todos los relatos ya traen `DELITO`/`TematicaPriorizada` = «lavado de activos», así que esa
+  etiqueta por sí sola no distingue casos. `FENOMENOS_LAVADO_EXTRA` (en `taxonomia.py`) son patrones de texto
+  adicionales —antes vivían aparte, en lo que fue la sección «Fenómenos del lavado de activos»— que `pipeline.py`
+  aplica **solo** a los relatos cuyo único fenómeno es «Lavado de activos», para intentar asignarles un fenómeno
+  ya existente en `FENOMENOS` (p. ej. narcotráfico, corrupción, captación). Si encuentran algo, ese fenómeno se
+  suma con origen `extraído_regla` y la etiqueta «Lavado de activos» se retira de ese relato (es la categoría
+  residual: lo que no se pudo segregar). `hechos.json` guarda `es_lavado` (el conjunto completo, antes de esa
+  poda) porque las vistas «por mecanismo»/«por sector» de la sección 2 deben seguir cubriendo a *todos* los
+  relatos de lavado, no solo a los residuales (`reporte/src/calcs.js`, `fen_dist`). No se tocan `MECANISMOS`,
+  `BIENES`, `SECTORES` ni `ORGANIZACIONES`. Efecto medido en la base publicada: de 513 relatos de lavado, 348
+  quedaron con un fenómeno específico y 165 siguen como «Lavado de activos».
+- **Variables del `.env`:** sus valores reemplazan a las variables de entorno del equipo con el mismo nombre.
 
-## 3. Arquitectura y convenciones
+## 5. La página (`reporte/src/`)
 
-### 3.1 Stack aprobado
+- Escrita para el tablero *Data* de Claude con la regla «un escritor por parte»: todo texto fijo va en
+  `index.html`; lo que depende de los datos va en elementos `data-draw="nombre"` guardados vacíos o con «—», que
+  llenan los scripts con `dash.draw(nombre, fn)`. Fuera de un dibujo, un script solo escucha eventos y cambia
+  `class`, `style`, `hidden`, `value`, `aria-*`.
+- Cada cifra lleva `data-source`/`data-field`/`data-row` (o `data-where`) para que el tablero muestre de dónde
+  viene. Las tablas: `data-source` + `data-row-key` en `<table>` y `data-field` en cada `<th>`.
+- Cálculos que dependen de filtros: `dash.calc(id, {inputs, fn})` en `calcs.js` y `pron.js`; cada `fn` es
+  autocontenida (solo usa sus entradas, `d3` y `dash.params()`).
+- Filtros globales: `desde`, `hasta` (mes), `dpto` (código DIVIPOLA). Aplican a las secciones 1, 2 y 8; la 3 solo
+  usa el periodo; 4–7 se calcularon sobre el total.
+- Identificadores de fuentes ↔ archivos: ver `FUENTES` en `reporte/build_report.py` (es el mismo mapeo del tablero).
+- Estilo: textos en español de Colombia, números con coma decimal y punto de miles (`G.int`, `G.pct`, `G.d1`…), clases
+  con prefijo `gic-`, colores de series de `dash.colors`. Gráficos con tooltip, líneas punto a punto, sin anchos
+  fijos (ancho desde `clientWidth`).
+- Pestañas: secciones `<section data-sec>` con `hidden`; para imprimir se muestran todas.
+- Para probar: `python reporte/build_report.py` y `node tests/probar_reporte.mjs reporte/dist/reporte.html`
+  (debe dar 0 errores y ningún «—» sin llenar).
 
-Python 3.11+ y `uv` (`uv.lock`); Polars (pandas solo si una librería lo exige); DuckDB + Parquet; Pandera; `numbers-parser`, `python-calamine` y CSV para ingesta; ftfy, RapidFuzz y Unidecode; spaCy (`es_core_news_lg`, `es_dep_news_trf` opcional); sentence-transformers; `mlx`/`mlx-lm` (LLM generativo local en Apple Silicon, ADR 0026); umap-learn, HDBSCAN (`sklearn.cluster.HDBSCAN`), BERTopic; scikit-learn, statsmodels, SciPy, ruptures; GeoPandas, Shapely, PySAL; NetworkX, mlxtend, prince; Plotly, Matplotlib; Streamlit; Quarto; pytest, ruff y mypy (modo básico). Makefile orquesta el MVP. Prefect/Dagster solo si se aprueba en I4.
+## 6. Reglas de trabajo para editar
 
-No agregues ni sustituyas tecnologías por iniciativa propia: registra primero una decisión.
-
-### 3.2 Estructura relevante
-
-- `docs/`: plan, decisiones ADR, fichas e informes.
-- `config/`: contratos de datos, reglas, diccionarios, umbrales y taxonomías versionadas.
-- `data/raw/`, `data/private/`, `data/warehouse.duckdb`
-- `data/referencia/`: fuentes públicas autorizadas localmente (por ejemplo, DIVIPOLA).
-- `models/`: modelos locales y `MANIFEST.json` con hash, origen y licencia.
-- `reports/agregados/`: única zona de resultados que Claude puede leer, sujeta a §2.1.
-- `src/decla/`: ingesta, calidad, normalización, entidades, texto, conocimiento, fenómenos, analítica, emergencia, predicción, evaluación, app y utilidades comunes.
-- `tests/`: pruebas unitarias, integración y fixtures sintéticos.
-- `scripts/`, `Makefile`: utilidades y orquestación.
-
-### 3.3 Capas de datos
-
-`bronce` (crudo como texto) → `plata` (tipado, validado, normalizado y seudonimizado) → `entidades` → `texto` → `fenomenos` → `oro` (indicadores, asociaciones, alertas y pronósticos) → `revision` (anotación humana). `meta` almacena ejecuciones, lotes y calidad.
-
-DuckDB admite un solo escritor. La aplicación abre la base en **solo lectura**.
-
-### 3.4 Estilo y calidad
-
-- Funciones pequeñas y puras por regla; cada regla de limpieza tiene prueba unitaria y fixture sintético.
-- Nombres de columnas derivadas y docstrings en español; `snake_case`.
-- Antes de cerrar una tarea, ejecuta las pruebas y validaciones pertinentes. Para cierre de incremento, ejecuta `make test`, `make lint` 
-
-## 4. Forma de trabajo
-
-1. **Al iniciar un incremento:** consulta la fase correspondiente de `docs/plan_trabajo.md` y los ADR/fichas pertinentes. Presenta un plan breve con tareas, archivos previstos y criterios de aceptación. Espera aprobación antes de implementar.
-2. Trabaja por incrementos I0–I4 y respeta las compuertas de aprobación. No avances de incremento sin autorización.
-3. Para tareas acotadas, inspecciona solo los archivos necesarios. No explores ni leas el repositorio completo sin una razón concreta.
-4. Reutiliza código existente; modifica el mínimo de archivos. No hagas refactorizaciones ajenas al objetivo.
-5. Si falta una decisión de negocio, jurídica o analítica (umbral, unidad de análisis, taxonomía, interpretación), pregunta con opciones concretas; no la inventes.
-7. Registra decisiones técnicas en `docs/decisiones/AAAA-MM-DD-titulo.md` (contexto, opciones, decisión y consecuencias).
-8. Al cerrar un incremento, crea/actualiza `docs/informes/I<n>_cierre.md` con entregables, pruebas, métricas disponibles, limitaciones, preguntas abiertas y estado de la compuerta.
-9. Mantén las respuestas concisas: archivos cambiados, decisiones relevantes y resultado. No imprimas logs completos ni expliques código obvio.
-
-## 5. Hallazgos confirmados del diagnóstico I0
-
-**Base:** diagnóstico ejecutado el 2026-10-23 sobre 978 filas de CASOS y 978 de RELATOS, en CSV. Los hallazgos siguientes describen ese corte; valida cambios en nuevos lotes. Los diagnósticos detallados están en `reports/agregados/diagnostico/`.
-
-### 5.1 Estructura e identificadores
-
-- Grano confirmado: una fila = una noticia criminal. 978 `CASO_ID` únicos = 978 `CASO_NOTICIA` únicos; sin filas vacías ni duplicados exactos/parciales.
-- CASOS↔RELATOS: unión 1:1, 100 % de cobertura en ambos sentidos, sin huérfanos.
-- `CASO_NOTICIA` tiene 21 dígitos. Estructura validada: municipio DIVIPOLA (5) + entidad (2) + unidad (5) + año (4) + consecutivo (5). El año embebido coincide con `FECHA_CREACION` en 99,8 %.
-- El esquema se controla mediante `config/esquema_fuente.yaml`. Ingesta `.numbers`, `.xlsx` y `.csv`; lee inicialmente como texto. Mantén identificadores como texto y normaliza sufijo `.0` cuando provenga de lectores que convierten a flotante.
-- Columnas adicionales identificadas: `UNID_DESCRIPCION` y `eje tmeatico APLICA`. La columna `EJE_TEMATICO` no existe. No equipares nombres ni interpretes valores sin regla aprobada.
-- `DELITO` pudo separarse en nombre/artículo/cuantía en 96,2 % (941/978); quedan 37 valores por revisar para ampliar reglas.
-
-### 5.2 Fechas, territorio y calidad
-
-- El dataset cubre enero–octubre de 2026 (10 meses). El umbral original de 36 meses para pronósticos (plan §8.4) lo fijó la planeación inicial sin conocer el ciclo real de entrega (datos anuales): nunca se va a acumular esa historia continua. Decisión (ADR 0016): se construyen pronósticos con la historia disponible, con modelo ingenuo obligatorio de referencia y advertencia explícita de intervalos amplios y sin estacionalidad estimable con menos de 12 meses — nunca oculta.
-- No uses `FECHA_HECHO + 20 años` como regla de prescripción: solo 19,12 % cumple exactamente; el plazo varía según delito/artículo.
-- Normalización territorial contra DIVIPOLA: 38,2 % coincidencia exacta; 49,6 % tras normalización; 12,2 % (119 filas) no resueltas en ese corte. No inventes asignaciones; conserva método, confianza y pendientes de revisión.
-- Coordenadas: 95,4 % correctas, 4,5 % vacías, 0,1 % requirió reescalado; sin coordenadas invertidas o fuera de Colombia en el diagnóstico. Precisión efectiva aproximada de 3 decimales; no infieras precisión espacial mayor.
-- `ESTADO` y `ETAPA` tienen variedad real. `RUPTURA` vacía en 88,3 %; `CASO_GRUPO_ESPECIALIZADO` en 28,3 %; `OTROS_DELITOS` en 92,4 %.
-- `SECC_DESCRIPCION`: 64 % Delitos Fiscales y 35 % Lavado de Activos. **Alcance aprobado:** solo «Dirección Especializada contra el Lavado de Activos» (347 filas en el corte I0). Excluye Delitos Fiscales en plata/entidades de I1, nunca en bronce.
-- `eje tmeatico APLICA`: 72,0 % `"0"`, 8,5 % `"por establecer"` y valores temáticos minoritarios. Su significado requiere interpretación aprobada; no asumas que `"0"` equivale a «no aplica».
-- 90 pares de relatos casi idénticos entre noticias distintas (MinHash); pendiente determinar si son plantillas o hechos relacionados.
-
-### 5.3 Texto y privacidad
-
-- No se confirmó mojibake cirílico sistemático en el dataset completo. No apliques reparación de codificación de forma general; detecta y prueba cualquier caso antes de corregir.
-- Los relatos presentan longitudes y estilos heterogéneos, errores de digitación y documentos citados. La fragmentación y la limpieza deben preservar el contenido sustantivo; no «corrijas» interpretaciones jurídicas o fácticas.
-- Los relatos contienen datos personales abundantes. Seudonimiza en plata y enmascara en toda vista analítica. No expongas texto ni identificadores en logs, reportes o interfaces.
-
-### 5.4 Hallazgos de muestra que NO son reglas del dataset completo
-
-Una muestra pequeña anterior sugirió: cero coincidencias CASOS↔RELATOS, filas vacías, mojibake cirílico sistemático, coordenadas muy corruptas y prescripción = fecha del hecho + 20 años. El diagnóstico completo refutó esas generalizaciones. **No implementes esas hipótesis como reglas.** Consulta el diagnóstico agregado si necesitas el detalle histórico.
-
-## 6. Preguntas y pendientes conocidos
-
-Consulta `docs/plan_trabajo.md`, `docs/decisiones/` y los reportes antes de reabrir asuntos ya resueltos.
-
-- Frecuencia de recepción de nuevos lotes.
-- Autorización/disponibilidad local de cartografía, CIIU Rev. 4 A.C., proyecciones DANE y catálogo del Código Penal.
-- Responsable de aprobar taxonomías, umbrales de alerta y difusión de resultados.
-- Significado de `UNID_DESCRIPCION`.
-- Interpretación de `"0"` y `"por establecer"` en `eje tmeatico APLICA`.
-- Revisión de los 119 registros territoriales no resueltos.
-- Revisión de los 37 valores de `DELITO` que no siguieron el patrón de separación.
-- Naturaleza de los 90 pares de relatos casi idénticos.
-
-Contexto de infraestructura conocido: Apple M5, 16 GB RAM, sin GPU CUDA (ADR 0001). DIVIPOLA está disponible en `data/referencia/divipola.csv`; no inspecciones datos restringidos para verificarlo.
+1. Apéguese al plan y a lo que el usuario pide; no cambie parámetros, gráficos ni textos que no se pidieron.
+2. Antes de afirmar una cifra, calcúlela desde `out/` o el Excel; nunca la estime de memoria.
+3. Después de cualquier cambio: `python run.py --verificar` y la prueba del HTML. Si alguna cifra cambia, reporte
+   al usuario cuál, el valor anterior y el nuevo.
+4. Mantenga visibles las advertencias: actividad registrada ≠ incidencia; señales ≠ alarmas; pronósticos con poca
+   historia; asociaciones ≠ causalidad; una mención de organización no prueba pertenencia.
+5. Lenguaje para usuarios no técnicos: explique qué se mide y cómo leerlo («8 de cada 10 veces», «error promedio en
+   relatos por mes») antes que siglas (MAE, AUC).
+6. No exporte texto de relatos ni datos personales a `out/` ni al HTML. No ponga secretos en el código: van en `.env`.
+7. Si un cambio de datos deja obsoletos los textos fijos (README, «Textos fijos que dependen de los datos»), actualícelos.
+8. Sea honesto con las limitaciones: si un método probado no aporta, dígalo en el reporte en vez de ocultarlo.

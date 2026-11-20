@@ -1,0 +1,280 @@
+<meta name="dash-one-writer">
+<link rel="stylesheet" href="app.css">
+<div class="gic" data-read lang="es">
+  <header class="gic-head" id="encabezado">
+    <h1 class="gic-title">GIC · Reporte de fenómenos criminales</h1>
+    <p class="gic-lede">Entradas al Grupo de Información Criminal (GIC) del <b data-draw="rango_txt">—</b>: <b data-draw="k_total_lede" data-source="kpi" data-field="total" data-row="0">—</b> relatos en la selección, de los cuales <b data-draw="k_spoa_lede" data-source="kpi" data-field="pct_spoa" data-row="0">—</b> tienen caso SPOA asociado.</p>
+    <p class="gic-warn" id="aviso-actividad"><b>Importante:</b> todas las cifras miden <b>actividad institucional registrada</b> (relatos que llegaron al GIC), no la incidencia real del delito.</p>
+    <div class="gic-filters" id="filtros">
+      <label>Desde <select class="dash-select" data-draw="f_desde" aria-label="Mes inicial" data-source="calidad"></select></label>
+      <label>Hasta <select class="dash-select" data-draw="f_hasta" aria-label="Mes final" data-source="calidad"></select></label>
+      <label>Territorio <select class="dash-select" data-draw="f_dpto" aria-label="Departamento" data-source="hechos"></select></label>
+      <button type="button" class="gic-btn" id="f-reset">Quitar filtros</button>
+    </div>
+    <p class="gic-note">Los filtros de periodo y territorio aplican a Indicadores, Fenómenos y Organizaciones; Territorio aplica solo el periodo. Sectores, Red, Alertas y Predicciones se calcularon sobre el total de relatos.</p>
+    <nav class="gic-tabs" role="tablist" aria-label="Secciones">
+      <button type="button" role="tab" data-tab="indicadores">1 · Indicadores</button>
+      <button type="button" role="tab" data-tab="fenomenos">2 · Fenómenos</button>
+      <button type="button" role="tab" data-tab="territorio">3 · Territorio</button>
+      <button type="button" role="tab" data-tab="sectores">4 · Sectores</button>
+      <button type="button" role="tab" data-tab="red">5 · Red</button>
+      <button type="button" role="tab" data-tab="alertas">6 · Alertas</button>
+      <button type="button" role="tab" data-tab="predicciones">7 · Predicciones</button>
+      <button type="button" role="tab" data-tab="organizaciones">8 · Organizaciones</button>
+    </nav>
+  </header>
+
+  <section class="gic-sec" id="indicadores" data-sec>
+    <h2>1 · Indicadores descriptivos</h2>
+    <p class="gic-warn">Conteos y tasas de <b>noticias criminales registradas</b> en el GIC; no equivalen a cuántos delitos ocurrieron.</p>
+    <div class="gic-kpis">
+      <div class="gic-card" id="kpi-total"><div class="gic-kl">Relatos registrados</div><div class="gic-kv" data-draw="k_total" data-source="kpi" data-field="total" data-row="0">—</div><div class="gic-ks"><span data-draw="k_prom" data-source="kpi" data-field="prom_mensual" data-row="0">—</span> por mes en <span data-draw="k_meses" data-source="kpi" data-field="meses" data-row="0">—</span> meses</div></div>
+      <div class="gic-card" id="kpi-spoa"><div class="gic-kl">Con caso SPOA asociado</div><div class="gic-kv" data-draw="k_spoa" data-source="kpi" data-field="pct_spoa" data-row="0">—</div><div class="gic-ks">Tasa sobre relatos registrados</div></div>
+      <div class="gic-card" id="kpi-genera"><div class="gic-kl">Generan caso en especializadas</div><div class="gic-kv" data-draw="k_genera" data-source="kpi" data-field="pct_genera" data-row="0">—</div><div class="gic-ks">Decisión fiscal UGIC</div></div>
+      <div class="gic-card" id="kpi-indag"><div class="gic-kl">En etapa de indagación</div><div class="gic-kv" data-draw="k_indag" data-source="kpi" data-field="pct_indagacion" data-row="0">—</div><div class="gic-ks">Sobre relatos registrados</div></div>
+      <div class="gic-card" id="kpi-dias"><div class="gic-kl">Días hasta cierre (mediana)</div><div class="gic-kv" data-draw="k_dias" data-source="kpi" data-field="mediana_dias" data-row="0">—</div><div class="gic-ks">Recepción → cierre del trámite</div></div>
+    </div>
+    <h3 id="ind-serie-t">Relatos por mes de ingreso</h3>
+    <p class="gic-note">Barras claras: meses parciales o con posible vacío de registro (jul–ago 2025 casi sin entradas; sep 2025 acumula un posible rezago).</p>
+    <div class="gic-chart" id="ind-serie" data-draw="ind_serie" data-source="serie_mes"></div>
+    <div class="gic-grid2">
+      <div><h3 id="ind-delito-t">Por delito (SPOA)</h3><div class="gic-chart" id="ind-delito" data-draw="ind_delito" data-source="dist"></div></div>
+      <div><h3 id="ind-etapa-t">Por etapa procesal</h3><div class="gic-chart" id="ind-etapa" data-draw="ind_etapa" data-source="dist"></div></div>
+      <div><h3 id="ind-dpto-t">Por territorio (departamento)</h3><div class="gic-chart" id="ind-dpto" data-draw="ind_dpto" data-source="dist"></div></div>
+      <div><h3 id="ind-otra-t">Otra dimensión</h3>
+        <select class="dash-select" id="sel-dim" aria-label="Dimensión">
+          <option value="Entidad remitente">Entidad remitente</option>
+          <option value="Tipo de entrada">Tipo de entrada</option>
+          <option value="Temática priorizada">Temática priorizada</option>
+          <option value="Decisión fiscal UGIC">Decisión fiscal UGIC</option>
+          <option value="Estado del trámite">Estado del trámite</option>
+          <option value="Canal de recepción">Canal de recepción</option>
+          <option value="País relacionado">País relacionado</option>
+        </select>
+        <div class="gic-chart" id="ind-otra" data-draw="ind_otra" data-source="dist"></div></div>
+    </div>
+  </section>
+
+  <section class="gic-sec" id="fenomenos" data-sec hidden>
+    <h2>2 · Fenómenos semánticos</h2>
+    <p class="gic-lead2">Distribución de relatos por fenómeno según la taxonomía <b>v1.0 (2026-11-18)</b>, extraída de <i>ResumenHechos</i>. Cada etiqueta muestra su <b>origen</b> y <b>confianza</b>; un relato puede tener varios fenómenos.</p>
+    <div class="gic-filters">
+      <label>Nivel <select class="dash-select" id="sel-nivel" aria-label="Nivel de la taxonomía">
+        <option value="fenómeno">Fenómeno</option>
+        <option value="mecanismo">Lavado de activos · por mecanismo</option>
+        <option value="sector">Lavado de activos · por sector (CIIU)</option>
+        <option value="bien">Bienes mencionados</option>
+      </select></label>
+      <label>Confianza mínima <select class="dash-select" id="sel-conf" aria-label="Confianza mínima">
+        <option value="0">Todas</option><option value="0.5">≥ 0,5</option><option value="0.7">≥ 0,7</option><option value="0.9">≥ 0,9</option>
+      </select></label>
+    </div>
+    <div class="gic-kpis" id="fen-origen" data-draw="fen_origen" data-source="origen_kpi"></div>
+    <div class="gic-legend" id="fen-legend">
+      <span><i class="sw" style="background:var(--gic-o1)"></i>registrado</span>
+      <span><i class="sw" style="background:var(--gic-o2)"></i>extraído_regla</span>
+      <span><i class="sw" style="background:var(--gic-o3)"></i>extraído_modelo</span>
+      <span><i class="sw" style="background:var(--gic-o4)"></i>inferido</span>
+    </div>
+    <h3 id="fen-chart-t">Relatos por categoría y origen de la etiqueta</h3>
+    <p class="gic-note">Base: <b data-draw="fen_base" data-source="fen_dist" data-field="base" data-row="0">—</b> relatos (los de lavado de activos en los niveles de mecanismo y sector). Al final de cada barra: % de la base y confianza media.</p>
+    <div class="gic-chart gic-tall" id="fen-chart" data-draw="fen_chart" data-source="fen_dist"></div>
+    <details class="gic-det" id="fen-metodo"><summary>Cómo se asignan origen y confianza</summary>
+      <ul>
+        <li><b>registrado</b> (confianza 1,0): viene de <i>TematicaPriorizada</i> o del delito SPOA.</li>
+        <li><b>extraído_regla</b> (0,55–0,9): expresiones de la taxonomía halladas en el relato; más expresiones distintas, más confianza. Los códigos CIIU explícitos valen 0,9.</li>
+        <li><b>extraído_modelo</b> (probabilidad ≥ 0,6): un clasificador por fenómeno (TF-IDF + regresión logística) entrenado con la temática registrada, con predicción fuera de muestra; solo añade lo que no hallaron registro ni reglas.</li>
+        <li><b>inferido</b> (0,5–0,55): reglas de segundo nivel, p. ej. dos o más mecanismos de lavado ⇒ lavado de activos; organización armada nombrada ⇒ financiación de grupos armados.</li>
+        <li>Si una etiqueta llega por varias vías se conserva el origen más fuerte. Las reglas no detectan negaciones.</li>
+      </ul></details>
+    <h3 id="fen-modelo-t">Desempeño del clasificador (validación cruzada)</h3>
+    <div class="gic-scroll"><table class="gic-table" id="fen-modelo" data-source="modelo" data-row-key="fenomeno">
+      <thead><tr><th data-field="fenomeno">Fenómeno</th><th data-field="positivos_registrados">Registrados</th><th data-field="precision_cv">Precisión</th><th data-field="sensibilidad_cv">Sensibilidad</th><th data-field="etiquetas_aportadas">Etiquetas aportadas</th></tr></thead>
+      <tbody data-draw="fen_modelo"></tbody></table></div>
+  </section>
+
+  <section class="gic-sec" id="territorio" data-sec hidden>
+    <h2>3 · Territorio</h2>
+    <p class="gic-lead2">Lugares normalizados contra DIVIPOLA (DANE). El <b>cociente de localización</b> (CL) compara la proporción del fenómeno en el departamento con la proporción nacional: CL &gt; 1 indica sobrerrepresentación relativa en los relatos registrados.</p>
+    <div class="gic-filters">
+      <label>Fenómeno <select class="dash-select" data-draw="sel_fen_terr" aria-label="Fenómeno" data-source="etiquetas"></select></label>
+      <label>Medida <select class="dash-select" id="sel-metrica" aria-label="Medida del mapa">
+        <option value="relatos">Relatos (todos)</option><option value="relatos_fen">Relatos del fenómeno</option><option value="lq">Cociente de localización</option>
+      </select></label>
+    </div>
+    <p class="gic-note">Territorio identificado en <b data-draw="terr_cob" data-source="kpi_terr" data-field="pct_con_territorio" data-row="0">—</b> de los relatos del periodo (<span data-draw="terr_reg" data-source="kpi_terr" data-field="pct_registrado" data-row="0">—</span> desde el campo LugarDeLosHechos, el resto extraído del relato con reglas, confianza 0,6). Los CL con menos de 5 relatos son inestables.</p>
+    <div class="gic-grid2">
+      <div><h3 id="terr-mapa-t">Mapa departamental</h3><div class="gic-chart gic-map" id="terr-mapa" data-draw="terr_mapa" data-source="terr geo"></div></div>
+      <div><h3 id="terr-mpio-t">Municipios (cabeceras)</h3><div class="gic-chart gic-map" id="terr-mpio" data-draw="terr_mpio" data-source="mpios geo"></div></div>
+    </div>
+    <h3 id="terr-lq-t">Cocientes de localización por departamento y fenómeno</h3>
+    <p class="gic-note">Departamentos con al menos 8 relatos en el periodo. Celda: CL (relatos).</p>
+    <div class="gic-scroll" id="terr-lq" data-draw="terr_lq" data-source="lq_matriz"></div>
+  </section>
+
+  <section class="gic-sec" id="sectores" data-sec hidden>
+    <h2>4 · Sectores económicos</h2>
+    <p class="gic-lead2">Asociación entre fenómeno y sector económico (secciones CIIU Rev. 4) mencionados en el mismo relato. Para cada par: razón de momios (OR) con intervalo de confianza del 95 %, prueba exacta de Fisher y p-valor ajustado por Benjamini–Hochberg (q). Una asociación indica co-mención en los relatos registrados, no causalidad.</p>
+    <div class="gic-filters"><label>Fenómeno <select class="dash-select" data-draw="sel_fen_sector" aria-label="Fenómeno" data-source="asociaciones"></select></label></div>
+    <div class="gic-legend"><span><i class="dot fill"></i>q &lt; 0,05</span><span><i class="dot"></i>no significativo</span><span>Línea vertical: OR = 1 (sin asociación)</span></div>
+    <div class="gic-chart gic-tall" id="sec-forest" data-draw="sec_forest" data-source="asociaciones"></div>
+    <h3 id="sec-tabla-t">Pares con q &lt; 0,05 (todos los fenómenos)</h3>
+    <div class="gic-scroll"><table class="gic-table" id="sec-tabla" data-source="asociaciones" data-row-key="fenomeno,sector">
+      <thead><tr><th data-field="fenomeno">Fenómeno</th><th data-field="sector">Sector</th><th data-field="n_ambos">Relatos con ambos</th><th data-field="esperado">Esperado</th><th data-field="or">OR</th><th data-field="ic_inf">IC95 inf.</th><th data-field="ic_sup">IC95 sup.</th><th data-field="p">p</th><th data-field="q_bh">q (BH)</th></tr></thead>
+      <tbody data-draw="sec_tabla"></tbody></table></div>
+  </section>
+
+  <section class="gic-sec" id="red" data-sec hidden>
+    <h2>5 · Red de asociaciones</h2>
+    <p class="gic-lead2">Co-ocurrencias en un mismo relato entre actividad económica, mecanismo, bien y lugar. Se dibujan los pares con al menos 3 relatos y lift ≥ 1,2; el tamaño del nodo es el número de relatos y el grosor de la línea, los relatos compartidos. Pase el cursor sobre un nodo para ver sus vínculos.</p>
+    <div class="gic-legend">
+      <span><i class="sw" style="background:var(--gic-t1)"></i>actividad (CIIU)</span>
+      <span><i class="sw" style="background:var(--gic-t2)"></i>mecanismo</span>
+      <span><i class="sw" style="background:var(--gic-t3)"></i>bien</span>
+      <span><i class="sw" style="background:var(--gic-t4)"></i>lugar</span>
+    </div>
+    <div class="gic-chart gic-net" id="red-grafo" data-draw="red_grafo" data-source="red_nodos red_aristas"></div>
+    <h3 id="red-reglas-t">Reglas de asociación con mayor lift</h3>
+    <p class="gic-note">Soporte = proporción de todos los relatos con ambos elementos; confianza = proporción de relatos con el antecedente que también tienen el consecuente.</p>
+    <div class="gic-scroll"><table class="gic-table" id="red-reglas" data-source="reglas" data-row-key="antecedente,consecuente">
+      <thead><tr><th data-field="antecedente">Si aparece…</th><th data-field="consecuente">…también aparece</th><th data-field="n">Relatos</th><th data-field="soporte">Soporte</th><th data-field="confianza">Confianza</th><th data-field="lift">Lift</th></tr></thead>
+      <tbody data-draw="red_reglas"></tbody></table></div>
+  </section>
+
+  <section class="gic-sec" id="alertas" data-sec hidden>
+    <h2>6 · Emergencia y alertas</h2>
+    <p class="gic-warn"><b>Señales para revisión, no alarmas definitivas.</b> Un aumento atípico de relatos registrados puede deberse a cargas en bloque, rezagos de registro o campañas institucionales.</p>
+    <p class="gic-lead2">Línea base de 6 meses (con 2 meses de guarda) ajustada como Poisson o binomial negativa; <b>EARS</b> marca un mes que supera el cuantil 99 % y <b>CUSUM</b> (k = 0,5, h = 4) marca excesos sostenidos. La tasa de falsas alarmas se estimó con 1.000 series simuladas sin cambios.</p>
+    <div class="gic-filters"><label>Serie <select class="dash-select" data-draw="sel_serie_al" aria-label="Serie" data-source="alertas_far"></select></label></div>
+    <div class="gic-legend"><span><i class="ln"></i>observado</span><span><i class="ln dashl"></i>esperado</span><span><i class="ln thr"></i>umbral 99 %</span><span>▲ señal EARS</span><span>■ señal CUSUM</span><span><i class="sw shade"></i>mes con calidad dudosa</span></div>
+    <div class="gic-chart" id="al-chart" data-draw="al_chart" data-source="alertas"></div>
+    <h3 id="al-far-t">Tasa de falsas alarmas por serie</h3>
+    <div class="gic-scroll"><table class="gic-table" id="al-far" data-source="alertas_far" data-row-key="serie">
+      <thead><tr><th data-field="serie">Serie</th><th data-field="media_mensual">Media mensual</th><th data-field="dispersion">Línea base</th><th data-field="far_ears">FAR EARS (por mes)</th><th data-field="falsas_por_anio_ears">Falsas/año EARS</th><th data-field="far_cusum">FAR CUSUM</th><th data-field="falsas_por_anio_cusum">Falsas/año CUSUM</th><th data-field="senales_ears">Señales EARS</th><th data-field="senales_cusum">Señales CUSUM</th></tr></thead>
+      <tbody data-draw="al_far"></tbody></table></div>
+    <h3 id="al-lista-t">Señales de la serie seleccionada</h3>
+    <div class="gic-scroll"><table class="gic-table" id="al-lista" data-source="alertas" data-row-key="serie,mes">
+      <thead><tr><th data-field="mes">Mes</th><th data-field="observado">Observado</th><th data-field="esperado">Esperado</th><th data-field="umbral_99">Umbral 99 %</th><th data-field="p_cola">P(≥ obs.)</th><th data-field="cusum">CUSUM</th><th data-field="calidad">Calidad del mes</th></tr></thead>
+      <tbody data-draw="al_lista"></tbody></table></div>
+  </section>
+
+  <section class="gic-sec" id="predicciones" data-sec hidden>
+    <h2>7 · Predicciones</h2>
+    <h3>Pronóstico de cuántos relatos llegarán</h3>
+    <p class="gic-lead2"><b>¿Qué se pronostica?</b> Cuántos relatos nuevos se registrarán en el GIC cada mes de <b data-draw="pr_rango" data-source="pron_resumen" data-field="mes_ini" data-row="0">—</b>. Sirve para anticipar la carga de trabajo; <b>no</b> es un pronóstico de cuántos delitos ocurrirán.</p>
+    <div class="gic-filters">
+      <label>¿Qué quiere pronosticar? <select class="dash-select" data-draw="sel_serie_pr" aria-label="Serie a pronosticar" data-source="pronosticos_eval"></select></label>
+      <label>Método <select class="dash-select" id="sel-modelo" aria-label="Método de pronóstico">
+        <option value="auto">El que menos se equivoca (recomendado)</option><option value="Media móvil 6 meses">Promedio de los últimos 6 meses</option><option value="Suavizado exponencial simple">Promedio que pesa más los meses recientes</option>
+      </select></label>
+    </div>
+    <div class="gic-card gic-answer" id="pr-respuesta">
+      <div class="gic-kl">En <span data-draw="pr_mes1" data-source="pron_resumen" data-field="mes_ini" data-row="0">—</span> se esperan unos</div>
+      <div class="gic-kv"><span data-draw="pr_esperado" data-source="pron_resumen" data-field="esperado" data-row="0">—</span> relatos</div>
+      <div class="gic-ks">Lo más probable es que estén entre <b data-draw="pr_inf" data-source="pron_resumen" data-field="inf80_1" data-row="0">—</b> y <b data-draw="pr_sup" data-source="pron_resumen" data-field="sup80_1" data-row="0">—</b>. En los últimos 6 meses llegaron en promedio <b data-draw="pr_prom6" data-source="pron_resumen" data-field="prom_6m" data-row="0">—</b> por mes.</div>
+    </div>
+    <h3 id="pr-chart-t">Relatos registrados por mes y lo que se espera</h3>
+    <div class="gic-legend"><span><i class="ln"></i>lo que llegó cada mes</span><span><i class="ln model"></i>lo que se espera</span><span><i class="sw band"></i>rango probable</span><span><i class="ln naive"></i>referencia: repetir el último mes</span></div>
+    <div class="gic-chart" id="pr-chart" data-draw="pr_chart" data-source="pronosticos pron_resumen"></div>
+    <h3 id="pr-tabla-t">Mes a mes</h3>
+    <div class="gic-scroll"><table class="gic-table" id="pr-tabla" data-source="pron_tabla" data-row-key="mes">
+      <thead><tr><th data-field="mes">Mes</th><th data-field="esperado">Relatos esperados</th><th>Rango probable (8 de cada 10 veces)</th><th>Rango amplio (95 de cada 100)</th><th data-field="referencia">Referencia: repetir el último mes</th></tr></thead>
+      <tbody data-draw="pr_tabla"></tbody></table></div>
+    <details class="gic-det" id="pr-leer" open><summary>Cómo leer esta tabla</summary>
+      <ul>
+        <li><b>Relatos esperados</b>: el valor más probable para ese mes.</li>
+        <li><b>Rango probable</b>: en 8 de cada 10 casos el número real debería caer ahí. El <b>rango amplio</b> cubre casi todos los casos (95 de cada 100).</li>
+        <li>Los rangos se abren a medida que el mes está más lejos, porque hay más incertidumbre. Un mínimo de 0 indica que, por los meses con muy pocas entradas que ha tenido el registro, no se puede descartar un mes casi vacío.</li>
+        <li>La <b>referencia</b> es la forma más simple de pronosticar: suponer que cada mes llegará lo mismo que el último. El último mes completo (<span data-draw="pr_ultmes" data-source="pron_resumen" data-field="ultimo_mes" data-row="0">—</span>) tuvo solo <b data-draw="pr_ultval" data-source="pron_resumen" data-field="ultimo_valor" data-row="0">—</b> relatos, quizá porque aún no se había registrado todo, así que la referencia puede quedarse corta.</li>
+      </ul></details>
+    <h3 id="pr-eval-t">¿Qué tan bien acierta cada método?</h3>
+    <p class="gic-note">Se probó cada método como si estuviéramos en cada uno de los últimos 6 meses, pronosticando 1 a 3 meses adelante, y se comparó con lo que de verdad llegó. Este pronóstico usa <b data-draw="pr_metodo" data-source="pron_resumen" data-field="modelo" data-row="0">—</b>, que se equivoca <b data-draw="pr_mejora" data-source="pron_resumen" data-field="mejora_pct" data-row="0">—</b> <span data-draw="pr_mejora_txt">—</span> que repetir el último mes.</p>
+    <p class="gic-warn" id="pr-peor" hidden>En esta serie ningún método se equivoca menos que repetir el último mes: tome el pronóstico con más cautela.</p><span data-draw="pr_aviso_peor"></span>
+    <div class="gic-scroll"><table class="gic-table" id="pr-eval" data-source="pron_eval" data-row-key="modelo">
+      <thead><tr><th data-field="metodo">Método</th><th data-field="error_promedio">Error promedio (relatos por mes)</th><th>Frente a la referencia</th><th>Usado</th></tr></thead>
+      <tbody data-draw="pr_eval"></tbody></table></div>
+    <p class="gic-warn"><b>Con cautela:</b> hay menos de dos años de datos, con un hueco de registro (jul–ago 2025), así que no se pueden estimar patrones de temporada (ADR 0016). Úselo como orden de magnitud, no como cifra exacta.</p>
+
+    <h3>Otras predicciones</h3>
+    <p class="gic-lead2">Además del pronóstico de volumen anterior, los datos permiten estimar tres cosas más. Todas se calcularon sobre el total de relatos y no cambian con los filtros.</p>
+
+    <h3 id="pc-t">¿Un relato terminará generando caso en especializadas?</h3>
+    <p class="gic-note">Modelo entrenado con <b data-draw="pc_n" data-source="pc_eval" data-field="valor" data-row="0">—</b> relatos que ya tienen decisión final; de ellos, el <b data-draw="pc_base" data-source="pc_eval" data-field="valor" data-row="1">—</b> generó caso. Usa el tipo de entrada, la entidad, la temática, el canal y el texto del relato.</p>
+    <div class="gic-kpis">
+      <div class="gic-card" id="pc-k1"><div class="gic-kl">Acierta el orden</div><div class="gic-kv"><span data-draw="pc_auc" data-source="pc_eval" data-field="de_100" data-row="3">—</span> de 100</div><div class="gic-ks">Entre un relato que sí generó caso y otro que no, le da más probabilidad al correcto (al azar sería 50)</div></div>
+      <div class="gic-card" id="pc-k2"><div class="gic-kl">Sin leer el relato</div><div class="gic-kv"><span data-draw="pc_auc_s" data-source="pc_eval" data-field="de_100" data-row="2">—</span> de 100</div><div class="gic-ks">Solo con los campos del formulario de entrada</div></div>
+    </div>
+    <p class="gic-warn">Es una ayuda para ordenar la bandeja, no para decidir: se equivoca con frecuencia y aprende de las decisiones pasadas, incluidos sus sesgos.</p>
+    <h3 id="pc-cal-t">¿Las probabilidades son creíbles?</h3>
+    <p class="gic-note">Se dividieron los relatos en 5 grupos según la probabilidad que les dio el modelo. Barra gris: lo que predijo; barra de color: lo que pasó de verdad (con su margen de error).</p>
+    <div class="gic-chart" id="pc-cal" data-draw="pc_cal" data-source="pc_cal"></div>
+    <h3 id="pc-rasgos-t">¿Qué relatos suelen generar caso?</h3>
+    <div class="gic-filters"><label>Ver por <select class="dash-select" id="sel-rasgo" aria-label="Rasgo">
+      <option value="Tipo de entrada">Tipo de entrada</option><option value="Entidad remitente">Entidad remitente</option><option value="Fenómeno principal">Fenómeno principal</option><option value="Canal">Canal</option>
+    </select></label></div>
+    <p class="gic-note">Porcentaje de relatos que generaron caso en cada categoría (10 o más relatos), con su margen de error. La línea punteada es el promedio.</p>
+    <div class="gic-chart" id="pc-rasgos" data-draw="pc_rasgos" data-source="pc_rasgos pc_eval"></div>
+
+    <h3 id="pt-t">¿Cuánto tarda en cerrarse un trámite?</h3>
+    <p class="gic-note">Porcentaje de relatos ya cerrados según los días desde su recepción. Los relatos que siguen abiertos también cuentan, hasta el día que llevan abiertos (método Kaplan–Meier).</p>
+    <div class="gic-chart" id="pt-curvas" data-draw="pt_curvas" data-source="pt_curvas"></div>
+    <div class="gic-scroll"><table class="gic-table" id="pt-tabla" data-source="pt_resumen" data-row-key="grupo">
+      <thead><tr><th data-field="grupo">Tipo de entrada</th><th data-field="relatos">Relatos</th><th data-field="mediana_dias">Días típicos (mediana)</th><th>La mitad central tarda</th><th data-field="pct_cerrado_30">Cerrados a 30 días</th><th data-field="pct_cerrado_90">Cerrados a 90 días</th><th data-field="abiertos">Abiertos hoy</th></tr></thead>
+      <tbody data-draw="pt_tabla"></tbody></table></div>
+    <p class="gic-note">Saber el tipo de entrada ayuda poco: al estimar el plazo de un relato con la mediana de su tipo, el error típico es de <b data-draw="pt_err_g" data-source="pt_eval" data-field="error_mediano_dias" data-row="0">—</b> días, frente a <b data-draw="pt_err_0" data-source="pt_eval" data-field="error_mediano_dias" data-row="1">—</b> usando la mediana general. Tómelo como orientación.</p>
+
+    <h3 id="pa-t">Relatos con trámite abierto: qué se espera de cada uno</h3>
+    <p class="gic-note">Relatos sin fecha de cierre al 10-nov-2026. La probabilidad de generar caso solo se calcula si aún no hay decisión final. Los días restantes son la mediana esperada para su tipo de entrada, dado el tiempo que ya llevan abiertos.</p>
+    <div class="gic-scroll"><table class="gic-table" id="pa-tabla" data-source="p_abiertos" data-row-key="id_entrada">
+      <thead><tr><th data-field="id_entrada">Id de entrada</th><th data-field="mes_ingreso">Ingreso</th><th data-field="tipo_entrada">Tipo</th><th data-field="entidad_remite">Entidad</th><th data-field="fenomeno_principal">Fenómeno principal</th><th data-field="decision_actual">Decisión actual</th><th>Prob. de generar caso</th><th data-field="dias_transcurridos">Días abierto</th><th>Días restantes estimados</th></tr></thead>
+      <tbody data-draw="pa_tabla"></tbody></table></div>
+
+    <h3 id="pf-t">¿Qué fenómenos pesarán más en los próximos meses?</h3>
+    <p class="gic-note">Si se mantiene el patrón de los últimos 12 meses completos, este es el porcentaje de relatos que mencionaría cada fenómeno (barra, con su margen de error). El rombo gris es el periodo anterior y el número entre paréntesis, el cambio en puntos porcentuales. Un relato puede tener varios fenómenos, así que los porcentajes suman más de 100 %.</p>
+    <div class="gic-chart" id="p-compo" data-draw="p_compo" data-source="p_compo"></div>
+    <p class="gic-warn">Lo que <b>no</b> se puede predecir con estos datos: cuántos delitos ocurrirán o dónde (el archivo solo registra lo que llega al GIC), ni condenas o resultados judiciales (el 79 % de los casos sigue en indagación).</p>
+  </section>
+
+  <section class="gic-sec" id="organizaciones" data-sec hidden>
+    <h2>8 · Organizaciones criminales identificadas</h2>
+    <p class="gic-lead2">Organizaciones registradas en <i>GrupoEstructura</i>/<i>Estructura</i> o nombradas en el relato (reglas, confianza 0,6–0,8). Una mención no prueba pertenencia ni responsabilidad.</p>
+    <div class="gic-kpis">
+      <div class="gic-card" id="org-k1"><div class="gic-kl">Relatos con organización nombrada</div><div class="gic-kv" data-draw="o_rel" data-source="org_kpi" data-field="relatos_nombrada" data-row="0">—</div><div class="gic-ks"><span data-draw="o_pct" data-source="org_kpi" data-field="pct_nombrada" data-row="0">—</span> de los relatos</div></div>
+      <div class="gic-card" id="org-k2"><div class="gic-kl">Organizaciones distintas</div><div class="gic-kv" data-draw="o_dist" data-source="org_kpi" data-field="orgs_distintas" data-row="0">—</div><div class="gic-ks">Sin contar menciones genéricas</div></div>
+      <div class="gic-card" id="org-k3"><div class="gic-kl">Con vínculo transnacional</div><div class="gic-kv" data-draw="o_trans" data-source="org_kpi" data-field="pct_transnacional" data-row="0">—</div><div class="gic-ks">Organización transnacional o país extranjero</div></div>
+      <div class="gic-card" id="org-k4"><div class="gic-kl">Solo identificadas en el relato</div><div class="gic-kv" data-draw="o_regla" data-source="org_kpi" data-field="pct_solo_relato" data-row="0">—</div><div class="gic-ks">No registradas en la estructura</div></div>
+      <div class="gic-card" id="org-k5"><div class="gic-kl">Concentración (3 principales)</div><div class="gic-kv" data-draw="o_top3" data-source="org_kpi" data-field="pct_top3" data-row="0">—</div><div class="gic-ks">De los relatos con organización nombrada</div></div>
+    </div>
+    <div class="gic-legend">
+      <span><i class="sw" style="background:var(--gic-o1)"></i>registrado</span>
+      <span><i class="sw" style="background:var(--gic-o2)"></i>extraído_regla</span>
+    </div>
+    <h3 id="org-bar-t">Relatos por organización y origen</h3>
+    <div class="gic-chart gic-tall" id="org-bar" data-draw="org_bar" data-source="orgs"></div>
+    <div class="gic-grid2">
+      <div><h3 id="org-tipo-t">Por tipología</h3><div class="gic-chart" id="org-tipo" data-draw="org_tipo" data-source="org_tipo"></div></div>
+      <div><h3 id="org-mes-t">Relatos con organización nombrada, por mes</h3><div class="gic-chart" id="org-mes" data-draw="org_mes" data-source="org_mes"></div></div>
+    </div>
+    <h3 id="org-tabla-t">Perfil por organización</h3>
+    <div class="gic-scroll"><table class="gic-table" id="org-tabla" data-source="orgs" data-row-key="organizacion">
+      <thead><tr><th data-field="organizacion">Organización</th><th data-field="tipologia">Tipología</th><th data-field="relatos">Relatos</th><th data-field="conf_media">Confianza media</th><th data-field="pct_genera">% genera caso</th><th data-field="fenomenos">Fenómenos asociados</th><th data-field="territorios">Territorios</th><th data-field="mecanismos">Mecanismos</th><th data-field="periodo">Periodo</th></tr></thead>
+      <tbody data-draw="org_tabla"></tbody></table></div>
+  </section>
+
+  <details class="gic-det" id="notas"><summary>Fuente, método y limitaciones</summary>
+    <ul>
+      <li>Fuente: DatosAn_lisisReumenGICLavado_V1.xlsx (598 relatos, ingreso 26-sep-2024 a 10-nov-2026; versión depurada con lugares normalizados como «Municipio, Departamento, Colombia»). No se publica el texto de los relatos ni nombres o documentos de personas.</li>
+      <li>Pipeline bronce → plata → entidades → fenómenos → oro ejecutado en Python; el código está en cada fuente.</li>
+      <li>Los meses de septiembre de 2024 y noviembre de 2026 son parciales; julio y agosto de 2025 tienen 2 y 0 relatos (posible vacío de registro).</li>
+      <li>Esta es una versión de reporte del tablero; la app Streamlit local sobre DuckDB con autenticación queda fuera de este reporte.</li>
+    </ul></details>
+</div>
+<script src="common.js"></script>
+<script src="calcs.js"></script>
+<script src="p1.js"></script>
+<script src="p2.js"></script>
+<script src="p3.js"></script>
+<script src="p4.js"></script>
+<script src="p5.js"></script>
+<script src="pron.js"></script>
+<script src="p9.js"></script>

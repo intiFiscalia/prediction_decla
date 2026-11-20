@@ -1,0 +1,60 @@
+.gic { --gic-o1: #2f6fb0; --gic-o2: #3a9e8f; --gic-o3: #c2862b; --gic-o4: #9a6bb8;
+  --gic-t1: #2f6fb0; --gic-t2: #c2862b; --gic-t3: #3a9e8f; --gic-t4: #b5546b;
+  font-family: var(--font-anthropic-sans); color: var(--color-fg); }
+.gic-title { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); margin: 0 0 var(--cds-gap-sm); }
+.gic-lede { font-size: var(--cds-font-size-body); margin: 0 0 var(--cds-gap-sm); }
+.gic-warn { border-left: 3px solid var(--color-warn); background: var(--color-panel); padding: var(--cds-pad-sm) var(--cds-pad-md); border-radius: var(--cds-radius); margin: var(--cds-gap-sm) 0; font-size: var(--cds-font-size-body); }
+.gic-note { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); margin: var(--cds-gap-xs) 0 var(--cds-gap-sm); }
+.gic-lead2 { margin: var(--cds-gap-xs) 0 var(--cds-gap-md); max-width: 70em; }
+.gic-filters { display: flex; flex-wrap: wrap; gap: var(--cds-gap-md); align-items: end; margin: var(--cds-gap-sm) 0; }
+.gic-filters label { display: flex; flex-direction: column; gap: 4px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.gic-btn { font: inherit; font-size: var(--cds-font-size-caption); background: var(--color-panel); color: var(--color-fg); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: 6px 12px; cursor: pointer; }
+.gic-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--color-border-line); margin: var(--cds-gap-md) 0 var(--cds-gap-lg); }
+.gic-tabs button { font: inherit; font-size: var(--cds-font-size-caption); background: none; border: 0; border-bottom: 2px solid transparent; color: var(--color-fg-muted); padding: 8px 10px; cursor: pointer; }
+.gic-tabs button[aria-selected="true"] { color: var(--color-fg); border-bottom-color: var(--color-fg); font-weight: var(--cds-font-weight-medium); }
+.gic-sec h2 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: 0 0 var(--cds-gap-sm); }
+.gic-sec h3 { font-size: var(--cds-font-size-body); font-weight: var(--cds-font-weight-medium); margin: var(--cds-gap-lg) 0 var(--cds-gap-xs); }
+.gic-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--cds-gap-md); margin: var(--cds-gap-md) 0; }
+.gic-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); }
+.gic-kl { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.gic-kv { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: 2rem; line-height: 1.2; font-variant-numeric: tabular-nums; margin: 4px 0; }
+.gic-ks { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.gic-grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--cds-gap-lg); }
+.gic-chart { position: relative; min-height: 220px; width: 100%; }
+.gic-tall { min-height: 360px; }
+.gic-map { min-height: 380px; }
+.gic-net { min-height: 520px; }
+.gic-chart svg { display: block; overflow: visible; }
+.gic-chart text { font-family: var(--font-anthropic-sans); font-size: 11px; fill: var(--cds-text-secondary); }
+.gic-chart .lbl { fill: var(--color-fg); }
+.gic-chart .axis text { font-size: 11px; fill: var(--cds-text-secondary); }
+.gic-chart .axis path, .gic-chart .axis line { stroke: var(--cds-chart-axis); }
+.gic-chart .grid line { stroke: var(--cds-chart-grid); }
+.gic-fail { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); padding: var(--cds-pad-md) 0; }
+.gic-tip { position: absolute; pointer-events: none; z-index: 5; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); box-shadow: var(--cds-shadow-popover); border-radius: var(--cds-radius); padding: 6px 9px; font-size: var(--cds-font-size-caption); color: var(--color-fg); max-width: 280px; white-space: normal; }
+.gic-tip .t2 { color: var(--cds-text-secondary); }
+.gic-legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin: var(--cds-gap-xs) 0; align-items: center; }
+.gic-legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.gic-legend .sw.shade { background: var(--color-warn); opacity: .25; }
+.gic-legend .sw.band { background: var(--gic-o3); opacity: .35; }
+.gic-legend .ln { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--color-fg); margin-right: 5px; vertical-align: 3px; }
+.gic-legend .ln.dashl { border-top-style: dashed; border-color: var(--cds-chart-reference); }
+.gic-legend .ln.thr { border-color: var(--cds-chart-status-critical); border-top-style: dotted; }
+.gic-legend .ln.naive { border-color: var(--color-fg-muted); border-top-style: dashed; }
+.gic-legend .ln.model { border-color: var(--gic-o3); }
+.gic-legend .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--gic-o1); margin-right: 5px; vertical-align: -1px; }
+.gic-legend .dot.fill { background: var(--gic-o1); }
+.gic-scroll { overflow-x: auto; width: 100%; }
+.gic-table { border-collapse: collapse; width: 100%; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+.gic-table th, .gic-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--color-border-line); vertical-align: top; }
+.gic-table th { color: var(--color-fg-muted); font-weight: var(--cds-font-weight-medium); white-space: nowrap; }
+.gic-table td.num { text-align: right; white-space: nowrap; }
+.gic-heat td.num { text-align: center; }
+.gic-det { margin: var(--cds-gap-md) 0; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.gic-det summary { cursor: pointer; color: var(--color-fg); }
+.gic-answer { max-width: 34em; margin: var(--cds-gap-md) 0; border-left: 4px solid var(--gic-o3); }
+.gic-sec { margin-bottom: var(--cds-gap-xl); }
+@media print {
+  .gic-tabs, .gic-filters button { display: none; }
+  .gic-sec { break-before: page; }
+}

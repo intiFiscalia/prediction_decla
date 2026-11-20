@@ -1,0 +1,90 @@
+{
+ "alertas.json": {
+  "sha256": "97f1adeee935a1f9d93b2fe0cdc0c5db25ae06291d351c1495575b6fbe0e2547",
+  "filas": 400
+ },
+ "alertas_far.json": {
+  "sha256": "0577d8c332d1527f9c77c3bad16036b28288166d694724cbbba6d266a9a2b63a",
+  "filas": 16
+ },
+ "asociaciones.json": {
+  "sha256": "1a2fe33b560a8fb0d38b7dbc38eba4cb14301b523cf46779dee84d24c68ea788",
+  "filas": 225
+ },
+ "calidad.json": {
+  "sha256": "629c05f9d9a7aac34c04129c47e5b22d7798ad2db18199b177845131e58db3c0",
+  "filas": 27
+ },
+ "etiquetas.json": {
+  "sha256": "41bfc6de6b14c06da5ea1f197d70fa542dc5ec26660e739bce6bc63484ec7fce",
+  "filas": 2286
+ },
+ "hechos.json": {
+  "sha256": "0f24bcff15c5d5bf68874c84d721da1aedb6f7a50bf3936d5f93869b925530d6",
+  "filas": 598
+ },
+ "modelo_meta.json": {
+  "sha256": "cba5af305040f1a18e44e92334b9ad1024b06d13b029bd6b65b9a1b00853cc62",
+  "filas": 10
+ },
+ "organizaciones.json": {
+  "sha256": "a566dd2b69426fbbbeb00de2e13032ee8814b05282f17eedd6da459b07542eb9",
+  "filas": 112
+ },
+ "pred_abiertos.json": {
+  "sha256": "9c1e31f1b304952946570879d49b03d3ba8c9fe066b6c69add7775816926a434",
+  "filas": 80
+ },
+ "pred_caso_calibracion.json": {
+  "sha256": "98f4f66167f937039260511d6d670a4395aba1d61d314dcca08a6b8f04ea59ec",
+  "filas": 5
+ },
+ "pred_caso_eval.json": {
+  "sha256": "f6cea01b17671fb0e3cd8f2d47ee297b1285f44892dcdebc349614a17e3975c4",
+  "filas": 6
+ },
+ "pred_caso_rasgos.json": {
+  "sha256": "19cb93f57c73e788b9111ac91c72bfaa00ec2bac45d031fa2551428be9dda701",
+  "filas": 28
+ },
+ "pred_composicion.json": {
+  "sha256": "26f73fa453e3ade3c6548e32aa0abce7999f68b24dc192fdc3612c4b5fa7b7ae",
+  "filas": 10
+ },
+ "pred_tiempo.json": {
+  "sha256": "d501ed99031bc2aa7c5dcb4bf80a3a6385ef58ccb8ae65d78c6f845d3741117f",
+  "filas": 8
+ },
+ "pred_tiempo_curvas.json": {
+  "sha256": "a2d1ad2bc00d48f0b52c324126c0b1319d0fd7525800b866314e00417f6ad4e5",
+  "filas": 592
+ },
+ "pred_tiempo_eval.json": {
+  "sha256": "f7601d8ebc18df4d10e6f0dad5c92ff839a519a98582bde3c84b3c0df9e36150",
+  "filas": 2
+ },
+ "pronosticos.json": {
+  "sha256": "250870be59de751dae4ba11bf2d7cfe990edaf966a94381ffc630a72936aa62f",
+  "filas": 688
+ },
+ "pronosticos_eval.json": {
+  "sha256": "706099589837a35c3e7232397fb7bd066cced3acf7d1e7ddb1be9bd3deb94088",
+  "filas": 48
+ },
+ "red_aristas.json": {
+  "sha256": "721f14354eaaf840d78a0f11747627923cbee7c9b11f8c2893d9a39e7e4fc456",
+  "filas": 235
+ },
+ "red_nodos.json": {
+  "sha256": "d3686e952cd5d89a435192f3aae7ed5b7227a21bfab89cd65cd105464b8a636a",
+  "filas": 52
+ },
+ "reglas.json": {
+  "sha256": "689f324491a8099f6f63412b2e1f96a9fbb3a0b5a3f1db739e5db02535b5e595",
+  "filas": 150
+ },
+ "territorio_dptos.json": {
+  "sha256": "2a5625e6648ed19ec7b75aef91efedf902d94dff092c51496b652920b26cb799",
+  "filas": 504
+ }
+}
