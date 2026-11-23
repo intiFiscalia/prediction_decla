@@ -25,11 +25,6 @@
   });
   document.querySelectorAll('#f-reset').forEach((b) => b.addEventListener('click', () => dash.resetParams()));
 
-  dash.draw('rango_txt', (el) => G.text(el, ['kpi'], () => {
-    const k = dash.data('kpi').data[0];
-    return k.desde ? `${G.mesLargo(k.desde)} a ${G.mesLargo(k.hasta)}` + (P().dpto ? ' en el territorio elegido' : '') : 'periodo sin relatos';
-  }));
-
   // Pestañas
   const tabs = [...document.querySelectorAll('.gic-tabs [data-tab]')];
   const secs = [...document.querySelectorAll('[data-sec]')];
@@ -63,11 +58,9 @@
   // KPIs
   const k = (f, fmt) => (el) => G.text(el, ['kpi'], () => { const v = dash.data('kpi').data[0][f]; return v == null ? '—' : fmt(v); });
   dash.draw('k_total', k('total', G.int));
-  dash.draw('k_total_lede', k('total', G.int));
   dash.draw('k_prom', k('prom_mensual', G.d1));
   dash.draw('k_meses', k('meses', G.int));
   dash.draw('k_spoa', k('pct_spoa', G.pct));
-  dash.draw('k_spoa_lede', k('pct_spoa', G.pct));
   dash.draw('k_genera', k('pct_genera', G.pct));
   dash.draw('k_indag', k('pct_indagacion', G.pct));
   dash.draw('k_dias', k('mediana_dias', (v) => G.d1(v)));
@@ -124,7 +117,7 @@
     tb.replaceChildren();
     dash.data('modelo').data.forEach((r) => {
       const tr = document.createElement('tr');
-      G.td(tr, r.fenomeno); G.td(tr, G.int(r.positivos_registrados), 1); G.td(tr, G.d2(r.precision_cv), 1); G.td(tr, G.d2(r.sensibilidad_cv), 1); G.td(tr, G.int(r.etiquetas_aportadas), 1);
+      G.td(tr, r.fenomeno); G.td(tr, G.int(r.positivos_registrados)); G.td(tr, G.d2(r.precision_cv)); G.td(tr, G.d2(r.sensibilidad_cv)); G.td(tr, G.int(r.etiquetas_aportadas));
       tb.appendChild(tr);
     });
   });

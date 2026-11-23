@@ -39,10 +39,11 @@
     tb.replaceChildren();
     const s = P().serie_alerta || 'Total de relatos';
     const rows = dash.data('alertas').data.filter((r) => r.serie === s && (r.senal_ears || r.senal_cusum));
-    if (!rows.length) return G.emptyRow(tb, 7, 'Sin señales en esta serie.');
+    if (!rows.length) return G.emptyRow(tb, 8, 'Sin señales en esta serie.');
     rows.forEach((r) => {
       const tr = document.createElement('tr'); tr.dataset.key = G.key(r.serie, r.mes);
-      G.td(tr, G.mesLargo(r.mes) + (r.senal_ears ? ' ▲' : '') + (r.senal_cusum ? ' ■' : '')); G.td(tr, G.int(r.observado), 1); G.td(tr, G.d1(r.esperado), 1);
+      const senal = [r.senal_ears ? '▲ EARS' : '', r.senal_cusum ? '■ CUSUM' : ''].filter(Boolean).join(' y ');
+      G.td(tr, G.mesLargo(r.mes)); G.td(tr, senal); G.td(tr, G.int(r.observado), 1); G.td(tr, G.d1(r.esperado), 1);
       G.td(tr, G.int(r.umbral_99), 1); G.td(tr, G.p(r.p_cola), 1); G.td(tr, G.d2(r.cusum), 1); G.td(tr, r.calidad);
       tb.appendChild(tr);
     });

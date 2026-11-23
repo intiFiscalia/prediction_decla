@@ -78,8 +78,14 @@
     const dptos = [...d3.rollup(rows, (v) => v[0].relatos_dpto, (r) => r.dpto)].sort((a, b) => b[1] - a[1]);
     const t = document.createElement('table'); t.className = 'gic-table gic-heat';
     const hr = document.createElement('tr');
-    const th0 = document.createElement('th'); th0.textContent = 'Departamento (relatos)'; hr.appendChild(th0);
-    fenes.forEach((f) => { const th = document.createElement('th'); th.textContent = f; hr.appendChild(th); });
+    const th0 = document.createElement('th'); th0.textContent = 'Departamento (relatos)';
+    th0.title = 'Departamento y, entre paréntesis, el total de relatos con territorio identificado en el periodo elegido.';
+    hr.appendChild(th0);
+    fenes.forEach((f) => {
+      const th = document.createElement('th'); th.textContent = f;
+      th.title = `Cada celda muestra el cociente de localización (CL) de "${f}" en el departamento, y entre paréntesis cuántos relatos de ese departamento tienen este fenómeno. CL = (relatos del fenómeno en el departamento ÷ relatos del departamento) ÷ (relatos del fenómeno en el país ÷ relatos del país). CL > 1: el fenómeno pesa más aquí que en el promedio nacional; CL < 1: pesa menos; CL = 1: igual al promedio.`;
+      hr.appendChild(th);
+    });
     const thead = document.createElement('thead'); thead.appendChild(hr); t.appendChild(thead);
     const tb = document.createElement('tbody');
     dptos.forEach(([d, n]) => {

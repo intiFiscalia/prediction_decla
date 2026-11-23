@@ -68,7 +68,7 @@ body { margin:0; background:var(--color-bg); color:var(--color-fg); }
 
 partes = [
     "<!DOCTYPE html>\n<html lang=\"es\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">",
-    "<title>GIC · Reporte de fenómenos criminales</title>",
+    "<title>Reporte de fenómenos criminales</title>",
     f"<style>{TOKENS}\n{leer(os.path.join(SRC, 'app.css'))}</style></head><body>",
     f'<div id="dash-root">{html}</div>',
     f'<script id="gic-data" type="application/json">{seguro(json.dumps(datos, ensure_ascii=False))}</script>',

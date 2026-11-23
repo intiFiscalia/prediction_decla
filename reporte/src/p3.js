@@ -56,6 +56,7 @@
     const nodes = dash.data('red_nodos').data, edges = dash.data('red_aristas').data;
     const w = G.width(el), h = Math.round(Math.max(460, Math.min(720, w * 0.75)));
     const svg = G.svg(el, w, h, 'Red de co-ocurrencias entre actividad, mecanismo, bien y lugar');
+    svg.style('cursor', 'grab');
     const pad = 60;
     const x = d3.scaleLinear().domain(d3.extent(nodes, (n) => n.x)).range([pad, w - pad]);
     const y = d3.scaleLinear().domain(d3.extent(nodes, (n) => n.y)).range([30, h - 30]);
@@ -63,13 +64,14 @@
     const r = d3.scaleSqrt().domain([0, d3.max(nodes, (n) => n.n)]).range([3, Math.min(22, w / 40)]);
     const sw = d3.scaleLinear().domain([3, d3.max(edges, (e) => e.n) || 3]).range([0.6, 5]);
     const tip = G.tip(el);
-    const eg = svg.append('g').selectAll('line').data(edges).join('line')
+    const layer = svg.append('g');
+    const eg = layer.append('g').selectAll('line').data(edges).join('line')
       .attr('x1', (e) => x(by.get(e.source).x)).attr('y1', (e) => y(by.get(e.source).y)).attr('x2', (e) => x(by.get(e.target).x)).attr('y2', (e) => y(by.get(e.target).y))
       .style('stroke', 'var(--cds-chart-axis)').attr('stroke-width', (e) => sw(e.n)).attr('stroke-opacity', 0.45);
-    const ng = svg.append('g').selectAll('circle').data(nodes).join('circle').attr('cx', (n) => x(n.x)).attr('cy', (n) => y(n.y)).attr('r', (n) => r(n.n))
+    const ng = layer.append('g').selectAll('circle').data(nodes).join('circle').attr('cx', (n) => x(n.x)).attr('cy', (n) => y(n.y)).attr('r', (n) => r(n.n))
       .style('fill', (n) => G.tc[n.tipo]).style('stroke', 'var(--color-bg)').attr('stroke-width', 1);
     const big = nodes.slice().sort((a, b) => b.n - a.n).slice(0, Math.max(8, Math.floor(w / 60)));
-    const lab = svg.append('g').selectAll('text').data(big).join('text').attr('class', 'lbl').attr('x', (n) => x(n.x) + r(n.n) + 3).attr('y', (n) => y(n.y) + 4)
+    const lab = layer.append('g').selectAll('text').data(big).join('text').attr('class', 'lbl').attr('x', (n) => x(n.x) + r(n.n) + 3).attr('y', (n) => y(n.y) + 4)
       .text((n) => n.label.replace(/^[A-Z] · /, ''));
     ng.on('pointermove', (ev, n) => {
       const nb = new Set([n.id]); edges.forEach((e) => { if (e.source === n.id) nb.add(e.target); if (e.target === n.id) nb.add(e.source); });
@@ -78,6 +80,15 @@
         .map((e) => `${by.get(e.source === n.id ? e.target : e.source).label}: ${G.int(e.n)} (lift ${G.d2(e.lift)})`);
       tip.show(ev, [`${n.label} · ${n.tipo}`, `${G.int(n.n)} relatos · grado ${n.grado} · comunidad ${n.comunidad}`, `Intermediación ${G.d3(n.intermediacion)}`, ...top3]);
     }).on('pointerleave', () => { ng.attr('opacity', 1); eg.attr('stroke-opacity', 0.45); lab.attr('opacity', 1); tip.hide(); });
+
+    const zoom = d3.zoom().scaleExtent([1, 10]).translateExtent([[0, 0], [w, h]])
+      .on('zoom', (ev) => layer.attr('transform', ev.transform))
+      .on('start', () => svg.style('cursor', 'grabbing')).on('end', () => svg.style('cursor', 'grab'));
+    svg.call(zoom).on('dblclick.zoom', null).on('dblclick', () => svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity));
+    const bar = d3.select(el).append('div').attr('class', 'gic-legend');
+    bar.append('span').text('Rueda o pellizco: acercar · Arrastrar: mover · Doble clic: restablecer');
+    bar.append('button').attr('type', 'button').attr('class', 'gic-btn').text('Restablecer zoom')
+      .on('click', () => svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity));
   });
 
   dash.draw('red_reglas', (tb) => {

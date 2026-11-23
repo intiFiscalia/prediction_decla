@@ -2,8 +2,7 @@
 <link rel="stylesheet" href="app.css">
 <div class="gic" data-read lang="es">
   <header class="gic-head" id="encabezado">
-    <h1 class="gic-title">GIC · Reporte de fenómenos criminales</h1>
-    <p class="gic-lede">Entradas al Grupo de Información Criminal (GIC) del <b data-draw="rango_txt">—</b>: <b data-draw="k_total_lede" data-source="kpi" data-field="total" data-row="0">—</b> relatos en la selección, de los cuales <b data-draw="k_spoa_lede" data-source="kpi" data-field="pct_spoa" data-row="0">—</b> tienen caso SPOA asociado.</p>
+    <h1 class="gic-title">Reporte de fenómenos criminales</h1>
     <p class="gic-warn" id="aviso-actividad"><b>Importante:</b> todas las cifras miden <b>actividad institucional registrada</b> (relatos que llegaron al GIC), no la incidencia real del delito.</p>
     <div class="gic-filters" id="filtros">
       <label>Desde <select class="dash-select" data-draw="f_desde" aria-label="Mes inicial" data-source="calidad"></select></label>
@@ -11,7 +10,6 @@
       <label>Territorio <select class="dash-select" data-draw="f_dpto" aria-label="Departamento" data-source="hechos"></select></label>
       <button type="button" class="gic-btn" id="f-reset">Quitar filtros</button>
     </div>
-    <p class="gic-note">Los filtros de periodo y territorio aplican a Indicadores, Fenómenos y Organizaciones; Territorio aplica solo el periodo. Sectores, Red, Alertas y Predicciones se calcularon sobre el total de relatos.</p>
     <nav class="gic-tabs" role="tablist" aria-label="Secciones">
       <button type="button" role="tab" data-tab="indicadores">1 · Indicadores</button>
       <button type="button" role="tab" data-tab="fenomenos">2 · Fenómenos</button>
@@ -89,7 +87,13 @@
       </ul></details>
     <h3 id="fen-modelo-t">Desempeño del clasificador (validación cruzada)</h3>
     <div class="gic-scroll"><table class="gic-table" id="fen-modelo" data-source="modelo" data-row-key="fenomeno">
-      <thead><tr><th data-field="fenomeno">Fenómeno</th><th data-field="positivos_registrados">Registrados</th><th data-field="precision_cv">Precisión</th><th data-field="sensibilidad_cv">Sensibilidad</th><th data-field="etiquetas_aportadas">Etiquetas aportadas</th></tr></thead>
+      <thead><tr>
+        <th data-field="fenomeno" title="Fenómeno para el que se entrenó un clasificador de texto (TF-IDF + regresión logística).">Fenómeno</th>
+        <th data-field="positivos_registrados" title="Relatos cuya temática priorizada ya correspondía a este fenómeno; es la 'verdad' contra la que se mide el modelo.">Registrados</th>
+        <th data-field="precision_cv" title="De los relatos que el modelo marcó con este fenómeno (en validación cruzada), el porcentaje que en verdad lo tenía. Precisión baja = muchos falsos positivos.">Precisión</th>
+        <th data-field="sensibilidad_cv" title="De los relatos que sí tenían este fenómeno registrado, el porcentaje que el modelo logró detectar (también llamado 'recall'). Sensibilidad baja = al modelo se le escapan casos.">Sensibilidad</th>
+        <th data-field="etiquetas_aportadas" title="Relatos a los que el modelo les asignó este fenómeno y que no lo tenían ni por registro ni por regla; son etiquetas nuevas que suma el modelo al total.">Etiquetas aportadas</th>
+      </tr></thead>
       <tbody data-draw="fen_modelo"></tbody></table></div>
   </section>
 
@@ -117,6 +121,14 @@
     <p class="gic-lead2">Asociación entre fenómeno y sector económico (secciones CIIU Rev. 4) mencionados en el mismo relato. Para cada par: razón de momios (OR) con intervalo de confianza del 95 %, prueba exacta de Fisher y p-valor ajustado por Benjamini–Hochberg (q). Una asociación indica co-mención en los relatos registrados, no causalidad.</p>
     <div class="gic-filters"><label>Fenómeno <select class="dash-select" data-draw="sel_fen_sector" aria-label="Fenómeno" data-source="asociaciones"></select></label></div>
     <div class="gic-legend"><span><i class="dot fill"></i>q &lt; 0,05</span><span><i class="dot"></i>no significativo</span><span>Línea vertical: OR = 1 (sin asociación)</span></div>
+    <details class="gic-det" id="sec-leer"><summary>Cómo leer este gráfico</summary>
+      <ul>
+        <li>Cada fila es un sector económico mencionado junto con el fenómeno elegido arriba. El punto marca el <b>OR</b> (razón de momios) estimado; la línea horizontal, su <b>intervalo de confianza del 95 %</b>.</li>
+        <li>El eje horizontal es logarítmico: la distancia entre 0,5 y 1 es igual a la distancia entre 1 y 2. Si la línea del sector no cruza la marca vertical <b>OR = 1</b>, hay asociación; si la cruza, no se puede descartar que no haya asociación.</li>
+        <li>Punto relleno: la asociación es estadísticamente significativa (q &lt; 0,05, ya ajustado por comparaciones múltiples). Punto vacío: no lo es.</li>
+        <li>Mientras más a la derecha esté el punto (OR mayor), más veces aparece ese sector junto con el fenómeno de lo que se esperaría si no hubiera relación; mientras más a la izquierda (OR menor que 1), menos veces de lo esperado.</li>
+        <li>Pase el cursor sobre una fila para ver el detalle: relatos con ambos, relatos esperados, OR, intervalo y valores p.</li>
+      </ul></details>
     <div class="gic-chart gic-tall" id="sec-forest" data-draw="sec_forest" data-source="asociaciones"></div>
     <h3 id="sec-tabla-t">Pares con q &lt; 0,05 (todos los fenómenos)</h3>
     <div class="gic-scroll"><table class="gic-table" id="sec-tabla" data-source="asociaciones" data-row-key="fenomeno,sector">
@@ -133,6 +145,13 @@
       <span><i class="sw" style="background:var(--gic-t3)"></i>bien</span>
       <span><i class="sw" style="background:var(--gic-t4)"></i>lugar</span>
     </div>
+    <details class="gic-det" id="red-leer"><summary>Cómo leer este gráfico</summary>
+      <ul>
+        <li>Cada punto es un elemento (actividad económica, mecanismo de lavado, bien o lugar) que aparece en al menos 4 relatos; el <b>tamaño</b> del punto crece con el número de relatos donde aparece. El color indica su tipo (ver la leyenda).</li>
+        <li>Cada línea une dos elementos que se mencionan juntos en al menos 3 relatos con una asociación relevante (lift ≥ 1,2); mientras más <b>gruesa</b>, más relatos comparten ambos elementos.</li>
+        <li>Pase el cursor sobre un punto para resaltar solo sus vínculos y ver, en el recuadro, sus relatos, grado, comunidad e intermediación (qué tan "puente" es entre grupos).</li>
+        <li>Cuando hay muchos puntos encimados: use la <b>rueda del mouse</b> o el gesto de pellizco para acercar, <b>arrastre</b> para mover la vista y haga <b>doble clic</b> (o use el botón "Restablecer zoom") para volver a la vista completa.</li>
+      </ul></details>
     <div class="gic-chart gic-net" id="red-grafo" data-draw="red_grafo" data-source="red_nodos red_aristas"></div>
     <h3 id="red-reglas-t">Reglas de asociación con mayor lift</h3>
     <p class="gic-note">Soporte = proporción de todos los relatos con ambos elementos; confianza = proporción de relatos con el antecedente que también tienen el consecuente.</p>
@@ -150,11 +169,31 @@
     <div class="gic-chart" id="al-chart" data-draw="al_chart" data-source="alertas"></div>
     <h3 id="al-far-t">Tasa de falsas alarmas por serie</h3>
     <div class="gic-scroll"><table class="gic-table" id="al-far" data-source="alertas_far" data-row-key="serie">
-      <thead><tr><th data-field="serie">Serie</th><th data-field="media_mensual">Media mensual</th><th data-field="dispersion">Línea base</th><th data-field="far_ears">FAR EARS (por mes)</th><th data-field="falsas_por_anio_ears">Falsas/año EARS</th><th data-field="far_cusum">FAR CUSUM</th><th data-field="falsas_por_anio_cusum">Falsas/año CUSUM</th><th data-field="senales_ears">Señales EARS</th><th data-field="senales_cusum">Señales CUSUM</th></tr></thead>
+      <thead><tr>
+        <th data-field="serie">Serie</th>
+        <th data-field="media_mensual" title="Relatos por mes, en promedio, en la línea base de esta serie.">Media mensual</th>
+        <th data-field="dispersion" title="Modelo estadístico ajustado a esa media y su variabilidad: Poisson (varianza ≈ media) o binomial negativa NB (varianza mayor que la media; r indica cuánta).">Línea base</th>
+        <th data-field="far_ears" title="Si esta serie no cambiara de verdad, qué porcentaje de los meses el método EARS marcaría señal por azar (de 1.000 simulaciones sin cambios reales).">FAR EARS (por mes)</th>
+        <th data-field="falsas_por_anio_ears" title="La misma tasa de falsas alarmas de EARS, expresada en señales falsas esperadas al año.">Falsas/año EARS</th>
+        <th data-field="far_cusum" title="Lo mismo que FAR EARS, pero para el método CUSUM (que acumula excesos sostenidos en el tiempo).">FAR CUSUM</th>
+        <th data-field="falsas_por_anio_cusum" title="La tasa de falsas alarmas de CUSUM, expresada en señales falsas esperadas al año.">Falsas/año CUSUM</th>
+        <th data-field="senales_ears" title="Número de meses, en los datos reales (no simulados), en que EARS efectivamente marcó señal para esta serie.">Señales EARS</th>
+        <th data-field="senales_cusum" title="Número de meses, en los datos reales (no simulados), en que CUSUM efectivamente marcó señal para esta serie.">Señales CUSUM</th>
+      </tr></thead>
       <tbody data-draw="al_far"></tbody></table></div>
     <h3 id="al-lista-t">Señales de la serie seleccionada</h3>
+    <p class="gic-note">Solo se listan los meses de la serie elegida arriba que dispararon una señal (EARS, CUSUM o ambas).</p>
     <div class="gic-scroll"><table class="gic-table" id="al-lista" data-source="alertas" data-row-key="serie,mes">
-      <thead><tr><th data-field="mes">Mes</th><th data-field="observado">Observado</th><th data-field="esperado">Esperado</th><th data-field="umbral_99">Umbral 99 %</th><th data-field="p_cola">P(≥ obs.)</th><th data-field="cusum">CUSUM</th><th data-field="calidad">Calidad del mes</th></tr></thead>
+      <thead><tr>
+        <th data-field="mes">Mes</th>
+        <th title="Qué método marcó señal ese mes: EARS (supera el umbral del 99 %), CUSUM (exceso sostenido) o ambos.">Señal</th>
+        <th data-field="observado" title="Relatos que de verdad llegaron ese mes.">Observado</th>
+        <th data-field="esperado" title="Relatos esperados ese mes según la línea base de los 6 meses anteriores (con 2 de guarda).">Esperado</th>
+        <th data-field="umbral_99" title="Valor que, bajo la línea base, solo se supera el 1 % de las veces. Superarlo dispara la señal EARS.">Umbral 99 %</th>
+        <th data-field="p_cola" title="Probabilidad de observar un valor igual o mayor al registrado, si la línea base no hubiera cambiado. Mientras más cercano a 0, más atípico el mes.">P(≥ obs.)</th>
+        <th data-field="cusum" title="Estadístico CUSUM: suma acumulada de desvíos sobre la línea base. Si supera 4, dispara la señal CUSUM y se reinicia.">CUSUM</th>
+        <th data-field="calidad" title="Calidad del registro ese mes (completo, parcial o con posible vacío); una calidad dudosa puede explicar la señal sin que haya un cambio real.">Calidad del mes</th>
+      </tr></thead>
       <tbody data-draw="al_lista"></tbody></table></div>
   </section>
 
@@ -217,6 +256,13 @@
 
     <h3 id="pt-t">¿Cuánto tarda en cerrarse un trámite?</h3>
     <p class="gic-note">Porcentaje de relatos ya cerrados según los días desde su recepción. Los relatos que siguen abiertos también cuentan, hasta el día que llevan abiertos (método Kaplan–Meier).</p>
+    <details class="gic-det" id="pt-leer"><summary>Cómo leer este gráfico</summary>
+      <ul>
+        <li>El eje horizontal son los días desde que el relato se recibió; el vertical, el porcentaje acumulado de relatos de ese grupo que ya estaban cerrados a esos días.</li>
+        <li>Cada línea es un tipo de entrada; la línea punteada "Todos los relatos" es el promedio general. Mientras más alto y hacia la izquierda suba una línea, más rápido se cierran los trámites de ese grupo.</li>
+        <li>Los relatos que siguen abiertos no se descartan: se cuentan como "aún no cerrado" hasta el día que lleven abiertos, por eso las líneas no siempre llegan al 100 %.</li>
+        <li>Pase el cursor sobre el gráfico para ver, en un día dado, qué porcentaje de cada grupo ya se había cerrado.</li>
+      </ul></details>
     <div class="gic-chart" id="pt-curvas" data-draw="pt_curvas" data-source="pt_curvas"></div>
     <div class="gic-scroll"><table class="gic-table" id="pt-tabla" data-source="pt_resumen" data-row-key="grupo">
       <thead><tr><th data-field="grupo">Tipo de entrada</th><th data-field="relatos">Relatos</th><th data-field="mediana_dias">Días típicos (mediana)</th><th>La mitad central tarda</th><th data-field="pct_cerrado_30">Cerrados a 30 días</th><th data-field="pct_cerrado_90">Cerrados a 90 días</th><th data-field="abiertos">Abiertos hoy</th></tr></thead>
