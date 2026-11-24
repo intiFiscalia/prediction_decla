@@ -142,12 +142,14 @@ dash.calc('kpi_terr', {
 });
 
 dash.calc('mpios', {
-  inputs: ['hechos'],
+  inputs: ['hechos', 'etiquetas'],
   title: 'Relatos por municipio',
-  description: 'Relatos del periodo por municipio DIVIPOLA identificado, con coordenadas de la cabecera.',
-  fn: (hechos) => {
+  description: 'Relatos del periodo y fenómeno elegidos por municipio DIVIPOLA identificado, con coordenadas de la cabecera.',
+  fn: (hechos, etiquetas) => {
     const p = dash.params(); const campo = G.mesCampo();
-    const h = hechos.filter((r) => { const m = r[campo] || r.mes; return r.mpio_cod && m >= (p.desde || '0000') && m <= (p.hasta || '9999'); });
+    const fen = p.fen_terr || 'Lavado de activos';
+    const conF = new Set(etiquetas.filter((e) => e.nivel === 'fenómeno' && e.item === fen && e.confianza >= 0.5).map((e) => e.rid));
+    const h = hechos.filter((r) => { const m = r[campo] || r.mes; return r.mpio_cod && conF.has(r.rid) && m >= (p.desde || '0000') && m <= (p.hasta || '9999'); });
     return [...d3.group(h, (r) => r.mpio_cod)].map(([cod, v]) => ({ mpio_cod: cod, mpio: v[0].mpio, dpto: v[0].dpto, lat: v[0].lat, lon: v[0].lon, relatos: v.length }))
       .sort((a, b) => b.relatos - a.relatos);
   },

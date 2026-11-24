@@ -44,13 +44,16 @@
   };
   G.width = (el, min = 280) => Math.max(min, el.clientWidth || 600);
 
+  // Oculta/muestra con "display" (no con el atributo "hidden"): dash_shim.js redibuja todo el tablero
+  // cuando cambia un atributo "hidden" en el documento, y cada vez que aparece/desaparece un tooltip
+  // (p. ej. al pasar el mouse por el grafo de la sección 5) eso recreaba el SVG y reiniciaba el zoom.
   G.tip = (el) => {
     let t = el.querySelector(':scope > .gic-tip');
-    if (!t) { t = document.createElement('div'); t.className = 'gic-tip'; t.hidden = true; el.appendChild(t); }
+    if (!t) { t = document.createElement('div'); t.className = 'gic-tip'; t.style.display = 'none'; el.appendChild(t); }
     return {
       show(ev, lines) {
         t.replaceChildren(...lines.map((l, i) => { const d = document.createElement('div'); if (i) d.className = 't2'; d.textContent = l; return d; }));
-        t.hidden = false;
+        t.style.display = '';
         const r = el.getBoundingClientRect();
         let x = ev.clientX - r.left + 12, y = ev.clientY - r.top + 12;
         const w = t.offsetWidth || 200, h = t.offsetHeight || 40;
@@ -58,7 +61,7 @@
         if (y + h > r.height) y = Math.max(0, ev.clientY - r.top - h - 12);
         t.style.left = x + 'px'; t.style.top = y + 'px';
       },
-      hide() { t.hidden = true; },
+      hide() { t.style.display = 'none'; },
     };
   };
   G.svg = (el, w, h, label) => {

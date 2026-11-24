@@ -501,13 +501,16 @@ body { margin:0; background:var(--color-bg); color:var(--color-fg); }
   };
   G.width = (el, min = 280) => Math.max(min, el.clientWidth || 600);
 
+  // Oculta/muestra con "display" (no con el atributo "hidden"): dash_shim.js redibuja todo el tablero
+  // cuando cambia un atributo "hidden" en el documento, y cada vez que aparece/desaparece un tooltip
+  // (p. ej. al pasar el mouse por el grafo de la sección 5) eso recreaba el SVG y reiniciaba el zoom.
   G.tip = (el) => {
     let t = el.querySelector(':scope > .gic-tip');
-    if (!t) { t = document.createElement('div'); t.className = 'gic-tip'; t.hidden = true; el.appendChild(t); }
+    if (!t) { t = document.createElement('div'); t.className = 'gic-tip'; t.style.display = 'none'; el.appendChild(t); }
     return {
       show(ev, lines) {
         t.replaceChildren(...lines.map((l, i) => { const d = document.createElement('div'); if (i) d.className = 't2'; d.textContent = l; return d; }));
-        t.hidden = false;
+        t.style.display = '';
         const r = el.getBoundingClientRect();
         let x = ev.clientX - r.left + 12, y = ev.clientY - r.top + 12;
         const w = t.offsetWidth || 200, h = t.offsetHeight || 40;
@@ -515,7 +518,7 @@ body { margin:0; background:var(--color-bg); color:var(--color-fg); }
         if (y + h > r.height) y = Math.max(0, ev.clientY - r.top - h - 12);
         t.style.left = x + 'px'; t.style.top = y + 'px';
       },
-      hide() { t.hidden = true; },
+      hide() { t.style.display = 'none'; },
     };
   };
   G.svg = (el, w, h, label) => {
@@ -762,12 +765,14 @@ dash.calc('kpi_terr', {
 });
 
 dash.calc('mpios', {
-  inputs: ['hechos'],
+  inputs: ['hechos', 'etiquetas'],
   title: 'Relatos por municipio',
-  description: 'Relatos del periodo por municipio DIVIPOLA identificado, con coordenadas de la cabecera.',
-  fn: (hechos) => {
+  description: 'Relatos del periodo y fenómeno elegidos por municipio DIVIPOLA identificado, con coordenadas de la cabecera.',
+  fn: (hechos, etiquetas) => {
     const p = dash.params(); const campo = G.mesCampo();
-    const h = hechos.filter((r) => { const m = r[campo] || r.mes; return r.mpio_cod && m >= (p.desde || '0000') && m <= (p.hasta || '9999'); });
+    const fen = p.fen_terr || 'Lavado de activos';
+    const conF = new Set(etiquetas.filter((e) => e.nivel === 'fenómeno' && e.item === fen && e.confianza >= 0.5).map((e) => e.rid));
+    const h = hechos.filter((r) => { const m = r[campo] || r.mes; return r.mpio_cod && conF.has(r.rid) && m >= (p.desde || '0000') && m <= (p.hasta || '9999'); });
     return [...d3.group(h, (r) => r.mpio_cod)].map(([cod, v]) => ({ mpio_cod: cod, mpio: v[0].mpio, dpto: v[0].dpto, lat: v[0].lat, lon: v[0].lon, relatos: v.length }))
       .sort((a, b) => b.relatos - a.relatos);
   },
@@ -1218,22 +1223,37 @@ dash.calc('org_mes', {
     }
     reposition();
 
-    ng.on('pointermove', (ev, n) => {
-      const nb = new Set([n.id]); edges.forEach((e) => { if (e.source === n.id) nb.add(e.target); if (e.target === n.id) nb.add(e.source); });
-      ng.attr('opacity', (m) => (nb.has(m.id) ? 1 : 0.15)); eg.attr('stroke-opacity', (e) => (e.source === n.id || e.target === n.id ? 0.9 : 0.05)); lab.attr('opacity', (m) => (nb.has(m.id) ? 1 : 0.2));
+    let selected = null;
+    const neighbors = (id) => { const nb = new Set([id]); edges.forEach((e) => { if (e.source === id) nb.add(e.target); if (e.target === id) nb.add(e.source); }); return nb; };
+    const highlight = (id) => {
+      const nb = neighbors(id);
+      ng.attr('opacity', (m) => (nb.has(m.id) ? 1 : 0.15));
+      eg.attr('stroke-opacity', (e) => (e.source === id || e.target === id ? 0.9 : 0.05));
+      lab.attr('opacity', (m) => (nb.has(m.id) ? 1 : 0.2));
+    };
+    const clearHighlight = () => { ng.attr('opacity', 1); eg.attr('stroke-opacity', 0.45); lab.attr('opacity', 1); };
+
+    ng.style('cursor', 'pointer').on('pointermove', (ev, n) => {
+      if (!selected) highlight(n.id);
       const top3 = edges.filter((e) => e.source === n.id || e.target === n.id).sort((a, b) => b.n - a.n).slice(0, 3)
         .map((e) => `${by.get(e.source === n.id ? e.target : e.source).label}: ${G.int(e.n)} (lift ${G.d2(e.lift)})`);
       tip.show(ev, [`${n.label} · ${n.tipo}`, `${G.int(n.n)} relatos · grado ${n.grado} · comunidad ${n.comunidad}`, `Intermediación ${G.d3(n.intermediacion)}`, ...top3]);
-    }).on('pointerleave', () => { ng.attr('opacity', 1); eg.attr('stroke-opacity', 0.45); lab.attr('opacity', 1); tip.hide(); });
+    }).on('pointerleave', () => { if (!selected) clearHighlight(); tip.hide(); })
+      .on('click', (ev, n) => {
+        ev.stopPropagation();
+        selected = selected === n.id ? null : n.id;
+        if (selected) highlight(selected); else clearHighlight();
+      });
+    svg.on('click', () => { if (selected) { selected = null; clearHighlight(); } });
 
     const zoom = d3.zoom().scaleExtent([1, 16]).translateExtent([[0, 0], [w, h]])
       .on('zoom', (ev) => { zt = ev.transform; reposition(); })
       .on('start', () => svg.style('cursor', 'grabbing')).on('end', () => svg.style('cursor', 'grab'));
     svg.call(zoom).on('dblclick.zoom', null).on('dblclick', () => svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity));
     const bar = d3.select(el).append('div').attr('class', 'gic-legend');
-    bar.append('span').text('Rueda o pellizco: acercar · Arrastrar: mover · Doble clic: restablecer');
+    bar.append('span').text('Rueda o pellizco: acercar · Arrastrar: mover · Doble clic: restablecer · Clic en un nodo: resaltar sus conexiones');
     bar.append('button').attr('type', 'button').attr('class', 'gic-btn').text('Restablecer zoom')
-      .on('click', () => svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity));
+      .on('click', () => { selected = null; clearHighlight(); svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity); });
   });
 
   dash.draw('red_reglas', (tb) => {

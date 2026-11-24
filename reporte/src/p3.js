@@ -88,22 +88,37 @@
     }
     reposition();
 
-    ng.on('pointermove', (ev, n) => {
-      const nb = new Set([n.id]); edges.forEach((e) => { if (e.source === n.id) nb.add(e.target); if (e.target === n.id) nb.add(e.source); });
-      ng.attr('opacity', (m) => (nb.has(m.id) ? 1 : 0.15)); eg.attr('stroke-opacity', (e) => (e.source === n.id || e.target === n.id ? 0.9 : 0.05)); lab.attr('opacity', (m) => (nb.has(m.id) ? 1 : 0.2));
+    let selected = null;
+    const neighbors = (id) => { const nb = new Set([id]); edges.forEach((e) => { if (e.source === id) nb.add(e.target); if (e.target === id) nb.add(e.source); }); return nb; };
+    const highlight = (id) => {
+      const nb = neighbors(id);
+      ng.attr('opacity', (m) => (nb.has(m.id) ? 1 : 0.15));
+      eg.attr('stroke-opacity', (e) => (e.source === id || e.target === id ? 0.9 : 0.05));
+      lab.attr('opacity', (m) => (nb.has(m.id) ? 1 : 0.2));
+    };
+    const clearHighlight = () => { ng.attr('opacity', 1); eg.attr('stroke-opacity', 0.45); lab.attr('opacity', 1); };
+
+    ng.style('cursor', 'pointer').on('pointermove', (ev, n) => {
+      if (!selected) highlight(n.id);
       const top3 = edges.filter((e) => e.source === n.id || e.target === n.id).sort((a, b) => b.n - a.n).slice(0, 3)
         .map((e) => `${by.get(e.source === n.id ? e.target : e.source).label}: ${G.int(e.n)} (lift ${G.d2(e.lift)})`);
       tip.show(ev, [`${n.label} · ${n.tipo}`, `${G.int(n.n)} relatos · grado ${n.grado} · comunidad ${n.comunidad}`, `Intermediación ${G.d3(n.intermediacion)}`, ...top3]);
-    }).on('pointerleave', () => { ng.attr('opacity', 1); eg.attr('stroke-opacity', 0.45); lab.attr('opacity', 1); tip.hide(); });
+    }).on('pointerleave', () => { if (!selected) clearHighlight(); tip.hide(); })
+      .on('click', (ev, n) => {
+        ev.stopPropagation();
+        selected = selected === n.id ? null : n.id;
+        if (selected) highlight(selected); else clearHighlight();
+      });
+    svg.on('click', () => { if (selected) { selected = null; clearHighlight(); } });
 
     const zoom = d3.zoom().scaleExtent([1, 16]).translateExtent([[0, 0], [w, h]])
       .on('zoom', (ev) => { zt = ev.transform; reposition(); })
       .on('start', () => svg.style('cursor', 'grabbing')).on('end', () => svg.style('cursor', 'grab'));
     svg.call(zoom).on('dblclick.zoom', null).on('dblclick', () => svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity));
     const bar = d3.select(el).append('div').attr('class', 'gic-legend');
-    bar.append('span').text('Rueda o pellizco: acercar · Arrastrar: mover · Doble clic: restablecer');
+    bar.append('span').text('Rueda o pellizco: acercar · Arrastrar: mover · Doble clic: restablecer · Clic en un nodo: resaltar sus conexiones');
     bar.append('button').attr('type', 'button').attr('class', 'gic-btn').text('Restablecer zoom')
-      .on('click', () => svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity));
+      .on('click', () => { selected = null; clearHighlight(); svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity); });
   });
 
   dash.draw('red_reglas', (tb) => {

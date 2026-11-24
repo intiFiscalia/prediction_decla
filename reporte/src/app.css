@@ -23,8 +23,9 @@
 .gic-chart { position: relative; min-height: 220px; width: 100%; }
 .gic-tall { min-height: 360px; }
 .gic-map { min-height: 380px; }
-.gic-net { min-height: 520px; }
+.gic-net { min-height: 520px; overflow: hidden; border: 1px solid var(--cds-border); border-radius: var(--cds-radius); }
 .gic-chart svg { display: block; overflow: visible; }
+.gic-net svg { overflow: hidden; }
 .gic-chart text { font-family: var(--font-anthropic-sans); font-size: 11px; fill: var(--cds-text-secondary); }
 .gic-chart .lbl { fill: var(--color-fg); }
 .gic-chart .axis text { font-size: 11px; fill: var(--cds-text-secondary); }
