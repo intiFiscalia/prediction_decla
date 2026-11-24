@@ -64,15 +64,30 @@
     const r = d3.scaleSqrt().domain([0, d3.max(nodes, (n) => n.n)]).range([3, Math.min(22, w / 40)]);
     const sw = d3.scaleLinear().domain([3, d3.max(edges, (e) => e.n) || 3]).range([0.6, 5]);
     const tip = G.tip(el);
+    // El zoom mueve las posiciones (para separar nodos encimados), pero NO escala el tamaño de los
+    // círculos ni del texto: así acercar sí ayuda a leer un grafo denso, en vez de solo agrandar todo
+    // proporcionalmente (que deja el mismo solapamiento, solo más grande).
     const layer = svg.append('g');
     const eg = layer.append('g').selectAll('line').data(edges).join('line')
-      .attr('x1', (e) => x(by.get(e.source).x)).attr('y1', (e) => y(by.get(e.source).y)).attr('x2', (e) => x(by.get(e.target).x)).attr('y2', (e) => y(by.get(e.target).y))
       .style('stroke', 'var(--cds-chart-axis)').attr('stroke-width', (e) => sw(e.n)).attr('stroke-opacity', 0.45);
-    const ng = layer.append('g').selectAll('circle').data(nodes).join('circle').attr('cx', (n) => x(n.x)).attr('cy', (n) => y(n.y)).attr('r', (n) => r(n.n))
+    const ng = layer.append('g').selectAll('circle').data(nodes).join('circle').attr('r', (n) => r(n.n))
       .style('fill', (n) => G.tc[n.tipo]).style('stroke', 'var(--color-bg)').attr('stroke-width', 1);
-    const big = nodes.slice().sort((a, b) => b.n - a.n).slice(0, Math.max(8, Math.floor(w / 60)));
-    const lab = layer.append('g').selectAll('text').data(big).join('text').attr('class', 'lbl').attr('x', (n) => x(n.x) + r(n.n) + 3).attr('y', (n) => y(n.y) + 4)
+    const destacados = new Set(nodes.slice().sort((a, b) => b.n - a.n).slice(0, Math.max(8, Math.floor(w / 60))).map((n) => n.id));
+    const lab = layer.append('g').selectAll('text').data(nodes).join('text').attr('class', 'lbl')
       .text((n) => n.label.replace(/^[A-Z] · /, ''));
+
+    let zt = d3.zoomIdentity;
+    const px = (n) => zt.applyX(x(n.x)), py = (n) => zt.applyY(y(n.y));
+    function reposition() {
+      eg.attr('x1', (e) => px(by.get(e.source))).attr('y1', (e) => py(by.get(e.source)))
+        .attr('x2', (e) => px(by.get(e.target))).attr('y2', (e) => py(by.get(e.target)));
+      ng.attr('cx', px).attr('cy', py);
+      // Con más espacio entre nodos (zoom > 2.5) se muestran todas las etiquetas, no solo las más grandes.
+      lab.attr('x', (n) => px(n) + r(n.n) + 3).attr('y', (n) => py(n) + 4)
+        .style('display', (n) => (zt.k > 2.5 || destacados.has(n.id) ? null : 'none'));
+    }
+    reposition();
+
     ng.on('pointermove', (ev, n) => {
       const nb = new Set([n.id]); edges.forEach((e) => { if (e.source === n.id) nb.add(e.target); if (e.target === n.id) nb.add(e.source); });
       ng.attr('opacity', (m) => (nb.has(m.id) ? 1 : 0.15)); eg.attr('stroke-opacity', (e) => (e.source === n.id || e.target === n.id ? 0.9 : 0.05)); lab.attr('opacity', (m) => (nb.has(m.id) ? 1 : 0.2));
@@ -81,8 +96,8 @@
       tip.show(ev, [`${n.label} · ${n.tipo}`, `${G.int(n.n)} relatos · grado ${n.grado} · comunidad ${n.comunidad}`, `Intermediación ${G.d3(n.intermediacion)}`, ...top3]);
     }).on('pointerleave', () => { ng.attr('opacity', 1); eg.attr('stroke-opacity', 0.45); lab.attr('opacity', 1); tip.hide(); });
 
-    const zoom = d3.zoom().scaleExtent([1, 10]).translateExtent([[0, 0], [w, h]])
-      .on('zoom', (ev) => layer.attr('transform', ev.transform))
+    const zoom = d3.zoom().scaleExtent([1, 16]).translateExtent([[0, 0], [w, h]])
+      .on('zoom', (ev) => { zt = ev.transform; reposition(); })
       .on('start', () => svg.style('cursor', 'grabbing')).on('end', () => svg.style('cursor', 'grab'));
     svg.call(zoom).on('dblclick.zoom', null).on('dblclick', () => svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity));
     const bar = d3.select(el).append('div').attr('class', 'gic-legend');

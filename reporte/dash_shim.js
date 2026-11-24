@@ -30,7 +30,10 @@
     colors: ['#2f6fb0', '#3a9e8f', '#c2862b', '#9a6bb8', '#b5546b', '#5b8c3a'],
     calc: (id, o) => { calcs[id] = o; },
     loader: () => {},
-    data: (id) => { try { const d = value(id); return { status: 'ok', data: d, columns: Array.isArray(d) && d[0] ? Object.keys(d[0]) : [] }; } catch (e) { console.error(e); return { status: 'error', data: [], message: String(e) }; } },
+    data: (id) => {
+      if ((DEFAULTS.faltantes || []).includes(id)) return { status: 'missing', data: [], message: 'Sin datos para esta fuente' };
+      try { const d = value(id); return { status: 'ok', data: d, columns: Array.isArray(d) && d[0] ? Object.keys(d[0]) : [] }; } catch (e) { console.error(e); return { status: 'error', data: [], message: String(e) }; }
+    },
     draw: (name, fn) => { if (typeof fn === 'function') draws[name] = fn; else if (fn && fn.update) draws[name] = (el) => fn.update(el, fn.mount ? fn.mount(el) : null); else if (!fn) schedule(); },
     onData: (fn) => { onDatas.push(fn); },
     params: () => params,

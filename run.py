@@ -28,7 +28,13 @@ def paso(nombre, args):
 
 def main():
     cargar_env(os.path.join(RAIZ, ".env"))
-    carpeta = os.path.join(RAIZ, os.environ.get("CARPETA_DATOS", "data"))
+    fuente = "gic"
+    if "--fuente" in sys.argv:
+        fuente = sys.argv[sys.argv.index("--fuente") + 1].strip().lower()
+    if fuente not in ("gic", "decla"):
+        sys.exit(f"--fuente debe ser 'gic' o 'decla' (recibido: {fuente})")
+
+    carpeta = os.path.join(RAIZ, os.environ.get("CARPETA_DATOS", "data"), "GIC" if fuente == "gic" else "DECLA")
     entrada = os.environ.get("ARCHIVO_ENTRADA", "").strip()
     if entrada:
         ruta = entrada if os.path.isabs(entrada) else os.path.join(carpeta, entrada)
@@ -37,18 +43,24 @@ def main():
         if len(xs) != 1:
             sys.exit(f"En {carpeta} debe haber exactamente un .xlsx (hay {len(xs)}), o indique ARCHIVO_ENTRADA en .env")
         ruta = xs[0]
-    out = os.path.join(RAIZ, os.environ.get("CARPETA_SALIDA", "out"))
+    out = os.path.join(RAIZ, os.environ.get("CARPETA_SALIDA", "out"), fuente)
     os.makedirs(out, exist_ok=True)
     nombre = os.path.basename(ruta)
-    print(f"Archivo de entrada: {ruta}")
+    dest = os.path.join(RAIZ, "reporte", "dist", f"reporte_{fuente}.html")
+    print(f"Fuente: {fuente}  ·  Archivo de entrada: {ruta}")
 
-    paso("1/3 Pipeline (territorio, fenómenos, sectores, red, alertas, pronósticos)", ["pipeline/pipeline.py", ruta, out, nombre])
-    paso("2/3 Predicciones (genera caso, tiempos de cierre, composición)", ["pipeline/predicciones.py", ruta, out, nombre])
-    paso("3/3 Reporte HTML", ["reporte/build_report.py", out, os.path.join(RAIZ, "reporte", "dist", "reporte.html")])
+    if fuente == "gic":
+        paso("1/3 Pipeline (territorio, fenómenos, sectores, red, alertas, pronósticos)", ["pipeline/pipeline.py", ruta, out, nombre])
+        paso("2/3 Predicciones (genera caso, tiempos de cierre, composición)", ["pipeline/predicciones.py", ruta, out, nombre])
+    else:
+        paso("1/3 Pipeline DECLA (territorio, fenómenos, sectores, red, alertas, pronósticos)", ["pipeline/pipeline_decla.py", ruta, out, nombre])
+        paso("2/3 Predicciones DECLA (composición de fenómenos)", ["pipeline/predicciones_decla.py", ruta, out, nombre])
+    paso("3/3 Reporte HTML", ["reporte/build_report.py", out, dest, fuente])
 
     if "--verificar" in sys.argv:
-        paso("Verificación contra el resultado publicado", ["tests/verificar.py", out])
-    print("\nListo. Abra reporte/dist/reporte.html en el navegador.")
+        ref = os.path.join(RAIZ, "tests", "referencia.json" if fuente == "gic" else "referencia_decla.json")
+        paso("Verificación contra el resultado publicado", ["tests/verificar.py", out, "--ref", ref])
+    print(f"\nListo. Abra {dest} en el navegador.")
 
 if __name__ == "__main__":
     main()

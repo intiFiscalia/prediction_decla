@@ -1,11 +1,14 @@
+// Campo de fecha que agrupa por mes (selector "Fecha base", solo en DECLA); en GIC siempre es "mes".
+G.mesCampo = () => { const b = dash.params().fecha_base; return b ? 'mes_' + b : 'mes'; };
+
 dash.calc('hf', {
   inputs: ['hechos'],
   title: 'Relatos en la selección',
   description: 'Relatos filtrados por periodo (mes de ingreso) y departamento elegidos arriba.',
   fn: (hechos) => {
-    const p = dash.params();
+    const p = dash.params(); const campo = G.mesCampo();
     const d = p.desde || '0000-00', h = p.hasta || '9999-99';
-    return hechos.filter((r) => r.mes >= d && r.mes <= h && (!p.dpto || r.dpto_cod === p.dpto));
+    return hechos.filter((r) => { const m = r[campo] || r.mes; return m >= d && m <= h; }).filter((r) => !p.dpto || r.dpto_cod === p.dpto);
   },
 });
 
@@ -14,14 +17,15 @@ dash.calc('kpi', {
   title: 'Indicadores de la selección',
   description: 'Totales y tasas sobre los relatos filtrados.',
   fn: (hf) => {
-    const n = hf.length;
-    const meses = new Set(hf.map((r) => r.mes)).size;
+    const n = hf.length; const campo = G.mesCampo();
+    const meses = new Set(hf.map((r) => r[campo] || r.mes)).size;
     const dias = hf.map((r) => r.dias_cierre).filter((v) => v != null).sort((a, b) => a - b);
     const med = dias.length ? (dias.length % 2 ? dias[(dias.length - 1) / 2] : (dias[dias.length / 2 - 1] + dias[dias.length / 2]) / 2) : null;
     const s = (k) => hf.reduce((a, r) => a + (r[k] || 0), 0);
+    const tieneGenera = hf.some((r) => r.genera_caso != null);
     return [{
       total: n, meses, prom_mensual: meses ? n / meses : null,
-      pct_spoa: n ? s('con_spoa') / n : null, pct_genera: n ? s('genera_caso') / n : null,
+      pct_spoa: n ? s('con_spoa') / n : null, pct_genera: n && tieneGenera ? s('genera_caso') / n : null,
       pct_indagacion: n ? s('indagacion') / n : null, mediana_dias: med,
       desde: hf.reduce((a, r) => (a && a < r.mes ? a : r.mes), null), hasta: hf.reduce((a, r) => (a && a > r.mes ? a : r.mes), null),
     }];
@@ -33,8 +37,8 @@ dash.calc('serie_mes', {
   title: 'Relatos por mes',
   description: 'Conteo mensual de relatos de la selección, con el estado de completitud de cada mes.',
   fn: (hf, calidad) => {
-    const p = dash.params();
-    const c = d3.rollup(hf, (v) => v.length, (r) => r.mes);
+    const p = dash.params(); const campo = G.mesCampo();
+    const c = d3.rollup(hf, (v) => v.length, (r) => r[campo] || r.mes);
     return calidad.filter((m) => m.mes >= (p.desde || '0000') && m.mes <= (p.hasta || '9999'))
       .map((m) => ({ mes: m.mes, relatos: c.get(m.mes) || 0, estado: m.estado }));
   },
@@ -47,7 +51,10 @@ dash.calc('dist', {
   fn: (hf) => {
     const dims = { 'Delito (SPOA)': 'delito', 'Etapa procesal': 'etapa', 'Departamento': 'dpto', 'Entidad remitente': 'entidad_remite',
       'Tipo de entrada': 'tipo_entrada', 'Temática priorizada': 'tematica', 'Decisión fiscal UGIC': 'decision',
-      'Estado del trámite': 'estado_tramite', 'Canal de recepción': 'canal', 'País relacionado': 'pais' };
+      'Estado del trámite': 'estado_tramite', 'Canal de recepción': 'canal', 'País relacionado': 'pais',
+      // Dimensiones propias de DECLA (no existen en los relatos de GIC, así que no aparecen en su "Otra dimensión"):
+      'Tipo de noticia': 'tipo_noticia', 'Tipo de diligencia': 'tipo_diligencia', 'Competencia del despacho': 'competencia_despacho',
+      'Capítulo': 'capitulo', 'Título': 'titulo' };
     const n = hf.length, out = [];
     Object.entries(dims).forEach(([dim, k]) => {
       const c = d3.rollup(hf, (v) => v.length, (r) => r[k] || 'Sin dato');
@@ -105,9 +112,9 @@ dash.calc('terr', {
   title: 'Territorio y cociente de localización',
   description: 'Relatos por departamento (periodo elegido) y cociente de localización del fenómeno elegido.',
   fn: (hechos, territorio, etiquetas) => {
-    const p = dash.params();
+    const p = dash.params(); const campo = G.mesCampo();
     const fen = p.fen_terr || 'Lavado de activos';
-    const ids = new Set(hechos.filter((r) => r.mes >= (p.desde || '0000') && r.mes <= (p.hasta || '9999')).map((r) => r.rid));
+    const ids = new Set(hechos.filter((r) => { const m = r[campo] || r.mes; return m >= (p.desde || '0000') && m <= (p.hasta || '9999'); }).map((r) => r.rid));
     const tr = territorio.filter((t) => ids.has(t.rid));
     const conF = new Set(etiquetas.filter((e) => e.nivel === 'fenómeno' && e.item === fen && e.confianza >= 0.5 && ids.has(e.rid)).map((e) => e.rid));
     const conT = new Set(tr.map((t) => t.rid));
@@ -126,8 +133,8 @@ dash.calc('kpi_terr', {
   title: 'Cobertura territorial',
   description: 'Proporción de relatos del periodo con territorio identificado y su origen.',
   fn: (hechos) => {
-    const p = dash.params();
-    const h = hechos.filter((r) => r.mes >= (p.desde || '0000') && r.mes <= (p.hasta || '9999'));
+    const p = dash.params(); const campo = G.mesCampo();
+    const h = hechos.filter((r) => { const m = r[campo] || r.mes; return m >= (p.desde || '0000') && m <= (p.hasta || '9999'); });
     const con = h.filter((r) => r.dpto_cod);
     return [{ relatos: h.length, con_territorio: con.length, pct_con_territorio: h.length ? con.length / h.length : null,
       pct_registrado: con.length ? con.filter((r) => r.terr_origen === 'registrado').length / con.length : null }];
@@ -139,8 +146,8 @@ dash.calc('mpios', {
   title: 'Relatos por municipio',
   description: 'Relatos del periodo por municipio DIVIPOLA identificado, con coordenadas de la cabecera.',
   fn: (hechos) => {
-    const p = dash.params();
-    const h = hechos.filter((r) => r.mpio_cod && r.mes >= (p.desde || '0000') && r.mes <= (p.hasta || '9999'));
+    const p = dash.params(); const campo = G.mesCampo();
+    const h = hechos.filter((r) => { const m = r[campo] || r.mes; return r.mpio_cod && m >= (p.desde || '0000') && m <= (p.hasta || '9999'); });
     return [...d3.group(h, (r) => r.mpio_cod)].map(([cod, v]) => ({ mpio_cod: cod, mpio: v[0].mpio, dpto: v[0].dpto, lat: v[0].lat, lon: v[0].lon, relatos: v.length }))
       .sort((a, b) => b.relatos - a.relatos);
   },
@@ -151,8 +158,8 @@ dash.calc('lq_matriz', {
   title: 'Matriz de cocientes de localización',
   description: 'Cociente de localización por departamento (8+ relatos) y fenómeno principal, en el periodo elegido.',
   fn: (hechos, territorio, etiquetas) => {
-    const p = dash.params();
-    const ids = new Set(hechos.filter((r) => r.mes >= (p.desde || '0000') && r.mes <= (p.hasta || '9999')).map((r) => r.rid));
+    const p = dash.params(); const campo = G.mesCampo();
+    const ids = new Set(hechos.filter((r) => { const m = r[campo] || r.mes; return m >= (p.desde || '0000') && m <= (p.hasta || '9999'); }).map((r) => r.rid));
     const tr = territorio.filter((t) => ids.has(t.rid));
     const conT = new Set(tr.map((t) => t.rid));
     const et = etiquetas.filter((e) => e.nivel === 'fenómeno' && e.confianza >= 0.5 && conT.has(e.rid));
@@ -235,9 +242,9 @@ dash.calc('org_mes', {
   title: 'Relatos con organización por mes',
   description: 'Relatos de la selección con al menos una organización nombrada, por mes de ingreso.',
   fn: (hf, organizaciones, calidad) => {
-    const p = dash.params();
+    const p = dash.params(); const campo = G.mesCampo();
     const ids = new Set(hf.map((r) => r.rid));
-    const mes = new Map(hf.map((r) => [r.rid, r.mes]));
+    const mes = new Map(hf.map((r) => [r.rid, r[campo] || r.mes]));
     const rids = new Set(organizaciones.filter((o) => ids.has(o.rid) && o.item !== 'Organización mencionada sin nombre').map((o) => o.rid));
     const c = d3.rollup([...rids], (v) => v.length, (r) => mes.get(r));
     return calidad.filter((m) => m.mes >= (p.desde || '0000') && m.mes <= (p.hasta || '9999')).map((m) => ({ mes: m.mes, relatos: c.get(m.mes) || 0, estado: m.estado }));

@@ -23,6 +23,14 @@
     G.setSel(sel, opts, P().dpto || '');
     sel.onchange = () => dash.setParams({ dpto: sel.value || '' });
   });
+  dash.draw('f_fechabase', (sel) => {
+    const esDecla = P().fuente === 'decla';
+    const label = sel.closest('label'); if (label) label.hidden = !esDecla;
+    if (!esDecla) return;
+    const opts = [['creacion', 'Fecha de creación del caso'], ['denuncia', 'Fecha de la denuncia'], ['hecho', 'Fecha de los hechos']];
+    G.setSel(sel, opts, P().fecha_base || 'creacion');
+    sel.onchange = () => dash.setParams({ fecha_base: sel.value });
+  });
   document.querySelectorAll('#f-reset').forEach((b) => b.addEventListener('click', () => dash.resetParams()));
 
   // Pestañas
@@ -47,12 +55,22 @@
   });
   bindSel('sel-nivel', 'nivel', 'fenómeno');
   bindSel('sel-conf', 'conf', '0.5');
-  bindSel('sel-metrica', 'metrica', 'relatos');
+  bindSel('sel-metrica', 'metrica', 'relatos_fen');
   bindSel('sel-modelo', 'modelo_pron', 'auto');
-  bindSel('sel-dim', 'dim', 'Entidad remitente');
   dash.onData(() => {
-    [['sel-nivel', 'nivel', 'fenómeno'], ['sel-conf', 'conf', '0.5'], ['sel-metrica', 'metrica', 'relatos'], ['sel-modelo', 'modelo_pron', 'auto'], ['sel-dim', 'dim', 'Entidad remitente']]
+    [['sel-nivel', 'nivel', 'fenómeno'], ['sel-conf', 'conf', '0.5'], ['sel-metrica', 'metrica', 'relatos_fen'], ['sel-modelo', 'modelo_pron', 'auto']]
       .forEach(([id, n, d]) => document.querySelectorAll('#' + id).forEach((s) => { if (document.activeElement !== s) s.value = String(P()[n] ?? d); }));
+  });
+
+  // "Otra dimensión": opciones distintas por fuente (DECLA no tiene entidad/tipo de entrada/canal/país del GIC).
+  dash.draw('sel_dim', (sel) => {
+    const esDecla = P().fuente === 'decla';
+    const opts = esDecla
+      ? [['Tipo de noticia', 'Tipo de noticia'], ['Tipo de diligencia', 'Tipo de diligencia'], ['Competencia del despacho', 'Competencia del despacho'], ['Capítulo', 'Capítulo'], ['Título', 'Título']]
+      : [['Entidad remitente', 'Entidad remitente'], ['Tipo de entrada', 'Tipo de entrada'], ['Temática priorizada', 'Temática priorizada'], ['Decisión fiscal UGIC', 'Decisión fiscal UGIC'], ['Estado del trámite', 'Estado del trámite'], ['Canal de recepción', 'Canal de recepción'], ['País relacionado', 'País relacionado']];
+    const def = esDecla ? 'Tipo de noticia' : 'Entidad remitente';
+    if (document.activeElement !== sel) G.setSel(sel, opts, P().dim || def);
+    sel.onchange = () => dash.setParams({ dim: sel.value });
   });
 
   // KPIs
@@ -61,9 +79,11 @@
   dash.draw('k_prom', k('prom_mensual', G.d1));
   dash.draw('k_meses', k('meses', G.int));
   dash.draw('k_spoa', k('pct_spoa', G.pct));
-  dash.draw('k_genera', k('pct_genera', G.pct));
+  // En DECLA no hay decisión de generar caso ni fechas de trámite (ver pie de página "Fuente, método y limitaciones").
+  const kOCampo = (f, fmt) => (el) => { if (P().fuente === 'decla') { el.textContent = 'No aplica'; return; } k(f, fmt)(el); };
+  dash.draw('k_genera', kOCampo('pct_genera', G.pct));
   dash.draw('k_indag', k('pct_indagacion', G.pct));
-  dash.draw('k_dias', k('mediana_dias', (v) => G.d1(v)));
+  dash.draw('k_dias', kOCampo('mediana_dias', (v) => G.d1(v)));
 
   dash.draw('ind_serie', (el) => {
     if (!G.ready(el, ['serie_mes'])) return;

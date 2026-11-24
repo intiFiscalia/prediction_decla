@@ -1,13 +1,20 @@
 """Compara las tablas de out/ con la huella del resultado publicado (tests/referencia.json).
-Uso: python3 tests/verificar.py [carpeta_out] [--crear]
+Uso: python3 tests/verificar.py [carpeta_out] [--crear] [--ref ruta_referencia.json]
   --crear  guarda como nueva referencia las huellas actuales (hágalo solo si el cambio fue intencional).
+  --ref    usa otra referencia (p. ej. tests/referencia_decla.json); por defecto tests/referencia.json.
 La huella es el SHA-256 de las filas en JSON canónico; no incluye el código guardado en "meta".
 """
 import sys, os, json, hashlib
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT = next((a for a in sys.argv[1:] if not a.startswith("--")), os.path.join(RAIZ, "out"))
-REF = os.path.join(RAIZ, "tests", "referencia.json")
+_args = sys.argv[1:]
+if "--ref" in _args:
+    i = _args.index("--ref")
+    REF = _args[i + 1]
+    _args = _args[:i] + _args[i + 2:]
+else:
+    REF = os.path.join(RAIZ, "tests", "referencia.json")
+OUT = next((a for a in _args if not a.startswith("--")), os.path.join(RAIZ, "out"))
 
 def huella(ruta):
     j = json.load(open(ruta, encoding="utf-8"))

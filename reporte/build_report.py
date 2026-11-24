@@ -7,6 +7,7 @@ import sys, os, re, json
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(RAIZ, "out")
 DEST = sys.argv[2] if len(sys.argv) > 2 else os.path.join(RAIZ, "reporte", "dist", "reporte.html")
+FUENTE = sys.argv[3] if len(sys.argv) > 3 else "gic"
 SRC = os.path.join(RAIZ, "reporte", "src")
 
 # Identificador de cada fuente en el tablero -> archivo generado por el pipeline (mismo mapeo que el tablero publicado)
@@ -25,18 +26,23 @@ def leer(p):
     with open(p, encoding="utf-8") as f:
         return f.read()
 
-datos = {}
+datos, faltantes = {}, []
 for k, f in FUENTES.items():
     ruta = os.path.join(OUT, f)
     if not os.path.exists(ruta):
         ruta = os.path.join(RAIZ, "assets", f)  # el mapa base vive en assets/
+    if not os.path.exists(ruta):
+        faltantes.append(k)  # fuentes sin equivalente en esta fuente de datos (p. ej. "otras predicciones" de DECLA)
+        continue
     j = json.loads(leer(ruta))
     datos[k] = j["rows"] if isinstance(j, dict) and "rows" in j else j
 
 meses = [m["mes"] for m in datos["calidad"]]
-params = {"desde": meses[0], "hasta": meses[-1], "dpto": "", "conf": "0.5", "nivel": "fenómeno", "dim": "Entidad remitente",
-          "fen_terr": "Lavado de activos", "metrica": "relatos", "fen_sector": "Captación masiva e ilegal",
-          "serie_alerta": "Total de relatos", "serie_pron": "Total de relatos", "modelo_pron": "auto"}
+params = {"desde": meses[0], "hasta": meses[-1], "dpto": "", "conf": "0.5", "nivel": "fenómeno",
+          "dim": "Entidad remitente" if FUENTE == "gic" else "Tipo de noticia",
+          "fen_terr": "Lavado de activos", "metrica": "relatos_fen", "fen_sector": "Captación masiva e ilegal",
+          "serie_alerta": "Total de relatos", "serie_pron": "Total de relatos", "modelo_pron": "auto",
+          "fuente": FUENTE, "faltantes": faltantes}
 
 html = leer(os.path.join(SRC, "index.html"))
 

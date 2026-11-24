@@ -28,9 +28,10 @@
     el.replaceChildren();
     if (st.some((s) => s === 'error' || s === 'missing' || s === 'declined')) {
       el.classList.remove('dash-skeleton');
+      const msg = dash.params().fuente === 'decla' ? 'No disponible para esta fuente' : 'No se pudo cargar';
       const d = document.createElement(opts.tag || 'div');
-      d.className = 'gic-fail'; d.textContent = 'No se pudo cargar';
-      if (opts.tag === 'tr') { const td = document.createElement('td'); td.textContent = 'No se pudo cargar'; d.textContent = ''; d.appendChild(td); }
+      d.className = 'gic-fail'; d.textContent = msg;
+      if (opts.tag === 'tr') { const td = document.createElement('td'); td.textContent = msg; d.textContent = ''; d.appendChild(td); }
       el.appendChild(d);
     } else if (opts.text) { el.textContent = '—'; }
     else { el.classList.add('dash-skeleton'); }
@@ -155,4 +156,7 @@
     sel.replaceChildren(...options.map(([v, l]) => new Option(l, v)));
     sel.value = value;
   };
+
+  // Pie de página: el texto de fuente/método es distinto por fuente; `fuente` no cambia durante la sesión.
+  document.querySelectorAll('#notas [data-fuente]').forEach((el) => { el.hidden = el.dataset.fuente !== (dash.params().fuente || 'gic'); });
 })();

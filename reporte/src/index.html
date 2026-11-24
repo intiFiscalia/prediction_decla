@@ -8,6 +8,7 @@
       <label>Desde <select class="dash-select" data-draw="f_desde" aria-label="Mes inicial" data-source="calidad"></select></label>
       <label>Hasta <select class="dash-select" data-draw="f_hasta" aria-label="Mes final" data-source="calidad"></select></label>
       <label>Territorio <select class="dash-select" data-draw="f_dpto" aria-label="Departamento" data-source="hechos"></select></label>
+      <label>Fecha base <select class="dash-select" data-draw="f_fechabase" aria-label="Fecha base"></select></label>
       <button type="button" class="gic-btn" id="f-reset">Quitar filtros</button>
     </div>
     <nav class="gic-tabs" role="tablist" aria-label="Secciones">
@@ -40,15 +41,7 @@
       <div><h3 id="ind-etapa-t">Por etapa procesal</h3><div class="gic-chart" id="ind-etapa" data-draw="ind_etapa" data-source="dist"></div></div>
       <div><h3 id="ind-dpto-t">Por territorio (departamento)</h3><div class="gic-chart" id="ind-dpto" data-draw="ind_dpto" data-source="dist"></div></div>
       <div><h3 id="ind-otra-t">Otra dimensión</h3>
-        <select class="dash-select" id="sel-dim" aria-label="Dimensión">
-          <option value="Entidad remitente">Entidad remitente</option>
-          <option value="Tipo de entrada">Tipo de entrada</option>
-          <option value="Temática priorizada">Temática priorizada</option>
-          <option value="Decisión fiscal UGIC">Decisión fiscal UGIC</option>
-          <option value="Estado del trámite">Estado del trámite</option>
-          <option value="Canal de recepción">Canal de recepción</option>
-          <option value="País relacionado">País relacionado</option>
-        </select>
+        <select class="dash-select" id="sel-dim" data-draw="sel_dim" aria-label="Dimensión"></select>
         <div class="gic-chart" id="ind-otra" data-draw="ind_otra" data-source="dist"></div></div>
     </div>
   </section>
@@ -106,7 +99,7 @@
         <option value="relatos">Relatos (todos)</option><option value="relatos_fen">Relatos del fenómeno</option><option value="lq">Cociente de localización</option>
       </select></label>
     </div>
-    <p class="gic-note">Territorio identificado en <b data-draw="terr_cob" data-source="kpi_terr" data-field="pct_con_territorio" data-row="0">—</b> de los relatos del periodo (<span data-draw="terr_reg" data-source="kpi_terr" data-field="pct_registrado" data-row="0">—</span> desde el campo LugarDeLosHechos, el resto extraído del relato con reglas, confianza 0,6). Los CL con menos de 5 relatos son inestables.</p>
+    <p class="gic-note">Territorio identificado en <b data-draw="terr_cob" data-source="kpi_terr" data-field="pct_con_territorio" data-row="0">—</b> de los relatos del periodo (<span data-draw="terr_reg" data-source="kpi_terr" data-field="pct_registrado" data-row="0">—</span> desde el campo LugarDeLosHechos, el resto extraído del relato con reglas, confianza 0,6). Los CL con menos de 5 relatos son inestables. Con la medida "Relatos (todos)" el color del mapa no depende del fenómeno elegido (muestra el total); para ver el efecto del fenómeno use "Relatos del fenómeno" o "Cociente de localización".</p>
     <div class="gic-grid2">
       <div><h3 id="terr-mapa-t">Mapa departamental</h3><div class="gic-chart gic-map" id="terr-mapa" data-draw="terr_mapa" data-source="terr geo"></div></div>
       <div><h3 id="terr-mpio-t">Municipios (cabeceras)</h3><div class="gic-chart gic-map" id="terr-mpio" data-draw="terr_mpio" data-source="mpios geo"></div></div>
@@ -308,11 +301,18 @@
   </section>
 
   <details class="gic-det" id="notas"><summary>Fuente, método y limitaciones</summary>
-    <ul>
+    <ul data-fuente="gic">
       <li>Fuente: DatosAn_lisisReumenGICLavado_V1.xlsx (598 relatos, ingreso 26-sep-2024 a 10-nov-2026; versión depurada con lugares normalizados como «Municipio, Departamento, Colombia»). No se publica el texto de los relatos ni nombres o documentos de personas.</li>
       <li>Pipeline bronce → plata → entidades → fenómenos → oro ejecutado en Python; el código está en cada fuente.</li>
       <li>Los meses de septiembre de 2024 y noviembre de 2026 son parciales; julio y agosto de 2025 tienen 2 y 0 relatos (posible vacío de registro).</li>
       <li>Esta es una versión de reporte del tablero; la app Streamlit local sobre DuckDB con autenticación queda fuera de este reporte.</li>
+    </ul>
+    <ul data-fuente="decla" hidden>
+      <li>Fuente: DECLA_2024_2026.xlsx (1.929 casos SPOA ya abiertos, hoja Hoja1, unidos 1 a 1 con el texto de la hoja Relato por CASO_NOTICIA; creación de caso de 2024-01 a 2026-11). No se publica el texto de los relatos ni nombres o documentos de personas.</li>
+      <li>DECLA no trae los campos de trámite/entrada del GIC (tipo de entrada, entidad remitente, canal, decisión fiscal UGIC): cada fila ya es un caso SPOA formalmente abierto. Por eso, en la página 1 los indicadores "Generan caso en especializadas" y "Días hasta cierre" no aplican, y en la página 7 no se calculan la probabilidad de generar caso, el tiempo hasta el cierre (Kaplan-Meier) ni la tabla de relatos abiertos; sí se calcula la composición esperada de fenómenos.</li>
+      <li>El fenómeno "registrado" de la página 2 viene de DELITO/CAPITULO/TITULO (no de una temática priorizada manual); los casos de falsificación o tráfico de moneda falsificada no tienen hoy una categoría en la taxonomía y pueden quedar sin fenómeno identificado.</li>
+      <li>El selector "Fecha base" cambia qué fecha agrupa cada caso por mes en las páginas 1, 2, 3 y 8 (fecha de creación del caso, de la denuncia o de los hechos); las páginas 4 a 7 siempre usan la fecha de creación del caso, igual que hoy ya ocurre con los demás filtros.</li>
+      <li>Pipeline bronce → plata → entidades → fenómenos → oro ejecutado en Python; el código está en cada fuente.</li>
     </ul></details>
 </div>
 <script src="common.js"></script>

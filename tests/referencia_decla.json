@@ -1,0 +1,62 @@
+{
+ "alertas.json": {
+  "sha256": "bcabe487c8e7dc58afedcf2f840393b1164a26d9b60d43bec92b3fc4f4766319",
+  "filas": 396
+ },
+ "alertas_far.json": {
+  "sha256": "d8b0ca525264882f8d3ecb2a05ab65232cb10ee643bb671d2f54852eefca0d04",
+  "filas": 12
+ },
+ "asociaciones.json": {
+  "sha256": "5a01729084ff554c0531b08bb03702d512d913c3dcb4ef83f7978850597b78b8",
+  "filas": 272
+ },
+ "calidad.json": {
+  "sha256": "21473d94c361be0e558d6b02623810208a976f9553fcca85430bf085868d8a28",
+  "filas": 35
+ },
+ "etiquetas.json": {
+  "sha256": "d948829345e202365662a35429818e850626d21807bdd04934e853191aad0e14",
+  "filas": 8739
+ },
+ "hechos.json": {
+  "sha256": "ed7f333a3d7a8e22154bbe4f4fe8cb47cf4954a228e046fc4711c0ede764f035",
+  "filas": 1929
+ },
+ "modelo_meta.json": {
+  "sha256": "03d44669d32f576c4e5e70d617eda91a28c1e9a8213514112e7bd9443c9c1bb3",
+  "filas": 5
+ },
+ "organizaciones.json": {
+  "sha256": "7d66af25c39643cbb5d599dbd15d24c195bd84e01382d4380c29f2a0bd549204",
+  "filas": 215
+ },
+ "pred_composicion.json": {
+  "sha256": "5fdf9e5e07221a9785aada5efab55e0662113386257a93291ffbc79656ea17e9",
+  "filas": 10
+ },
+ "pronosticos.json": {
+  "sha256": "d73d8b6a16330b4ffe495e9ea90133141d19f891076d57106ec23819c539230c",
+  "filas": 612
+ },
+ "pronosticos_eval.json": {
+  "sha256": "5acbf5f3ff3e2842ac7728313b5ac6c55dfb9d07fba8be11de51116dbaf8673e",
+  "filas": 36
+ },
+ "red_aristas.json": {
+  "sha256": "255ee2ff9a3d52722a6ec70061c3ccc7e8f2be359259080e82aafc79378c54c3",
+  "filas": 514
+ },
+ "red_nodos.json": {
+  "sha256": "591d79a6b3c6f54f11eb72e4dcf7ac59889fda407d0f2bf39859f80d2f6019a1",
+  "filas": 66
+ },
+ "reglas.json": {
+  "sha256": "194420567fbacdc62aa6c746f0747094703d1c0aebcee1329da14c3bc1539173",
+  "filas": 150
+ },
+ "territorio_dptos.json": {
+  "sha256": "691baa1120addf95498b35d0eb4fb6837341051eeeb1e6798f1fc6ac3ec72727",
+  "filas": 1902
+ }
+}
