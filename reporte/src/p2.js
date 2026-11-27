@@ -6,6 +6,7 @@
     const opts = e.status === 'ok'
       ? [...d3.rollup(e.data.filter((x) => x.nivel === 'fenómeno'), (v) => new Set(v.map((x) => x.rid)).size, (x) => x.item)].sort((a, b) => b[1] - a[1]).map(([k]) => [k, k])
       : [['Lavado de activos', 'Lavado de activos']];
+    opts.unshift(['__todos__', 'Todos los fenómenos']);
     G.setSel(sel, opts, P().fen_terr || 'Lavado de activos');
     sel.onchange = () => dash.setParams({ fen_terr: sel.value });
   });

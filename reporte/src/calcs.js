@@ -114,15 +114,16 @@ dash.calc('terr', {
   fn: (hechos, territorio, etiquetas) => {
     const p = dash.params(); const campo = G.mesCampo();
     const fen = p.fen_terr || 'Lavado de activos';
+    const todos = fen === '__todos__';
     const ids = new Set(hechos.filter((r) => { const m = r[campo] || r.mes; return m >= (p.desde || '0000') && m <= (p.hasta || '9999'); }).map((r) => r.rid));
     const tr = territorio.filter((t) => ids.has(t.rid));
-    const conF = new Set(etiquetas.filter((e) => e.nivel === 'fenómeno' && e.item === fen && e.confianza >= 0.5 && ids.has(e.rid)).map((e) => e.rid));
+    const conF = todos ? ids : new Set(etiquetas.filter((e) => e.nivel === 'fenómeno' && e.item === fen && e.confianza >= 0.5 && ids.has(e.rid)).map((e) => e.rid));
     const conT = new Set(tr.map((t) => t.rid));
     const N = conT.size, NF = [...conT].filter((r) => conF.has(r)).length;
     const g = d3.group(tr, (t) => t.dpto_cod);
     return [...g].map(([cod, v]) => {
       const rel = new Set(v.map((t) => t.rid)); const nf = [...rel].filter((r) => conF.has(r)).length;
-      return { dpto_cod: cod, dpto: v[0].dpto, fenomeno: fen, relatos: rel.size, relatos_fen: nf,
+      return { dpto_cod: cod, dpto: v[0].dpto, fenomeno: todos ? 'todos los fenómenos' : fen, relatos: rel.size, relatos_fen: nf,
         lq: N && NF ? (nf / rel.size) / (NF / N) : null };
     }).sort((a, b) => b.relatos - a.relatos);
   },
@@ -148,8 +149,9 @@ dash.calc('mpios', {
   fn: (hechos, etiquetas) => {
     const p = dash.params(); const campo = G.mesCampo();
     const fen = p.fen_terr || 'Lavado de activos';
-    const conF = new Set(etiquetas.filter((e) => e.nivel === 'fenómeno' && e.item === fen && e.confianza >= 0.5).map((e) => e.rid));
-    const h = hechos.filter((r) => { const m = r[campo] || r.mes; return r.mpio_cod && conF.has(r.rid) && m >= (p.desde || '0000') && m <= (p.hasta || '9999'); });
+    const todos = fen === '__todos__';
+    const conF = todos ? null : new Set(etiquetas.filter((e) => e.nivel === 'fenómeno' && e.item === fen && e.confianza >= 0.5).map((e) => e.rid));
+    const h = hechos.filter((r) => { const m = r[campo] || r.mes; return r.mpio_cod && (todos || conF.has(r.rid)) && m >= (p.desde || '0000') && m <= (p.hasta || '9999'); });
     return [...d3.group(h, (r) => r.mpio_cod)].map(([cod, v]) => ({ mpio_cod: cod, mpio: v[0].mpio, dpto: v[0].dpto, lat: v[0].lat, lon: v[0].lon, relatos: v.length }))
       .sort((a, b) => b.relatos - a.relatos);
   },
